@@ -13,7 +13,12 @@ module.exports = {
     'plugin:react/jsx-runtime',
     'prettier',
   ],
-  ignorePatterns: ['dist', '.eslintrc.js'],
+  ignorePatterns: [
+    'dist',
+    'node_modules',
+    '.eslintrc.js',
+    'commitlint.config.js',
+  ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 'latest',
@@ -42,21 +47,27 @@ module.exports = {
     ],
 
     // TypeScript 规则
-    '@typescript-eslint/no-unused-vars': ['error', {
-      argsIgnorePattern: '^_',
-      varsIgnorePattern: '^_',
-      caughtErrorsIgnorePattern: '^_',
-    }],
+    '@typescript-eslint/no-unused-vars': [
+      'error',
+      {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      },
+    ],
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/no-explicit-any': 'error',
     '@typescript-eslint/no-non-null-assertion': 'error',
     '@typescript-eslint/no-var-requires': 'error',
     '@typescript-eslint/array-type': ['error', { default: 'array-simple' }],
     '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
-    '@typescript-eslint/consistent-type-imports': ['error', {
-      prefer: 'type-imports',
-      disallowTypeAnnotations: true,
-    }],
+    '@typescript-eslint/consistent-type-imports': [
+      'error',
+      {
+        prefer: 'type-imports',
+        disallowTypeAnnotations: true,
+      },
+    ],
 
     // 导入规则
     // 'import/order' is disabled because Prettier's sort-imports plugin handles import ordering
@@ -77,7 +88,8 @@ module.exports = {
     'object-shorthand': 'error',
 
     // 命名规则
-    '@typescript-eslint/naming-convention': ['error',
+    '@typescript-eslint/naming-convention': [
+      'error',
       {
         selector: 'variable',
         format: ['camelCase', 'PascalCase', 'UPPER_CASE'],

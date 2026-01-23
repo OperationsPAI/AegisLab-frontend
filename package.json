@@ -13,8 +13,10 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
     "type-check": "tsc --noEmit",
-    "prepare": "husky install",
-    "lint-staged": "lint-staged"
+    "prepare": "husky",
+    "lint-staged": "lint-staged",
+    "changelog": "git-cliff -o CHANGELOG.md",
+    "release": "pnpm changelog && git add CHANGELOG.md && git commit -m 'chore(release): update changelog'"
   },
   "dependencies": {
     "@ant-design/icons": "^5.3.0",
@@ -32,6 +34,8 @@
     "zustand": "^4.5.1"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.3.1",
+    "@commitlint/config-conventional": "^20.3.1",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@types/node": "^25.0.10",
     "@types/react": "^18.3.0",
@@ -47,7 +51,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
     "eslint-plugin-unused-imports": "^3.1.0",
-    "husky": "^9.0.11",
+    "husky": "^9.1.7",
     "lint-staged": "^15.2.2",
     "prettier": "^3.2.5",
     "typescript": "^5.4.0",
