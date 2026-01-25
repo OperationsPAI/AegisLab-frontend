@@ -12,8 +12,8 @@ importers:
         specifier: ^5.3.0
         version: 5.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@rcabench/client':
-        specifier: file:./client
-        version: file:client
+        specifier: file:../AegisLab/client/typescript
+        version: file:../AegisLab/client/typescript
       '@tanstack/react-query':
         specifier: ^5.28.0
         version: 5.90.19(react@18.3.1)
@@ -581,8 +581,8 @@ packages:
       react: '>=16.9.0'
       react-dom: '>=16.9.0'
 
-  '@rcabench/client@file:client':
-    resolution: {directory: client, type: directory}
+  '@rcabench/client@file:../AegisLab/client/typescript':
+    resolution: {directory: ../AegisLab/client/typescript, type: directory}
 
   '@reactflow/background@11.3.14':
     resolution: {integrity: sha512-Gewd7blEVT5Lh6jqrvOgd4G6Qk17eGKQfsDXgyRSqM+CTwDqRldG2LsWN4sNeno6sbqVIC2fZ+rAUBFA9ZEUDA==, tarball: https://registry.npmmirror.com/@reactflow/background/-/background-11.3.14.tgz}
@@ -3576,7 +3576,7 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@rcabench/client@file:client':
+  '@rcabench/client@file:../AegisLab/client/typescript':
     dependencies:
       axios: 1.13.2
     transitivePeerDependencies:

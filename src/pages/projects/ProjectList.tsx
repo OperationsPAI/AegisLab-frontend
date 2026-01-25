@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import {
   CalendarOutlined,
@@ -9,6 +11,8 @@ import {
   PlayCircleOutlined,
   PlusOutlined,
   SearchOutlined,
+  StarFilled,
+  StarOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
 import type { ProjectResp as Project } from '@rcabench/client';
@@ -26,14 +30,13 @@ import {
   Typography,
 } from 'antd';
 import dayjs from 'dayjs';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import { projectApi } from '@/api/projects';
 import StatCard from '@/components/ui/StatCard';
 import StatusBadge, {
   type StatusBadgeProps,
 } from '@/components/ui/StatusBadge';
+import { useProfileStore } from '@/store/profile';
 import { ProjectState } from '@/types/api';
 
 import './ProjectList.css';
@@ -43,12 +46,18 @@ const { Search } = Input;
 
 const ProjectList = () => {
   const navigate = useNavigate();
+  const { loadStarredProjects, toggleStar, isStarred } = useProfileStore();
   const [searchText, setSearchText] = useState('');
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
     total: 0,
   });
+
+  // Load starred projects on mount
+  useEffect(() => {
+    loadStarredProjects();
+  }, [loadStarredProjects]);
 
   // Fetch projects
   const { data: projectsData, isLoading } = useQuery({
@@ -64,15 +73,16 @@ const ProjectList = () => {
   const stats = {
     total: projectsData?.pagination?.total || 0,
     active:
-      projectsData?.items?.filter((p: any) => p.state === ProjectState.ACTIVE)
-        .length || 0,
+      projectsData?.items?.filter(
+        (p: Project) => p.state === ProjectState.ACTIVE
+      ).length || 0,
     completedThisMonth:
-      projectsData?.items?.filter((p: any) =>
+      projectsData?.items?.filter((p: Project) =>
         dayjs(p.created_at).isAfter(dayjs().subtract(1, 'month'))
       ).length || 0,
     totalExperiments:
       projectsData?.items?.reduce(
-        (sum: number, p: any) => sum + (p.experiment_count || 0),
+        (sum: number, p: Project) => sum + (p.experiment_count || 0),
         0
       ) || 0,
   };
@@ -101,9 +111,7 @@ const ProjectList = () => {
   };
 
   const handleRunExperiment = (project: Project) => {
-    navigate('/injections/create', {
-      state: { projectId: project.id, projectName: project.name },
-    });
+    navigate(`/${project.name}/injections/create`);
   };
 
   const columns = [
@@ -113,7 +121,10 @@ const ProjectList = () => {
       key: 'name',
       width: '30%',
       render: (name: string, record: Project) => (
-        <Space>
+        <Space
+          style={{ cursor: 'pointer' }}
+          onClick={() => navigate(`/${name}`)}
+        >
           <Avatar
             size='large'
             style={{
@@ -195,7 +206,7 @@ const ProjectList = () => {
     {
       title: 'Actions',
       key: 'actions',
-      width: '16%',
+      width: '12%',
       render: (_: unknown, record: Project) => (
         <Space>
           <Button
@@ -218,6 +229,30 @@ const ProjectList = () => {
           />
         </Space>
       ),
+    },
+    {
+      title: '',
+      key: 'star',
+      width: '5%',
+      render: (_: unknown, record: Project) => {
+        const starred = record.id ? isStarred(record.id) : false;
+        return (
+          <span
+            style={{
+              fontSize: 18,
+              color: starred ? '#f59e0b' : '#999',
+              cursor: 'pointer',
+              transition: 'color 0.2s, transform 0.2s',
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (record.id) toggleStar(record.id);
+            }}
+          >
+            {starred ? <StarFilled /> : <StarOutlined />}
+          </span>
+        );
+      },
     },
   ];
 
@@ -245,7 +280,13 @@ const ProjectList = () => {
       </div>
 
       {/* Statistics Cards */}
-      <Row gutter={[{ xs: 8, sm: 16, lg: 24 }, { xs: 8, sm: 16, lg: 24 }]} className='stats-row'>
+      <Row
+        gutter={[
+          { xs: 8, sm: 16, lg: 24 },
+          { xs: 8, sm: 16, lg: 24 },
+        ]}
+        className='stats-row'
+      >
         <Col xs={12} sm={12} lg={6}>
           <StatCard
             title='Total Projects'

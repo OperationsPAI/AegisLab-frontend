@@ -1,0 +1,64 @@
+.project-layout {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.project-layout-loading {
+  padding: 24px;
+}
+
+.project-layout-header {
+  padding: 16px 24px;
+  background: var(--color-bg-container);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.project-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.project-icon {
+  font-size: 24px;
+  color: var(--color-primary-500);
+}
+
+.project-title-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.project-name {
+  font-size: 20px;
+  line-height: 1.4;
+}
+
+.project-description {
+  font-size: 14px;
+}
+
+.project-layout-body {
+  flex: 1;
+  overflow: hidden;
+}
+
+.project-sidebar-wrapper {
+  background: var(--color-bg-container);
+  border-right: 1px solid var(--color-border);
+  overflow-y: auto;
+}
+
+.project-sidebar-wrapper .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+}
+
+.project-content {
+  padding: 24px;
+  overflow-y: auto;
+  background: var(--color-bg-layout);
+}

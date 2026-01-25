@@ -1,0 +1,58 @@
+.projects-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.projects-section {
+  background: var(--component-bg, #fff);
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid var(--border-color, #f0f0f0);
+}
+
+.projects-section > h5 {
+  margin-bottom: 16px;
+}
+
+.projects-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.projects-header h5 {
+  margin: 0;
+}
+
+.projects-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+.star-btn {
+  font-size: 18px;
+  color: var(--text-secondary, #999);
+  cursor: pointer;
+  transition:
+    color 0.2s,
+    transform 0.2s;
+  padding: 4px;
+}
+
+.star-btn:hover {
+  transform: scale(1.1);
+}
+
+.star-btn.starred {
+  color: #f59e0b;
+}
+
+/* Table row hover */
+.projects-tab .ant-table-tbody > tr:hover > td {
+  background-color: var(--hover-bg, #fafafa);
+}

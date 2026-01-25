@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
@@ -14,8 +17,8 @@ import {
 } from '@ant-design/icons';
 import {
   ContainerType,
-  ExecutionState,
   type ExecutionResp,
+  ExecutionState,
   type LabelItem,
 } from '@rcabench/client';
 import { useQuery } from '@tanstack/react-query';
@@ -40,14 +43,12 @@ import {
 } from 'antd';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import { containerApi } from '@/api/containers';
 import { executionApi } from '@/api/executions';
 import StatCard from '@/components/ui/StatCard';
+import type { ProjectOutletContext } from '@/hooks/useProjectContext';
 import { useSSE } from '@/hooks/useSSE';
-
 
 dayjs.extend(duration);
 
@@ -57,6 +58,7 @@ const { Option } = Select;
 
 const ExecutionList = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchText, setSearchText] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [stateFilter, setStateFilter] = useState<string | undefined>();
@@ -66,6 +68,12 @@ const ExecutionList = () => {
     pageSize: 10,
     total: 0,
   });
+
+  // Check if we're in project context
+  const isProjectContext = !location.pathname.startsWith('/admin');
+  // Always call the hook, but only use the value if in project context
+  const outletContext = useOutletContext<ProjectOutletContext | null>();
+  const projectContext = isProjectContext ? outletContext : null;
 
   // Fetch executions
   const {
@@ -85,7 +93,10 @@ const ExecutionList = () => {
       executionApi.getExecutions({
         page: pagination.current,
         size: pagination.pageSize,
-        state: stateFilter !== undefined ? Number(stateFilter) as ExecutionState : undefined,
+        state:
+          stateFilter !== undefined
+            ? (Number(stateFilter) as ExecutionState)
+            : undefined,
       }),
   });
 
@@ -95,7 +106,10 @@ const ExecutionList = () => {
     enabled: true,
     onMessage: (data) => {
       // Refetch executions when relevant events are received
-      if (data.type === 'execution_completed' || data.type === 'execution_failed') {
+      if (
+        data.type === 'execution_completed' ||
+        data.type === 'execution_failed'
+      ) {
         refetch();
       }
     },
@@ -116,17 +130,11 @@ const ExecutionList = () => {
   const stats = {
     total: executionsData?.pagination?.total || 0,
     running:
-      executionsData?.items?.filter(
-        (e) => e.state === 'running'
-      ).length || 0,
+      executionsData?.items?.filter((e) => e.state === 'running').length || 0,
     completed:
-      executionsData?.items?.filter(
-        (e) => e.state === 'success'
-      ).length || 0,
+      executionsData?.items?.filter((e) => e.state === 'success').length || 0,
     failed:
-      executionsData?.items?.filter(
-        (e) => e.state === 'failed'
-      ).length || 0,
+      executionsData?.items?.filter((e) => e.state === 'failed').length || 0,
   };
 
   const handleTableChange = (newPagination: TablePaginationConfig) => {
@@ -153,7 +161,11 @@ const ExecutionList = () => {
   };
 
   const handleViewExecution = (id: number) => {
-    navigate(`/executions/${id}`);
+    if (projectContext) {
+      navigate(`/${projectContext.projectName}/executions/${id}`);
+    } else {
+      navigate(`/admin/executions/${id}`);
+    }
   };
 
   const handleDeleteExecution = (id: number) => {
@@ -204,7 +216,11 @@ const ExecutionList = () => {
   };
 
   const handleCreateExecution = () => {
-    navigate('/executions/new');
+    if (projectContext) {
+      navigate(`/${projectContext.projectName}/executions/new`);
+    } else {
+      navigate('/admin/executions/new');
+    }
   };
 
   const formatDuration = (seconds?: number) => {
@@ -263,7 +279,7 @@ const ExecutionList = () => {
       dataIndex: 'id',
       key: 'id',
       width: '12%',
-      render: (id: number, record: any) => (
+      render: (id: number, record: ExecutionResp) => (
         <Space direction='vertical' size={0}>
           <Text strong>#{id}</Text>
           <Text type='secondary' style={{ fontSize: '0.75rem' }}>
@@ -277,7 +293,7 @@ const ExecutionList = () => {
       dataIndex: 'algorithm_name',
       key: 'algorithm',
       width: '20%',
-      render: (_: string, record: any) => (
+      render: (_: string, record: ExecutionResp) => (
         <Space>
           <Avatar
             size='small'
@@ -438,7 +454,7 @@ const ExecutionList = () => {
             <Button
               type='text'
               icon={<EyeOutlined />}
-              onClick={() => handleViewExecution(record.id!)}
+              onClick={() => record.id && handleViewExecution(record.id)}
             />
           </Tooltip>
           <Tooltip title='Delete Execution'>
@@ -446,7 +462,7 @@ const ExecutionList = () => {
               type='text'
               danger
               icon={<DeleteOutlined />}
-              onClick={() => handleDeleteExecution(record.id!)}
+              onClick={() => record.id && handleDeleteExecution(record.id)}
             />
           </Tooltip>
         </Space>
@@ -479,7 +495,13 @@ const ExecutionList = () => {
       </div>
 
       {/* Statistics Cards */}
-      <Row gutter={[{ xs: 8, sm: 16, lg: 24 }, { xs: 8, sm: 16, lg: 24 }]} className='stats-row'>
+      <Row
+        gutter={[
+          { xs: 8, sm: 16, lg: 24 },
+          { xs: 8, sm: 16, lg: 24 },
+        ]}
+        className='stats-row'
+      >
         <Col xs={12} sm={12} lg={6}>
           <StatCard
             title='Total Executions'
@@ -578,7 +600,7 @@ const ExecutionList = () => {
           rowKey='id'
           rowSelection={rowSelection}
           columns={columns}
-          dataSource={(executionsData?.items as any[]) || []}
+          dataSource={executionsData?.items || []}
           loading={isLoading}
           className='executions-table'
           pagination={{

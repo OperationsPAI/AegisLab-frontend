@@ -88,4 +88,31 @@ export const projectApi = {
    */
   updateLabels: (id: number, labels: Array<{ key: string; value: string }>) =>
     apiClient.patch(`/projects/${id}/labels`, { labels }),
+
+  /**
+   * Get project by name - Manual implementation
+   * Used for user-friendly URLs that use project names instead of IDs
+   */
+  getProjectByName: async (
+    name: string
+  ): Promise<ProjectDetailResp | undefined> => {
+    const api = new ProjectsApi(createApiConfig());
+
+    // Find project with matching name from the list
+    // Note: This is a workaround. Ideally backend should provide a getByName endpoint
+    const allProjects = await api.listProjects({ size: 1000 });
+    const project = allProjects.data.data?.items?.find(
+      (p) => p.name === name || p.name?.toLowerCase() === name?.toLowerCase()
+    );
+
+    if (project?.id) {
+      // Get full project details
+      const detailResponse = await api.getProjectById({
+        projectId: project.id,
+      });
+      return detailResponse.data.data;
+    }
+
+    return undefined;
+  },
 };

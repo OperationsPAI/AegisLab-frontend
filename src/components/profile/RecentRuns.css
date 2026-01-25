@@ -1,0 +1,72 @@
+.recent-runs {
+  background: var(--component-bg, #fff);
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #f0f0f0);
+  padding: 16px;
+}
+
+.recent-runs-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
+}
+
+.recent-runs-header .anticon {
+  font-size: 16px;
+  color: var(--primary-color, #3b82f6);
+}
+
+.recent-runs-list .ant-list-item {
+  padding: 12px 0;
+}
+
+.recent-run-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 12px;
+  margin: 0 -16px;
+  border-radius: 0;
+  transition: background-color 0.2s;
+}
+
+.recent-run-item:hover {
+  background-color: var(--hover-bg, #f5f5f5);
+}
+
+.run-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.run-algorithm {
+  font-size: 14px;
+}
+
+.run-version {
+  font-size: 12px;
+}
+
+.run-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.run-time {
+  font-size: 13px;
+}
+
+.run-status {
+  margin: 0;
+}
+
+/* Empty state */
+.recent-runs .ant-empty {
+  margin: 24px 0;
+}
