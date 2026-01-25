@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 
 import {
   CheckCircleOutlined,
@@ -29,8 +31,6 @@ import {
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import type { EChartsOption } from 'echarts';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import { injectionApi } from '@/api/injections';
 import LabChart from '@/components/charts/LabChart';
@@ -38,6 +38,7 @@ import StatCard from '@/components/ui/StatCard';
 import StatusBadge, {
   type StatusBadgeProps,
 } from '@/components/ui/StatusBadge';
+import type { ProjectOutletContext } from '@/hooks/useProjectContext';
 import { useSSE } from '@/hooks/useSSE';
 import { InjectionState, InjectionType } from '@/types/api';
 
@@ -50,6 +51,7 @@ dayjs.extend(relativeTime);
 
 const InjectionList = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchText, setSearchText] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [pagination, setPagination] = useState({
@@ -58,8 +60,18 @@ const InjectionList = () => {
     total: 0,
   });
 
+  // Check if we're in project context
+  const isProjectContext = !location.pathname.startsWith('/admin');
+  // Always call the hook, but only use the value if in project context
+  const outletContext = useOutletContext<ProjectOutletContext | null>();
+  const projectContext = isProjectContext ? outletContext : null;
+
   // Fetch injections
-  const { data: injectionsData, isLoading, refetch } = useQuery({
+  const {
+    data: injectionsData,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: [
       'injections',
       pagination.current,
@@ -79,7 +91,10 @@ const InjectionList = () => {
     enabled: true,
     onMessage: (data) => {
       // Refetch injections when relevant events are received
-      if (data.type === 'injection_completed' || data.type === 'datapack_ready') {
+      if (
+        data.type === 'injection_completed' ||
+        data.type === 'datapack_ready'
+      ) {
         refetch();
       }
     },
@@ -119,11 +134,19 @@ const InjectionList = () => {
   };
 
   const handleCreateInjection = () => {
-    navigate('/injections/create');
+    if (projectContext) {
+      navigate(`/${projectContext.projectName}/injections/create`);
+    } else {
+      navigate('/admin/injections/create');
+    }
   };
 
   const handleEditInjection = (id: number) => {
-    navigate(`/injections/${id}`);
+    if (projectContext) {
+      navigate(`/${projectContext.projectName}/injections/${id}`);
+    } else {
+      navigate(`/admin/injections/${id}`);
+    }
   };
 
   const getInjectionTypeColor = (type: InjectionType) => {
@@ -151,14 +174,15 @@ const InjectionList = () => {
   };
 
   // Injection timeline chart - based on real data grouped by fault type
-  const faultTypeCounts = injectionsData?.items?.reduce(
-    (acc, item) => {
-      const type = item.fault_type || 'Other';
-      acc[type] = (acc[type] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>
-  ) || {};
+  const faultTypeCounts =
+    injectionsData?.items?.reduce(
+      (acc, item) => {
+        const type = item.fault_type || 'Other';
+        acc[type] = (acc[type] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    ) || {};
 
   const timelineData: EChartsOption = {
     title: {
@@ -454,7 +478,13 @@ const InjectionList = () => {
       </div>
 
       {/* Statistics Cards */}
-      <Row gutter={[{ xs: 8, sm: 16, lg: 24 }, { xs: 8, sm: 16, lg: 24 }]} className='stats-row'>
+      <Row
+        gutter={[
+          { xs: 8, sm: 16, lg: 24 },
+          { xs: 8, sm: 16, lg: 24 },
+        ]}
+        className='stats-row'
+      >
         <Col xs={12} sm={12} lg={6}>
           <StatCard
             title='Total Injections'
@@ -490,7 +520,13 @@ const InjectionList = () => {
       </Row>
 
       {/* Charts */}
-      <Row gutter={[{ xs: 8, sm: 16, lg: 24 }, { xs: 8, sm: 16, lg: 24 }]} className='charts-row'>
+      <Row
+        gutter={[
+          { xs: 8, sm: 16, lg: 24 },
+          { xs: 8, sm: 16, lg: 24 },
+        ]}
+        className='charts-row'
+      >
         <Col xs={24} lg={16}>
           <Card className='chart-card'>
             <LabChart option={timelineData} style={{ height: '300px' }} />
@@ -560,25 +596,51 @@ const InjectionList = () => {
                 style={{ cursor: 'pointer' }}
                 onClick={() => handleEditInjection(injection.id || 0)}
               >
-                <Space direction='vertical' style={{ width: '100%' }} size='small'>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text strong style={{ fontSize: '1rem' }}>{injection.name}</Text>
+                <Space
+                  direction='vertical'
+                  style={{ width: '100%' }}
+                  size='small'
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text strong style={{ fontSize: '1rem' }}>
+                      {injection.name}
+                    </Text>
                     <Tag color={getInjectionTypeColor(InjectionType.NETWORK)}>
                       {injection.fault_type || 'Unknown'}
                     </Tag>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
                     <StatusBadge
                       status={
-                        injection.state === InjectionState.COMPLETED ? 'success' :
-                        injection.state === InjectionState.RUNNING ? 'info' :
-                        injection.state === InjectionState.ERROR ? 'error' : 'warning'
+                        injection.state === InjectionState.COMPLETED
+                          ? 'success'
+                          : injection.state === InjectionState.RUNNING
+                            ? 'info'
+                            : injection.state === InjectionState.ERROR
+                              ? 'error'
+                              : 'warning'
                       }
                       text={
-                        injection.state === InjectionState.COMPLETED ? 'Completed' :
-                        injection.state === InjectionState.RUNNING ? 'Running' :
-                        injection.state === InjectionState.ERROR ? 'Error' : 'Pending'
+                        injection.state === InjectionState.COMPLETED
+                          ? 'Completed'
+                          : injection.state === InjectionState.RUNNING
+                            ? 'Running'
+                            : injection.state === InjectionState.ERROR
+                              ? 'Error'
+                              : 'Pending'
                       }
                     />
                     <Text type='secondary' style={{ fontSize: '0.875rem' }}>
@@ -589,8 +651,16 @@ const InjectionList = () => {
                   <Progress
                     percent={injection.progress || 0}
                     size='small'
-                    status={injection.state === InjectionState.ERROR ? 'exception' : 'active'}
-                    strokeColor={injection.state === InjectionState.COMPLETED ? '#10b981' : undefined}
+                    status={
+                      injection.state === InjectionState.ERROR
+                        ? 'exception'
+                        : 'active'
+                    }
+                    strokeColor={
+                      injection.state === InjectionState.COMPLETED
+                        ? '#10b981'
+                        : undefined
+                    }
                   />
                 </Space>
               </Card>

@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^5.3.0",
-    "@rcabench/client": "file:./client",
+    "@rcabench/client": "file:../AegisLab/client/typescript",
     "@tanstack/react-query": "^5.28.0",
     "antd": "^5.15.0",
     "axios": "^1.6.7",

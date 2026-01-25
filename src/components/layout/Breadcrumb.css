@@ -1,0 +1,22 @@
+.app-breadcrumb {
+  margin-bottom: 16px;
+  padding: 8px 0;
+}
+
+.app-breadcrumb a {
+  color: var(--color-text-secondary);
+  transition: color 0.2s;
+}
+
+.app-breadcrumb a:hover {
+  color: var(--color-primary-500);
+}
+
+.app-breadcrumb .ant-breadcrumb-separator {
+  color: var(--color-text-tertiary);
+}
+
+.app-breadcrumb > span:last-child {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}

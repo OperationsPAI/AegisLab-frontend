@@ -1,0 +1,23 @@
+.project-sidebar {
+  height: 100%;
+  background: var(--color-bg-container);
+  border-right: 1px solid var(--color-border);
+}
+
+.project-sidebar-menu {
+  border-right: none;
+  background: transparent;
+}
+
+.project-sidebar-menu .ant-menu-item {
+  margin: 4px 8px;
+  border-radius: 6px;
+}
+
+.project-sidebar-menu .ant-menu-item:hover {
+  background: var(--color-bg-hover);
+}
+
+.project-sidebar-menu .ant-menu-item-selected {
+  background: var(--color-primary-bg);
+}

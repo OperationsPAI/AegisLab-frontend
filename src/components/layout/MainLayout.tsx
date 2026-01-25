@@ -1,3 +1,6 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+
 import {
   ApiOutlined,
   BarChartOutlined,
@@ -7,30 +10,40 @@ import {
   DashboardOutlined,
   DatabaseOutlined,
   ExperimentOutlined,
+  FolderOutlined,
+  HomeOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   PlayCircleOutlined,
+  PlusOutlined,
   ProjectOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
+  TeamOutlined,
   UnorderedListOutlined,
   UserOutlined,
 } from '@ant-design/icons';
+import type { ProjectResp } from '@rcabench/client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Avatar,
   Button,
+  Drawer,
   Dropdown,
+  Form,
+  Input,
   Layout,
   Menu,
   type MenuProps,
+  message,
   Space,
+  Switch,
   Typography,
 } from 'antd';
-import { useEffect, useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
-
+import { projectApi } from '@/api/projects';
+import { teamApi } from '@/api/teams';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import { useAuthStore } from '@/store/auth';
 import { useThemeStore } from '@/store/theme';
@@ -43,15 +56,146 @@ const { Text } = Typography;
 const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { user, logout } = useAuthStore();
   const { sidebarCollapsed, toggleSidebar } = useThemeStore();
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [openKeys, setOpenKeys] = useState<string[]>([]);
 
-  // Menu items
-  const menuItems: MenuProps['items'] = [
+  // Drawer states
+  const [projectDrawerOpen, setProjectDrawerOpen] = useState(false);
+  const [teamDrawerOpen, setTeamDrawerOpen] = useState(false);
+  const [projectForm] = Form.useForm();
+  const [teamForm] = Form.useForm();
+
+  // Fetch recent projects for sidebar
+  const { data: projectsData } = useQuery({
+    queryKey: ['projects', 'sidebar'],
+    queryFn: () => projectApi.getProjects({ page: 1, size: 5 }),
+  });
+
+  // Fetch teams for sidebar
+  const { data: teamsData } = useQuery({
+    queryKey: ['teams', 'sidebar'],
+    queryFn: () => teamApi.getTeams(),
+  });
+
+  const recentProjects = useMemo(
+    () => projectsData?.items || [],
+    [projectsData?.items]
+  );
+
+  const teams = useMemo(() => teamsData || [], [teamsData]);
+
+  // Create project mutation
+  const createProjectMutation = useMutation({
+    mutationFn: projectApi.createProject,
+    onSuccess: (data) => {
+      message.success('Project created successfully');
+      setProjectDrawerOpen(false);
+      projectForm.resetFields();
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      if (data?.name) {
+        navigate(`/${data.name}`);
+      }
+    },
+    onError: () => {
+      message.error('Failed to create project');
+    },
+  });
+
+  // Check if we're in admin section
+  const isAdminSection = location.pathname.startsWith('/admin');
+
+  // User section menu items (wandb-style flat layout)
+  const userSidebarItems: MenuProps['items'] = [
     {
-      key: '/dashboard',
+      key: '/home',
+      icon: <HomeOutlined />,
+      label: 'Home',
+    },
+    {
+      type: 'divider',
+      style: { margin: '12px 0 8px' },
+    },
+    // Projects section header (non-clickable)
+    {
+      key: 'projects-header',
+      type: 'group',
+      label: (
+        <span
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            width: '100%',
+            padding: '0 8px',
+          }}
+        >
+          <span style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>
+            Projects
+          </span>
+          <Button
+            type='link'
+            size='small'
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate('/profile?tab=projects');
+            }}
+            style={{ padding: 0, fontSize: 12, height: 'auto' }}
+          >
+            View all
+          </Button>
+        </span>
+      ),
+    },
+    {
+      key: 'action:create-project',
+      icon: <PlusOutlined />,
+      label: 'Create a new project',
+    },
+    ...recentProjects.map((project: ProjectResp) => ({
+      key: `/projects/${project.name}`,
+      icon: <FolderOutlined />,
+      label: project.name,
+    })),
+    {
+      type: 'divider',
+      style: { margin: '12px 0 8px' },
+    },
+    // Teams section header (non-clickable)
+    {
+      key: 'teams-header',
+      type: 'group',
+      label: (
+        <span
+          style={{
+            fontWeight: 500,
+            color: 'var(--color-text-primary)',
+            padding: '0 8px',
+          }}
+        >
+          Teams
+        </span>
+      ),
+    },
+    // Teams list
+    ...teams.map((team) => ({
+      key: `/teams/${team.name}`,
+      icon: <TeamOutlined />,
+      label: team.display_name || team.name,
+    })),
+    {
+      key: 'action:create-team',
+      icon: <PlusOutlined />,
+      label: 'Create a team to collaborate',
+    },
+  ];
+
+  // Admin section menu items (original navigation with /admin prefix)
+  const adminSidebarItems: MenuProps['items'] = [
+    {
+      key: '/admin/dashboard',
       icon: <DashboardOutlined />,
       label: 'Dashboard',
     },
@@ -65,17 +209,17 @@ const MainLayout: React.FC = () => {
       label: 'Experiments',
       children: [
         {
-          key: '/projects',
+          key: '/admin/projects',
           icon: <ProjectOutlined />,
           label: 'Projects',
         },
         {
-          key: '/injections',
+          key: '/admin/injections',
           icon: <BulbOutlined />,
           label: 'Fault Injections',
         },
         {
-          key: '/executions',
+          key: '/admin/executions',
           icon: <PlayCircleOutlined />,
           label: 'Algorithm Runs',
         },
@@ -87,17 +231,17 @@ const MainLayout: React.FC = () => {
       label: 'Infrastructure',
       children: [
         {
-          key: '/containers',
+          key: '/admin/containers',
           icon: <ContainerOutlined />,
           label: 'Containers',
         },
         {
-          key: '/datasets',
+          key: '/admin/datasets',
           icon: <DatabaseOutlined />,
           label: 'Datasets',
         },
         {
-          key: '/datapacks',
+          key: '/admin/datapacks',
           icon: <DatabaseOutlined />,
           label: 'Datapacks',
         },
@@ -109,12 +253,12 @@ const MainLayout: React.FC = () => {
       label: 'Analysis',
       children: [
         {
-          key: '/evaluations',
+          key: '/admin/evaluations',
           icon: <SafetyCertificateOutlined />,
           label: 'Evaluations',
         },
         {
-          key: '/tasks',
+          key: '/admin/tasks',
           icon: <UnorderedListOutlined />,
           label: 'Task Monitor',
         },
@@ -130,12 +274,12 @@ const MainLayout: React.FC = () => {
       label: 'System',
       children: [
         {
-          key: '/system',
+          key: '/admin/system',
           icon: <ApiOutlined />,
           label: 'API & Config',
         },
         {
-          key: '/settings',
+          key: '/admin/settings',
           icon: <SettingOutlined />,
           label: 'Settings',
         },
@@ -144,11 +288,19 @@ const MainLayout: React.FC = () => {
   ];
 
   // User dropdown menu
-  const userMenuItems: MenuProps['items'] = [
+  const userDropdownItems: MenuProps['items'] = [
     {
       key: 'profile',
       icon: <UserOutlined />,
       label: 'Profile',
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'admin',
+      icon: <DashboardOutlined />,
+      label: 'Admin Panel',
     },
     {
       type: 'divider',
@@ -162,6 +314,16 @@ const MainLayout: React.FC = () => {
   ];
 
   const handleMenuClick = ({ key }: { key: string }) => {
+    // Handle drawer actions
+    if (key === 'action:create-project') {
+      setProjectDrawerOpen(true);
+      return;
+    }
+    if (key === 'action:create-team') {
+      setTeamDrawerOpen(true);
+      return;
+    }
+    // Handle navigation
     if (key.startsWith('/')) {
       navigate(key);
     }
@@ -172,7 +334,9 @@ const MainLayout: React.FC = () => {
       await logout();
       navigate('/login');
     } else if (key === 'profile') {
-      navigate('/settings/profile');
+      navigate('/profile');
+    } else if (key === 'admin') {
+      navigate('/admin/dashboard');
     }
   };
 
@@ -185,21 +349,47 @@ const MainLayout: React.FC = () => {
     const path = location.pathname;
     setSelectedKeys([path]);
 
-    // Set open keys for parent menus
-    if (
-      path.startsWith('/projects') ||
-      path.startsWith('/injections') ||
-      path.startsWith('/executions')
-    ) {
-      setOpenKeys(['experiments']);
-    } else if (path.startsWith('/containers') || path.startsWith('/datasets')) {
-      setOpenKeys(['infrastructure']);
-    } else if (path.startsWith('/evaluations') || path.startsWith('/tasks')) {
-      setOpenKeys(['analysis']);
-    } else if (path.startsWith('/system') || path.startsWith('/settings')) {
-      setOpenKeys(['system']);
+    if (isAdminSection) {
+      // Admin section open keys logic (for expandable submenus)
+      if (
+        path.startsWith('/admin/projects') ||
+        path.startsWith('/admin/injections') ||
+        path.startsWith('/admin/executions')
+      ) {
+        setOpenKeys(['experiments']);
+      } else if (
+        path.startsWith('/admin/containers') ||
+        path.startsWith('/admin/datasets') ||
+        path.startsWith('/admin/datapacks')
+      ) {
+        setOpenKeys(['infrastructure']);
+      } else if (
+        path.startsWith('/admin/evaluations') ||
+        path.startsWith('/admin/tasks')
+      ) {
+        setOpenKeys(['analysis']);
+      } else if (
+        path.startsWith('/admin/system') ||
+        path.startsWith('/admin/settings')
+      ) {
+        setOpenKeys(['system']);
+      }
+    } else {
+      // User section: flat layout, just match selected key
+      if (path.startsWith('/projects/')) {
+        const projectMatch = recentProjects.find((p: ProjectResp) =>
+          path.startsWith(`/projects/${p.name}`)
+        );
+        if (projectMatch) {
+          setSelectedKeys([`/projects/${projectMatch.name}`]);
+        }
+      }
     }
-  }, [location.pathname]);
+  }, [location.pathname, isAdminSection, recentProjects]);
+
+  const currentMenuItems = isAdminSection
+    ? adminSidebarItems
+    : userSidebarItems;
 
   return (
     <Layout className='main-layout'>
@@ -212,12 +402,27 @@ const MainLayout: React.FC = () => {
               sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />
             }
             onClick={toggleSidebar}
-            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={
+              sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'
+            }
             className='sidebar-toggle'
           />
-          <div className='logo-section' onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer' }}>
+          <div
+            className='logo-section'
+            onClick={() =>
+              navigate(isAdminSection ? '/admin/dashboard' : '/home')
+            }
+            style={{ cursor: 'pointer' }}
+          >
             <div className='logo-icon'>
-              <svg width='32' height='32' viewBox='0 0 32 32' fill='none' role='img' aria-label='AegisLab logo'>
+              <svg
+                width='32'
+                height='32'
+                viewBox='0 0 32 32'
+                fill='none'
+                role='img'
+                aria-label='AegisLab logo'
+              >
                 <title>AegisLab</title>
                 <path
                   d='M16 2L30 8.5V23.5L16 30L2 23.5V8.5L16 2Z'
@@ -235,32 +440,52 @@ const MainLayout: React.FC = () => {
                 <circle cx='16' cy='16' r='4' fill='currentColor' />
               </svg>
             </div>
-            {!sidebarCollapsed && (
-              <div className='logo-text'>
-                <span className='logo-title'>AegisLab</span>
-                <span className='logo-subtitle'>RCA Benchmark Platform</span>
-              </div>
-            )}
+            <div className='logo-text'>
+              <span className='logo-title'>AegisLab</span>
+              <span className='logo-subtitle'>
+                {isAdminSection ? 'Admin Panel' : 'RCA Benchmark Platform'}
+              </span>
+            </div>
           </div>
         </div>
 
         <div className='header-right'>
+          {/* Mode switcher */}
+          {!isAdminSection && (
+            <Button
+              type='text'
+              icon={<DashboardOutlined />}
+              onClick={() => navigate('/admin/dashboard')}
+              title='Switch to Admin Panel'
+            />
+          )}
+          {isAdminSection && (
+            <Button
+              type='text'
+              icon={<HomeOutlined />}
+              onClick={() => navigate('/home')}
+              title='Switch to User View'
+            />
+          )}
           <ThemeToggle />
           <Dropdown
-            menu={{ items: userMenuItems, onClick: handleUserMenuClick }}
+            menu={{ items: userDropdownItems, onClick: handleUserMenuClick }}
             placement='bottomRight'
             arrow
             overlayClassName='user-dropdown'
           >
-            <Space className='user-section' role='button' aria-label='User menu' tabIndex={0}>
+            <Space
+              className='user-section'
+              role='button'
+              aria-label='User menu'
+              tabIndex={0}
+            >
               <Avatar
                 size='small'
                 icon={<UserOutlined />}
                 style={{ backgroundColor: 'var(--color-primary-500)' }}
               />
-              {!sidebarCollapsed && (
-                <Text className='username'>{user?.username || 'User'}</Text>
-              )}
+              <Text className='username'>{user?.username || 'User'}</Text>
             </Space>
           </Dropdown>
         </div>
@@ -271,29 +496,33 @@ const MainLayout: React.FC = () => {
         <Sider
           width={240}
           collapsed={sidebarCollapsed}
-          collapsedWidth={64}
+          collapsedWidth={0}
           className='main-sidebar'
+          trigger={null}
         >
-          <div className='sidebar-content'>
-            <Menu
-              mode='inline'
-              selectedKeys={selectedKeys}
-              openKeys={openKeys}
-              items={menuItems}
-              onClick={handleMenuClick}
-              onOpenChange={handleOpenChange}
-              className='sidebar-menu'
-              inlineCollapsed={sidebarCollapsed}
-            />
-          </div>
+          {!sidebarCollapsed && (
+            <>
+              <div className='sidebar-content'>
+                <Menu
+                  mode='inline'
+                  selectedKeys={selectedKeys}
+                  openKeys={openKeys}
+                  items={currentMenuItems}
+                  onClick={handleMenuClick}
+                  onOpenChange={handleOpenChange}
+                  className='sidebar-menu'
+                />
+              </div>
 
-          {/* Sidebar Footer */}
-          <div className='sidebar-footer'>
-            <div className='system-status'>
-              <div className='status-indicator' />
-              <span className='status-text'>System Online</span>
-            </div>
-          </div>
+              {/* Sidebar Footer */}
+              <div className='sidebar-footer'>
+                <div className='system-status'>
+                  <div className='status-indicator' />
+                  <span className='status-text'>System Online</span>
+                </div>
+              </div>
+            </>
+          )}
         </Sider>
 
         {/* Main Content */}
@@ -305,6 +534,109 @@ const MainLayout: React.FC = () => {
           </Content>
         </Layout>
       </Layout>
+
+      {/* Create Project Drawer */}
+      <Drawer
+        title='Create New Project'
+        open={projectDrawerOpen}
+        onClose={() => {
+          setProjectDrawerOpen(false);
+          projectForm.resetFields();
+        }}
+        width={400}
+        footer={
+          <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+            <Button
+              onClick={() => {
+                setProjectDrawerOpen(false);
+                projectForm.resetFields();
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type='primary'
+              loading={createProjectMutation.isPending}
+              onClick={() => projectForm.submit()}
+            >
+              Create
+            </Button>
+          </Space>
+        }
+      >
+        <Form
+          form={projectForm}
+          layout='vertical'
+          onFinish={(values) => {
+            createProjectMutation.mutate(values);
+          }}
+        >
+          <Form.Item
+            name='name'
+            label='Project Name'
+            rules={[
+              { required: true, message: 'Please enter a project name' },
+              {
+                pattern: /^[a-zA-Z0-9_-]+$/,
+                message:
+                  'Only letters, numbers, underscores and hyphens allowed',
+              },
+            ]}
+          >
+            <Input placeholder='my-project' />
+          </Form.Item>
+          <Form.Item name='description' label='Description'>
+            <Input.TextArea rows={3} placeholder='Project description...' />
+          </Form.Item>
+          <Form.Item name='is_public' label='Public' valuePropName='checked'>
+            <Switch />
+          </Form.Item>
+        </Form>
+      </Drawer>
+
+      {/* Create Team Drawer */}
+      <Drawer
+        title='Create New Team'
+        open={teamDrawerOpen}
+        onClose={() => {
+          setTeamDrawerOpen(false);
+          teamForm.resetFields();
+        }}
+        width={400}
+        footer={
+          <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+            <Button
+              onClick={() => {
+                setTeamDrawerOpen(false);
+                teamForm.resetFields();
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type='primary' disabled>
+              Create
+            </Button>
+          </Space>
+        }
+      >
+        <Form form={teamForm} layout='vertical'>
+          <Form.Item
+            name='name'
+            label='Team Name'
+            rules={[{ required: true, message: 'Please enter a team name' }]}
+          >
+            <Input placeholder='my-team' disabled />
+          </Form.Item>
+          <Form.Item name='description' label='Description'>
+            <Input.TextArea
+              rows={3}
+              placeholder='Team description...'
+              disabled
+            />
+          </Form.Item>
+        </Form>
+        <Text type='secondary'>Team creation is coming soon.</Text>
+      </Drawer>
     </Layout>
   );
 };

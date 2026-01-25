@@ -1,0 +1,116 @@
+.profile-sidebar {
+  width: 280px;
+  min-width: 280px;
+  padding: 32px 24px;
+  background: var(--color-bg-container);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-avatar-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.profile-avatar {
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.profile-info {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.profile-name {
+  margin-bottom: 4px !important;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.profile-username {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.profile-email {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.profile-edit-btn {
+  margin-top: 0;
+}
+
+.profile-teams {
+  margin-top: 0;
+}
+
+.teams-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.teams-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.team-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.team-item:hover {
+  background-color: var(--hover-bg, #f5f5f5);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .profile-sidebar {
+    width: 100%;
+    min-width: unset;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color, #f0f0f0);
+    padding: 16px;
+  }
+
+  .profile-avatar-section {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .profile-avatar {
+    width: 80px !important;
+    height: 80px !important;
+    line-height: 80px !important;
+    font-size: 32px !important;
+  }
+
+  .profile-info {
+    text-align: left;
+    margin-bottom: 0;
+    flex: 1;
+  }
+
+  .profile-email {
+    justify-content: flex-start;
+  }
+}

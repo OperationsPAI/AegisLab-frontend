@@ -45,7 +45,7 @@
   --color-surface-hover: var(--color-secondary-100);
 
   /* Sidebar Widths - for layout consistency */
-  --sidebar-width-expanded: 240px;
+  --sidebar-width-expanded: 280px;
   --sidebar-width-collapsed: 64px;
 
   /* Typography - Modern Research Platform */
@@ -291,7 +291,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
-[role="button"]:focus-visible,
+[role='button']:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--color-primary-500);
   outline-offset: 2px;
@@ -303,7 +303,7 @@ textarea:focus-visible,
 [data-theme='dark'] input:focus-visible,
 [data-theme='dark'] select:focus-visible,
 [data-theme='dark'] textarea:focus-visible,
-[data-theme='dark'] [role="button"]:focus-visible,
+[data-theme='dark'] [role='button']:focus-visible,
 [data-theme='dark'] [tabindex]:focus-visible {
   box-shadow: 0 0 0 4px var(--color-primary-900);
 }
