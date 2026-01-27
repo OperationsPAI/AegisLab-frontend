@@ -58,7 +58,7 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({ team }) => {
         <Text
           strong
           style={{ cursor: 'pointer', color: 'var(--color-primary)' }}
-          onClick={() => navigate(`/${name}`)}
+          onClick={() => navigate(`/${team.name}/${name}/workspace`)}
         >
           {name}
         </Text>

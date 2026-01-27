@@ -58,7 +58,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ team }) => {
       render: (projectName: string) => (
         <Text
           style={{ cursor: 'pointer', color: 'var(--color-primary)' }}
-          onClick={() => navigate(`/${projectName}`)}
+          onClick={() => navigate(`/${team.name}/${projectName}`)}
         >
           {projectName}
         </Text>
@@ -173,7 +173,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ team }) => {
         >
           <Button
             type='link'
-            onClick={() => navigate(`/teams/${team.name}?tab=projects`)}
+            onClick={() => navigate(`/teams/${team.name}/projects`)}
           >
             View my projects
           </Button>

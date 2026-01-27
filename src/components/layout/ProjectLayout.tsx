@@ -24,7 +24,8 @@ const { Text } = Typography;
 const ProjectLayout: React.FC = () => {
   const navigate = useNavigate();
   const { sidebarCollapsed } = useThemeStore();
-  const { project, projectName, isLoading, error } = useProjectContext();
+  const { project, projectName, teamName, isLoading, error } =
+    useProjectContext();
 
   // Loading state
   if (isLoading) {
@@ -53,13 +54,14 @@ const ProjectLayout: React.FC = () => {
     project,
     projectId: project.id ?? 0,
     projectName: projectName ?? '',
+    teamName: teamName ?? '',
   };
 
   return (
     <Layout className='project-layout'>
       {/* Project Header */}
       <div className='project-layout-header'>
-        <Breadcrumb projectName={project.name} />
+        <Breadcrumb projectName={project.name} teamName={teamName ?? ''} />
         <div className='project-title-row'>
           <FolderOutlined className='project-icon' />
           <div className='project-title-info'>
@@ -85,6 +87,7 @@ const ProjectLayout: React.FC = () => {
         >
           <ProjectSidebar
             projectName={projectName ?? ''}
+            teamName={teamName ?? ''}
             collapsed={sidebarCollapsed}
           />
         </Sider>

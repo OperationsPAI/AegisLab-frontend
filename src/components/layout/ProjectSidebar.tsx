@@ -14,6 +14,7 @@ import { Menu, type MenuProps } from 'antd';
 import './ProjectSidebar.css';
 
 interface ProjectSidebarProps {
+  teamName: string;
   projectName: string;
   collapsed?: boolean;
 }
@@ -23,6 +24,7 @@ interface ProjectSidebarProps {
  * Shows menu items for project sub-pages: Overview, Workspace, Injections, etc.
  */
 const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
+  teamName,
   projectName,
   collapsed = false,
 }) => {
@@ -73,16 +75,16 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   // Handle menu click
   const handleMenuClick = ({ key }: { key: string }) => {
     if (key === 'overview') {
-      navigate(`/${projectName}`);
+      navigate(`/${teamName}/${projectName}`);
     } else {
-      navigate(`/${projectName}/${key}`);
+      navigate(`/${teamName}/${projectName}/${key}`);
     }
   };
 
   // Update selected key based on current path
   useEffect(() => {
     const path = location.pathname;
-    const projectBasePath = `/${projectName}`;
+    const projectBasePath = `/${teamName}/${projectName}`;
 
     if (path === projectBasePath || path === `${projectBasePath}/`) {
       setSelectedKey('overview');
@@ -93,7 +95,7 @@ const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
         setSelectedKey(subPath);
       }
     }
-  }, [location.pathname, projectName]);
+  }, [location.pathname, teamName, projectName]);
 
   return (
     <div className='project-sidebar'>

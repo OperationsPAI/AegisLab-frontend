@@ -135,7 +135,9 @@ const InjectionList = () => {
 
   const handleCreateInjection = () => {
     if (projectContext) {
-      navigate(`/${projectContext.projectName}/injections/create`);
+      navigate(
+        `/${projectContext.teamName}/${projectContext.projectName}/injections/create`
+      );
     } else {
       navigate('/admin/injections/create');
     }
@@ -143,7 +145,9 @@ const InjectionList = () => {
 
   const handleEditInjection = (id: number) => {
     if (projectContext) {
-      navigate(`/${projectContext.projectName}/injections/${id}`);
+      navigate(
+        `/${projectContext.teamName}/${projectContext.projectName}/injections/${id}`
+      );
     } else {
       navigate(`/admin/injections/${id}`);
     }

@@ -14,13 +14,18 @@ interface BreadcrumbItem {
 interface BreadcrumbProps {
   items?: BreadcrumbItem[];
   projectName?: string;
+  teamName?: string;
 }
 
 /**
  * Dynamic breadcrumb navigation component
  * Automatically generates breadcrumb based on current path or custom items
  */
-const Breadcrumb: React.FC<BreadcrumbProps> = ({ items, projectName }) => {
+const Breadcrumb: React.FC<BreadcrumbProps> = ({
+  items,
+  projectName,
+  teamName,
+}) => {
   const location = useLocation();
 
   // Generate breadcrumb items from current path if not provided
@@ -69,6 +74,24 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ items, projectName }) => {
       const isId = segment.match(/^\d+$/);
 
       if (isProjectName && projectName) {
+        // For project pages, generate wandb-style breadcrumb: teamName > Projects > projectName > page
+        if (teamName) {
+          // Add team name at the beginning (if not already added)
+          if (breadcrumbItems.length === 0) {
+            breadcrumbItems.push({
+              title: teamName,
+              path: teamName === 'Personal' ? '/profile' : `/teams/${teamName}`,
+            });
+          }
+
+          // Add "Projects" link
+          breadcrumbItems.push({
+            title: 'Projects',
+            path: `/teams/${teamName}/projects`,
+          });
+        }
+
+        // Add project name
         breadcrumbItems.push({
           title: projectName,
           path: currentPath,

@@ -162,7 +162,9 @@ const ExecutionList = () => {
 
   const handleViewExecution = (id: number) => {
     if (projectContext) {
-      navigate(`/${projectContext.projectName}/executions/${id}`);
+      navigate(
+        `/${projectContext.teamName}/${projectContext.projectName}/executions/${id}`
+      );
     } else {
       navigate(`/admin/executions/${id}`);
     }
@@ -217,7 +219,9 @@ const ExecutionList = () => {
 
   const handleCreateExecution = () => {
     if (projectContext) {
-      navigate(`/${projectContext.projectName}/executions/new`);
+      navigate(
+        `/${projectContext.teamName}/${projectContext.projectName}/executions/new`
+      );
     } else {
       navigate('/admin/executions/new');
     }
