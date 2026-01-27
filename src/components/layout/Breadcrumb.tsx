@@ -80,14 +80,14 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({
           if (breadcrumbItems.length === 0) {
             breadcrumbItems.push({
               title: teamName,
-              path: teamName === 'Personal' ? '/profile' : `/teams/${teamName}`,
+              path: teamName === 'Personal' ? '/profile' : `/${teamName}`,
             });
           }
 
           // Add "Projects" link
           breadcrumbItems.push({
             title: 'Projects',
-            path: `/teams/${teamName}/projects`,
+            path: `/${teamName}/projects`,
           });
         }
 

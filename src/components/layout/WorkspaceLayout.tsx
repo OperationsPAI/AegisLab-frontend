@@ -55,11 +55,9 @@ const WorkspaceLayout: React.FC = () => {
       {
         label: displayTeamName,
         path:
-          displayTeamName === 'Personal'
-            ? '/profile'
-            : `/teams/${displayTeamName}`,
+          displayTeamName === 'Personal' ? '/profile' : `/${displayTeamName}`,
       },
-      { label: 'Projects', path: `/teams/${displayTeamName}/projects` },
+      { label: 'Projects', path: `/${displayTeamName}/projects` },
       { label: projectName ?? '', path: `/${teamName}/${projectName}` },
     ];
 

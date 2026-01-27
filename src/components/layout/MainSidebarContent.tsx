@@ -118,7 +118,7 @@ const MainSidebarContent: React.FC<MainSidebarContentProps> = ({
     },
     // Teams list
     ...teams.map((team) => ({
-      key: `/teams/${team.name}`,
+      key: `/${team.name}`,
       icon: <TeamOutlined />,
       label: team.display_name || team.name,
     })),

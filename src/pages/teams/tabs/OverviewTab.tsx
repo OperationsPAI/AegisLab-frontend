@@ -173,7 +173,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ team }) => {
         >
           <Button
             type='link'
-            onClick={() => navigate(`/teams/${team.name}/projects`)}
+            onClick={() => navigate(`/${team.name}/projects`)}
           >
             View my projects
           </Button>

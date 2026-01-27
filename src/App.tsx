@@ -171,8 +171,8 @@ function App() {
           }
         />
 
-        {/* ==================== Team Routes (/teams/:teamName) ==================== */}
-        <Route path='teams/:teamName'>
+        {/* ==================== Team Routes (/:teamName) ==================== */}
+        <Route path=':teamName'>
           {/* Default route - redirect to overview */}
           <Route
             index

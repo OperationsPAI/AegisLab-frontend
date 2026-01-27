@@ -29,20 +29,20 @@ const TeamDetailPage = () => {
 
   // Get active tab from URL path
   const pathParts = location.pathname.split('/').filter(Boolean);
-  const activeTab = pathParts[2] || 'overview'; // /teams/:teamName/:tab
+  const activeTab = pathParts[1] || 'overview'; // /:teamName/:tab
 
   const handleTabChange = (key: string) => {
-    navigate(`/teams/${teamName}/${key}`);
+    navigate(`/${teamName}/${key}`);
   };
 
   const handleInvite = () => {
     // Navigate to users tab
-    navigate(`/teams/${teamName}/users`);
+    navigate(`/${teamName}/users`);
     setInviteModalVisible(true);
   };
 
   const handleNavigateToSettings = () => {
-    navigate(`/teams/${teamName}/settings`);
+    navigate(`/${teamName}/settings`);
   };
 
   // Loading state

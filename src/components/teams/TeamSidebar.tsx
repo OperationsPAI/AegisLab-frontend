@@ -31,7 +31,7 @@ const TeamSidebar: React.FC<TeamSidebarProps> = ({
   onNavigateToSettings,
 }) => {
   const handleShare = () => {
-    const url = `${window.location.origin}/teams/${team.name}`;
+    const url = `${window.location.origin}/${team.name}`;
     navigator.clipboard.writeText(url);
     message.success('Team URL copied to clipboard');
   };
