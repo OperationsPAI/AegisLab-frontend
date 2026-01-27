@@ -1,48 +1,389 @@
-import { useOutletContext } from 'react-router-dom';
+import { useCallback, useEffect, useMemo } from 'react';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 
-import { CodeOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { Card, Empty, Typography } from 'antd';
-
+import ChartsPanel from '@/components/workspace/ChartsPanel';
+import RunsPanel from '@/components/workspace/RunsPanel';
+import WorkspacePageHeader from '@/components/workspace/WorkspacePageHeader';
 import type { ProjectOutletContext } from '@/hooks/useProjectContext';
+import { useAuthStore } from '@/store/auth';
+import { useWorkspaceStore } from '@/store/workspace';
+import type {
+  Chart,
+  ChartGroup,
+  Run,
+  RunsDataSource,
+  RunStatus,
+  SharedTableSettings,
+} from '@/types/workspace';
+import { toRunId } from '@/utils/idUtils';
 
-const { Title, Text, Paragraph } = Typography;
+import './ProjectWorkspace.css';
+
+// Fault types for injections
+const FAULT_TYPES = [
+  'network',
+  'cpu',
+  'memory',
+  'disk',
+  'process',
+  'kubernetes',
+];
+const INJECTION_STATUSES: RunStatus[] = [
+  'running',
+  'finished',
+  'failed',
+  'crashed',
+];
+const ALGORITHM_NAMES = [
+  'RCABench',
+  'MicroCause',
+  'CloudRanger',
+  'CIRCA',
+  'DiagNet',
+  'TraceAnomaly',
+];
+
+// Generate mock injections data
+const generateMockInjections = (count: number): Run[] => {
+  return Array.from({ length: count }, (_, i) => {
+    const faultType =
+      FAULT_TYPES[Math.floor(Math.random() * FAULT_TYPES.length)];
+    const status =
+      INJECTION_STATUSES[Math.floor(Math.random() * INJECTION_STATUSES.length)];
+    return {
+      id: `inj_${i + 1}`,
+      name: `${faultType}_delay_${String(i + 1).padStart(3, '0')}`,
+      status,
+      created_at: new Date(
+        Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000
+      ).toISOString(),
+      metrics: {
+        duration: Array.from({ length: 50 }, () => Math.random() * 60),
+        impact_score: Array.from({ length: 50 }, () => Math.random()),
+      },
+      config: {
+        fault_type: faultType,
+        target: `service-${Math.floor(Math.random() * 10)}`,
+      },
+    };
+  });
+};
+
+// Generate mock executions data
+const generateMockExecutions = (count: number): Run[] => {
+  return Array.from({ length: count }, (_, i) => {
+    const algorithm =
+      ALGORITHM_NAMES[Math.floor(Math.random() * ALGORITHM_NAMES.length)];
+    const status =
+      INJECTION_STATUSES[Math.floor(Math.random() * INJECTION_STATUSES.length)];
+    return {
+      id: `exec_${i + 1}`,
+      name: `exec_${String(i + 1).padStart(3, '0')}`,
+      status,
+      created_at: new Date(
+        Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000
+      ).toISOString(),
+      metrics: {
+        loss: Array.from(
+          { length: 100 },
+          (_, j) => 1 / (j + 1) + Math.random() * 0.1
+        ),
+        accuracy: Array.from({ length: 100 }, (_, j) =>
+          Math.min(0.99, j / 100 + Math.random() * 0.1)
+        ),
+        f1_score: Array.from({ length: 100 }, (_, j) =>
+          Math.min(0.95, j / 100 + Math.random() * 0.05)
+        ),
+      },
+      config: {
+        algorithm,
+        version: `v${Math.floor(Math.random() * 3) + 1}.${Math.floor(Math.random() * 10)}`,
+      },
+    };
+  });
+};
+
+// Generate mock charts
+const generateMockCharts = (runs: Run[]): Chart[] => {
+  const colors = [
+    '#1890ff',
+    '#52c41a',
+    '#faad14',
+    '#ff4d4f',
+    '#722ed1',
+    '#13c2c2',
+  ];
+
+  return [
+    {
+      id: 'chart_loss',
+      metricKey: 'loss',
+      title: 'Training Loss',
+      type: 'line',
+      series: runs.slice(0, 5).map((run, idx) => ({
+        runId: run.id,
+        runName: run.name,
+        data: (run.metrics.loss || []).map((v, step) => ({ step, value: v })),
+        color: colors[idx % colors.length],
+        visible: true,
+      })),
+    },
+    {
+      id: 'chart_accuracy',
+      metricKey: 'accuracy',
+      title: 'Accuracy',
+      type: 'line',
+      series: runs.slice(0, 5).map((run, idx) => ({
+        runId: run.id,
+        runName: run.name,
+        data: (run.metrics.accuracy || []).map((v, step) => ({
+          step,
+          value: v,
+        })),
+        color: colors[idx % colors.length],
+        visible: true,
+      })),
+    },
+    {
+      id: 'chart_lr',
+      metricKey: 'learning_rate',
+      title: 'Learning Rate',
+      type: 'line',
+      series: [],
+    },
+  ];
+};
+
+// Mock chart groups
+const mockChartGroups: ChartGroup[] = [
+  {
+    id: 'group_metrics',
+    name: 'Metrics',
+    collapsed: false,
+    charts: ['chart_loss', 'chart_accuracy', 'chart_lr'],
+  },
+];
 
 /**
  * Project Workspace Page
- * Central workspace for project-related operations
+ * Central workspace for visualizing runs and metrics
  */
 const ProjectWorkspace: React.FC = () => {
-  // Get project context (will be used when workspace features are implemented)
-  useOutletContext<ProjectOutletContext>();
+  const {
+    project: _project,
+    teamName,
+    projectName,
+  } = useOutletContext<ProjectOutletContext>();
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
+
+  // Get persisted state from workspace store
+  const {
+    runsDataSource,
+    setRunsDataSource,
+    runsPanelCollapsed,
+    setRunsPanelCollapsed,
+    // Visibility management from store
+    visibleRuns,
+    runColors,
+    selectedRuns,
+    toggleItemVisibility,
+    initializeVisibility,
+    selectRun,
+    deselectRun,
+    // Table settings for pagination sync
+    injectionsTableSettings,
+    executionsTableSettings,
+    setInjectionsTableSettings,
+    setExecutionsTableSettings,
+  } = useWorkspaceStore();
+
+  // Get the appropriate table settings based on data source
+  const tableSettings: SharedTableSettings =
+    runsDataSource === 'injections'
+      ? injectionsTableSettings
+      : executionsTableSettings;
+  const setTableSettings =
+    runsDataSource === 'injections'
+      ? setInjectionsTableSettings
+      : setExecutionsTableSettings;
+
+  // Extract pagination and search from shared settings (syncs with list pages)
+  const {
+    currentPage: page,
+    pageSize,
+    searchText: searchQuery,
+  } = tableSettings;
+
+  // Mock data based on data source - replace with API calls later
+  const mockInjections = useMemo(() => generateMockInjections(33), []);
+  const mockExecutions = useMemo(() => generateMockExecutions(28), []);
+
+  // Select data based on current data source
+  const allRuns = useMemo(() => {
+    return runsDataSource === 'injections' ? mockInjections : mockExecutions;
+  }, [runsDataSource, mockInjections, mockExecutions]);
+
+  const charts = useMemo(() => generateMockCharts(allRuns), [allRuns]);
+
+  // Get visible runs for current data source from store
+  // Convert store's prefixed IDs to the format RunsPanel expects
+  const visibleRunsForPanel = useMemo(() => {
+    const result: Record<string, boolean> = {};
+    allRuns.forEach((run) => {
+      // The run.id is already in format like 'inj_1' or 'exec_1'
+      // We need to match it with our store's prefixed format
+      const storeId = toRunId(runsDataSource, run.id.split('_')[1]);
+      result[run.id] = visibleRuns[storeId] ?? false;
+    });
+    return result;
+  }, [allRuns, visibleRuns, runsDataSource]);
+
+  // Get selected runs for current data source
+  const selectedRunsForPanel = useMemo(() => {
+    return selectedRuns.filter((id) => {
+      if (runsDataSource === 'injections') return id.startsWith('inj_');
+      return id.startsWith('exec_');
+    });
+  }, [selectedRuns, runsDataSource]);
+
+  // Initialize visibility when data loads
+  useEffect(() => {
+    if (allRuns.length > 0) {
+      // Extract numeric IDs from run IDs (e.g., 'inj_1' -> 1)
+      const numericIds = allRuns.map((run) => Number(run.id.split('_')[1]));
+      initializeVisibility(runsDataSource, numericIds, 5);
+    }
+  }, [allRuns, runsDataSource, initializeVisibility]);
+
+  // Filter and paginate runs
+  const filteredRuns = useMemo(() => {
+    let filtered = allRuns;
+    if (searchQuery) {
+      filtered = allRuns.filter((run) =>
+        run.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    return filtered;
+  }, [allRuns, searchQuery]);
+
+  const paginatedRuns = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredRuns.slice(start, start + pageSize);
+  }, [filteredRuns, page, pageSize]);
+
+  // Handlers
+  const handleToggleVisibility = useCallback(
+    (runId: string) => {
+      // Extract numeric ID from run ID (e.g., 'inj_1' -> 1)
+      const numericId = Number(runId.split('_')[1]);
+      toggleItemVisibility(runsDataSource, numericId);
+    },
+    [runsDataSource, toggleItemVisibility]
+  );
+
+  const handleSelectRun = useCallback(
+    (runId: string) => {
+      // Convert to store format
+      const numericId = Number(runId.split('_')[1]);
+      const storeId = toRunId(runsDataSource, numericId);
+
+      if (selectedRuns.includes(storeId)) {
+        deselectRun(storeId);
+      } else {
+        selectRun(storeId);
+      }
+    },
+    [runsDataSource, selectedRuns, selectRun, deselectRun]
+  );
+
+  const handlePageChange = useCallback(
+    (newPage: number, newPageSize?: number) => {
+      setTableSettings({
+        currentPage: newPage,
+        ...(newPageSize && newPageSize !== pageSize
+          ? { pageSize: newPageSize }
+          : {}),
+      });
+    },
+    [setTableSettings, pageSize]
+  );
+
+  const handleSearch = useCallback(
+    (query: string) => {
+      setTableSettings({
+        searchText: query,
+        currentPage: 1, // Reset to first page when searching
+      });
+    },
+    [setTableSettings]
+  );
+
+  const handleToggleRunsPanel = useCallback(() => {
+    setRunsPanelCollapsed(!runsPanelCollapsed);
+  }, [runsPanelCollapsed, setRunsPanelCollapsed]);
+
+  const handleDataSourceChange = useCallback(
+    (source: RunsDataSource) => {
+      setRunsDataSource(source);
+      // Note: pagination and search are now per-data-source from store,
+      // so no need to reset them here - they will automatically use the
+      // correct settings when runsDataSource changes
+    },
+    [setRunsDataSource]
+  );
+
+  const handleExpandPanel = useCallback(() => {
+    const targetPage =
+      runsDataSource === 'injections' ? 'injections' : 'executions';
+    navigate(`/${teamName}/${projectName}/${targetPage}`);
+  }, [navigate, teamName, projectName, runsDataSource]);
+
+  // Workspace info
+  const workspaceName = `${user?.username || 'User'}'s workspace`;
 
   return (
     <div className='project-workspace'>
-      <Title level={4}>
-        <CodeOutlined style={{ marginRight: 8 }} />
-        Workspace
-      </Title>
+      {/* Workspace header */}
+      <WorkspacePageHeader
+        workspaceName={workspaceName}
+        workspaceType='personal'
+        lastSaved={new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()}
+        runsPanelCollapsed={runsPanelCollapsed}
+        onToggleRunsPanel={handleToggleRunsPanel}
+      />
 
-      <Paragraph type='secondary'>
-        Central workspace for managing your project experiments and
-        configurations.
-      </Paragraph>
+      {/* Main content area */}
+      <div className='project-workspace-content'>
+        {/* Runs panel */}
+        <RunsPanel
+          runs={paginatedRuns}
+          totalRuns={filteredRuns.length}
+          visibleRuns={visibleRunsForPanel}
+          selectedRuns={selectedRunsForPanel}
+          page={page}
+          pageSize={pageSize}
+          collapsed={runsPanelCollapsed}
+          dataSource={runsDataSource}
+          onDataSourceChange={handleDataSourceChange}
+          onToggleVisibility={handleToggleVisibility}
+          onSelectRun={handleSelectRun}
+          onPageChange={handlePageChange}
+          onSearch={handleSearch}
+          onCollapse={handleToggleRunsPanel}
+          onExpand={handleExpandPanel}
+        />
 
-      <Card style={{ marginTop: 24 }}>
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={
-            <span>
-              <InfoCircleOutlined style={{ marginRight: 4 }} />
-              Workspace features coming soon
-            </span>
-          }
-        >
-          <Text type='secondary'>
-            The workspace will provide tools for managing experiment
-            configurations, viewing logs, and monitoring project resources.
-          </Text>
-        </Empty>
-      </Card>
+        {/* Charts panel */}
+        <ChartsPanel
+          charts={charts}
+          groups={mockChartGroups}
+          runsPanelCollapsed={runsPanelCollapsed}
+          onExpandRunsPanel={handleToggleRunsPanel}
+          visibleRuns={visibleRunsForPanel}
+          runColors={runColors}
+        />
+      </div>
     </div>
   );
 };

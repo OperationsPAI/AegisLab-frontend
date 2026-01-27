@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import MainLayout from '@/components/layout/MainLayout';
-import ProjectLayout from '@/components/layout/ProjectLayout';
+import WorkspaceLayout from '@/components/layout/WorkspaceLayout';
 import { useAuthStore } from '@/store/auth';
 
 // Lazy load all page components
@@ -18,18 +18,23 @@ const ProjectWorkspace = lazy(
 const ProjectSettings = lazy(() => import('@/pages/projects/ProjectSettings'));
 
 // Project-scoped pages (injections, executions, artifacts under /:projectName)
-const InjectionList = lazy(() => import('@/pages/injections/InjectionList'));
+// W&B-style table pages for workspace
+const ProjectInjectionList = lazy(
+  () => import('@/pages/projects/ProjectInjectionList')
+);
+const ProjectExecutionList = lazy(
+  () => import('@/pages/projects/ProjectExecutionList')
+);
+const ProjectInjectionDetail = lazy(
+  () => import('@/pages/projects/ProjectInjectionDetail')
+);
+const ProjectExecutionDetail = lazy(
+  () => import('@/pages/projects/ProjectExecutionDetail')
+);
 const InjectionCreate = lazy(
   () => import('@/pages/injections/InjectionCreate')
 );
-const InjectionDetail = lazy(
-  () => import('@/pages/injections/InjectionDetail')
-);
-const ExecutionList = lazy(() => import('@/pages/executions/ExecutionList'));
 const ExecutionForm = lazy(() => import('@/pages/executions/ExecutionForm'));
-const ExecutionDetail = lazy(
-  () => import('@/pages/executions/ExecutionDetail')
-);
 
 // Admin pages (original flat routes with /admin prefix)
 const Dashboard = lazy(() => import('@/pages/dashboard/Dashboard'));
@@ -117,9 +122,8 @@ function App() {
         }
       />
 
-      {/* Protected routes */}
+      {/* Protected routes - Main Layout (sidebar visible) */}
       <Route
-        path='/*'
         element={
           isAuthenticated ? <MainLayout /> : <Navigate to='/login' replace />
         }
@@ -168,120 +172,46 @@ function App() {
         />
 
         {/* ==================== Team Routes (/teams/:teamName) ==================== */}
-        <Route
-          path='teams/:teamName'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <TeamDetailPage />
-            </Suspense>
-          }
-        />
-
-        {/* ==================== Project-scoped Routes (/:projectName/*) ==================== */}
-        <Route
-          path=':projectName'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <ProjectLayout />
-            </Suspense>
-          }
-        >
-          {/* Project Overview (default) */}
+        <Route path='teams/:teamName'>
+          {/* Default route - redirect to overview */}
           <Route
             index
             element={
               <Suspense fallback={<LoadingFallback />}>
-                <ProjectOverview />
+                <TeamDetailPage />
               </Suspense>
             }
           />
-
-          {/* Workspace */}
+          {/* Tab routes */}
           <Route
-            path='workspace'
+            path='overview'
             element={
               <Suspense fallback={<LoadingFallback />}>
-                <ProjectWorkspace />
-              </Suspense>
-            }
-          />
-
-          {/* Injections */}
-          <Route
-            path='injections'
-            element={
-              <Suspense fallback={<LoadingFallback />}>
-                <InjectionList />
+                <TeamDetailPage />
               </Suspense>
             }
           />
           <Route
-            path='injections/create'
+            path='projects'
             element={
               <Suspense fallback={<LoadingFallback />}>
-                <InjectionCreate />
+                <TeamDetailPage />
               </Suspense>
             }
           />
           <Route
-            path='injections/:id'
+            path='users'
             element={
               <Suspense fallback={<LoadingFallback />}>
-                <InjectionDetail />
+                <TeamDetailPage />
               </Suspense>
             }
           />
-
-          {/* Executions */}
-          <Route
-            path='executions'
-            element={
-              <Suspense fallback={<LoadingFallback />}>
-                <ExecutionList />
-              </Suspense>
-            }
-          />
-          <Route
-            path='executions/new'
-            element={
-              <Suspense fallback={<LoadingFallback />}>
-                <ExecutionForm />
-              </Suspense>
-            }
-          />
-          <Route
-            path='executions/:id'
-            element={
-              <Suspense fallback={<LoadingFallback />}>
-                <ExecutionDetail />
-              </Suspense>
-            }
-          />
-
-          {/* Artifacts (placeholder) */}
-          <Route
-            path='artifacts'
-            element={
-              <Suspense fallback={<LoadingFallback />}>
-                <div style={{ padding: 24 }}>Artifacts list coming soon</div>
-              </Suspense>
-            }
-          />
-          <Route
-            path='artifacts/:id'
-            element={
-              <Suspense fallback={<LoadingFallback />}>
-                <div style={{ padding: 24 }}>Artifact detail coming soon</div>
-              </Suspense>
-            }
-          />
-
-          {/* Project Settings */}
           <Route
             path='settings'
             element={
               <Suspense fallback={<LoadingFallback />}>
-                <ProjectSettings />
+                <TeamDetailPage />
               </Suspense>
             }
           />
@@ -584,10 +514,183 @@ function App() {
           path='settings/*'
           element={<Navigate to='/admin/settings' replace />}
         />
-
-        {/* Fallback */}
-        <Route path='*' element={<Navigate to='/home' replace />} />
       </Route>
+
+      {/* ==================== Project-scoped Routes (/:teamName/:projectName/*) - Workspace Layout ==================== */}
+      {/* These routes are outside MainLayout to hide the main sidebar */}
+      {/* NOTE: Project names cannot use reserved keywords: overview, projects, users, settings */}
+      <Route
+        path=':teamName/:projectName'
+        element={
+          isAuthenticated ? (
+            <Suspense fallback={<LoadingFallback />}>
+              <WorkspaceLayout />
+            </Suspense>
+          ) : (
+            <Navigate to='/login' replace />
+          )
+        }
+      >
+        {/* Project Overview (default) */}
+        <Route
+          index
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <ProjectOverview />
+            </Suspense>
+          }
+        />
+
+        {/* Workspace */}
+        <Route
+          path='workspace'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <ProjectWorkspace />
+            </Suspense>
+          }
+        />
+
+        {/* Injections - W&B style table */}
+        <Route
+          path='injections'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <ProjectInjectionList />
+            </Suspense>
+          }
+        />
+        <Route
+          path='injections/create'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <InjectionCreate />
+            </Suspense>
+          }
+        />
+        <Route
+          path='injections/:id'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <ProjectInjectionDetail />
+            </Suspense>
+          }
+        />
+
+        {/* Executions - W&B style table */}
+        <Route
+          path='executions'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <ProjectExecutionList />
+            </Suspense>
+          }
+        />
+        <Route
+          path='executions/new'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <ExecutionForm />
+            </Suspense>
+          }
+        />
+        <Route
+          path='executions/:id'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <ProjectExecutionDetail />
+            </Suspense>
+          }
+        />
+
+        {/* Evaluations */}
+        <Route
+          path='evaluations'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <EvaluationList />
+            </Suspense>
+          }
+        />
+        <Route
+          path='evaluations/:id'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <EvaluationDetail />
+            </Suspense>
+          }
+        />
+
+        {/* Reports (placeholder) */}
+        <Route
+          path='reports'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <div style={{ padding: 24 }}>Reports list coming soon</div>
+            </Suspense>
+          }
+        />
+        <Route
+          path='reports/:id'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <div style={{ padding: 24 }}>Report detail coming soon</div>
+            </Suspense>
+          }
+        />
+
+        {/* Artifacts (placeholder) */}
+        <Route
+          path='artifacts'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <div style={{ padding: 24 }}>Artifacts list coming soon</div>
+            </Suspense>
+          }
+        />
+        <Route
+          path='artifacts/:id'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <div style={{ padding: 24 }}>Artifact detail coming soon</div>
+            </Suspense>
+          }
+        />
+
+        {/* Charts */}
+        <Route
+          path='charts'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <div style={{ padding: 24 }}>
+                Charts configuration coming soon
+              </div>
+            </Suspense>
+          }
+        />
+
+        {/* Project Settings */}
+        <Route
+          path='settings'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <ProjectSettings />
+            </Suspense>
+          }
+        />
+      </Route>
+
+      {/* Fallback - redirect unknown routes to home */}
+      <Route
+        path='*'
+        element={
+          isAuthenticated ? (
+            <Navigate to='/home' replace />
+          ) : (
+            <Navigate to='/login' replace />
+          )
+        }
+      />
     </Routes>
   );
 }

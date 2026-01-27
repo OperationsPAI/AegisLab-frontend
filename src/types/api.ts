@@ -9,6 +9,15 @@ export type {
 
 export { ExecutionState, FaultType } from '@rcabench/client';
 
+/**
+ * Note: ProjectDetailResp should include the following fields for team/owner navigation:
+ * - team_name?: string - The name of the team that owns the project
+ * - owner_name?: string - The name of the owner (user or team)
+ * These fields are used in breadcrumb navigation to show: teamName > Projects > projectName > page
+ *
+ * When backend API is updated, ensure these fields are included in the ProjectDetailResp type.
+ */
+
 // Custom enums (not in generated API)
 export enum InjectionState {
   PENDING = '0',

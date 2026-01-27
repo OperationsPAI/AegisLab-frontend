@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { projectApi } from '@/api/projects';
 
 export interface ProjectContextValue {
+  teamName: string | undefined;
   projectName: string | undefined;
   project: ProjectDetailResp | undefined;
   projectId: number | undefined;
@@ -18,11 +19,14 @@ export interface ProjectContextValue {
 }
 
 /**
- * Hook to get project context from URL projectName parameter
+ * Hook to get project context from URL teamName and projectName parameters
  * Uses project name in URL for user-friendly URLs, internally uses id for API calls
  */
 export function useProjectContext(): ProjectContextValue {
-  const { projectName } = useParams<{ projectName: string }>();
+  const { teamName, projectName } = useParams<{
+    teamName: string;
+    projectName: string;
+  }>();
 
   const {
     data: project,
@@ -35,6 +39,7 @@ export function useProjectContext(): ProjectContextValue {
   });
 
   return {
+    teamName,
     projectName,
     project,
     projectId: project?.id,
@@ -49,5 +54,6 @@ export function useProjectContext(): ProjectContextValue {
 export interface ProjectOutletContext {
   project: ProjectDetailResp;
   projectId: number;
+  teamName: string;
   projectName: string;
 }

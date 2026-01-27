@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import {
   AppstoreOutlined,
@@ -21,26 +21,28 @@ import './TeamDetailPage.css';
 
 const TeamDetailPage = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const { teamName } = useParams<{ teamName: string }>();
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
 
   const { team, members, isLoading, error } = useTeamContext();
 
-  // Get active tab from URL or default to 'overview'
-  const activeTab = searchParams.get('tab') || 'overview';
+  // Get active tab from URL path
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const activeTab = pathParts[2] || 'overview'; // /teams/:teamName/:tab
 
   const handleTabChange = (key: string) => {
-    setSearchParams({ tab: key });
+    navigate(`/teams/${teamName}/${key}`);
   };
 
   const handleInvite = () => {
     // Navigate to users tab
-    setSearchParams({ tab: 'users' });
+    navigate(`/teams/${teamName}/users`);
     setInviteModalVisible(true);
   };
 
   const handleNavigateToSettings = () => {
-    setSearchParams({ tab: 'settings' });
+    navigate(`/teams/${teamName}/settings`);
   };
 
   // Loading state

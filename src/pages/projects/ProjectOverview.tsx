@@ -21,7 +21,8 @@ const { Text } = Typography;
  */
 const ProjectOverview: React.FC = () => {
   const navigate = useNavigate();
-  const { project, projectName } = useOutletContext<ProjectOutletContext>();
+  const { project, teamName, projectName } =
+    useOutletContext<ProjectOutletContext>();
 
   // Mock statistics - in real app these would come from API
   const stats = {
@@ -39,13 +40,17 @@ const ProjectOverview: React.FC = () => {
           <Button
             type='primary'
             icon={<BulbOutlined />}
-            onClick={() => navigate(`/${projectName}/injections/create`)}
+            onClick={() =>
+              navigate(`/${teamName}/${projectName}/injections/create`)
+            }
           >
             New Injection
           </Button>
           <Button
             icon={<PlayCircleOutlined />}
-            onClick={() => navigate(`/${projectName}/executions/new`)}
+            onClick={() =>
+              navigate(`/${teamName}/${projectName}/executions/new`)
+            }
           >
             New Execution
           </Button>
