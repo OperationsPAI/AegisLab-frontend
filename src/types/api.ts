@@ -76,7 +76,6 @@ export type ProjectVisibility = 'private' | 'team' | 'public';
 export interface ProjectWithStats {
   id: number;
   name: string;
-  description?: string;
   is_public?: boolean;
   visibility?: ProjectVisibility;
   updated_at?: string;

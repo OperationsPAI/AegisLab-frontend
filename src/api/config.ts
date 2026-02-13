@@ -11,13 +11,46 @@ export const createApiConfig = (): Configuration => {
 
   return new Configuration({
     basePath: '',
-    // SDK 使用 apiKey 设置 Authorization header (需带 Bearer 前缀)
     apiKey: token ? `Bearer ${token}` : undefined,
     baseOptions: {
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
       },
+    } as AxiosRequestConfig,
+  });
+};
+
+/**
+ * File download API configuration
+ * Configured with responseType: 'blob' for file downloads
+ */
+export const createFileApiConfig = (): Configuration => {
+  const token = localStorage.getItem('access_token');
+
+  return new Configuration({
+    basePath: '',
+    apiKey: token ? `Bearer ${token}` : undefined,
+    baseOptions: {
+      timeout: 60000, // Longer timeout for file downloads
+      responseType: 'blob',
+    } as AxiosRequestConfig,
+  });
+};
+
+/**
+ * Arrow IPC Stream API configuration
+ * Configured with responseType: 'arraybuffer' for Arrow binary data
+ */
+export const createArrowApiConfig = (): Configuration => {
+  const token = localStorage.getItem('access_token');
+
+  return new Configuration({
+    basePath: '',
+    apiKey: token ? `Bearer ${token}` : undefined,
+    baseOptions: {
+      timeout: 60000, // Longer timeout for Arrow data
+      responseType: 'arraybuffer',
     } as AxiosRequestConfig,
   });
 };

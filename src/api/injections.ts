@@ -13,12 +13,14 @@ import {
   type LabelItem,
   type ListInjectionResp,
   type ListInjectionsType,
-  type ManageInjectionLabelReq,
   type SubmitDatapackBuildingReq,
   type SubmitInjectionReq,
 } from '@rcabench/client';
 
-import { apiClient, createApiConfig } from './config';
+import { apiClient, createApiConfig, createFileApiConfig } from './config';
+
+// Re-export types for convenience
+export type { InjectionDetailResp } from '@rcabench/client';
 
 export const injectionApi = {
   // ==================== SDK Methods ====================
@@ -127,9 +129,19 @@ export const injectionApi = {
   /**
    * Manage injection labels - Using SDK
    */
-  manageLabels: async (id: number, manage: ManageInjectionLabelReq) => {
+  manageLabels: async (
+    id: number,
+    add_labels: LabelItem[],
+    remove_labels: LabelItem[]
+  ) => {
+    const removeLabelKeys = remove_labels
+      .filter((l) => l.key !== undefined)
+      .map((l) => l.key as string);
     const api = new InjectionsApi(createApiConfig());
-    const response = await api.manageInjectionLabels({ id, manage });
+    const response = await api.manageInjectionLabels({
+      id,
+      manage: { add_labels, remove_labels: removeLabelKeys },
+    });
     return response.data.data;
   },
 
@@ -142,8 +154,6 @@ export const injectionApi = {
     remove_labels?: string[];
   }) => {
     const api = new InjectionsApi(createApiConfig());
-    // Convert to SDK expected format: items array with InjectionLabelOperation objects
-    // Note: SDK expects remove_labels as LabelItem[] (key only), convert from string[]
     const batchManage: BatchManageInjectionLabelReq = {
       items: data.injection_ids.map((id) => ({
         injection_id: id,
@@ -153,6 +163,46 @@ export const injectionApi = {
     };
     const response = await api.batchManageInjectionLabels({ batchManage });
     return response.data.data;
+  },
+
+  listDatapackFiles: async (id: number) => {
+    const api = new InjectionsApi(createApiConfig());
+    const response = await api.listDatapackFiles({ id });
+    return response.data.data;
+  },
+
+  downloadDatapackFile: async (id: number, path: string) => {
+    const api = new InjectionsApi(createFileApiConfig());
+    const response = await api.downloadDatapackFile({ id, path });
+    return response.data;
+  },
+
+  /**
+   * Query datapack file content with pagination - Manual implementation (SDK missing)
+   */
+  queryDatapackFileContent: async (id: number, path: string) => {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(
+      `/api/v2/injections/${id}/files/query?path=${encodeURIComponent(path)}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response
+        .json()
+        .then((data) => data.message || JSON.stringify(data))
+        .catch(() => response.statusText);
+      throw new Error(
+        `Failed to query datapack file content: ${response.status} ${response.statusText} - ${errorText}`
+      );
+    }
+
+    return response;
   },
 
   // ==================== Manual Implementation (SDK Missing) ====================
