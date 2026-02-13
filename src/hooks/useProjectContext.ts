@@ -1,13 +1,13 @@
 /**
- * Project Context Hook
- * 从 URL name 获取项目信息，内部存储 id 用于 API 调用
+ * Get project context from URL params with name→id cache optimization
  */
 import { useParams } from 'react-router-dom';
 
 import type { ProjectDetailResp } from '@rcabench/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { projectApi } from '@/api/projects';
+import { getProjectIdFromName } from '@/utils/projectNameMap';
 
 export interface ProjectContextValue {
   teamName: string | undefined;
@@ -19,8 +19,8 @@ export interface ProjectContextValue {
 }
 
 /**
- * Hook to get project context from URL teamName and projectName parameters
- * Uses project name in URL for user-friendly URLs, internally uses id for API calls
+ * Get project context from URL params
+ * Uses cached name→id mapping to optimize API calls
  */
 export function useProjectContext(): ProjectContextValue {
   const { teamName, projectName } = useParams<{
@@ -28,14 +28,40 @@ export function useProjectContext(): ProjectContextValue {
     projectName: string;
   }>();
 
+  const queryClient = useQueryClient();
+
+  const cachedProjectId = getProjectIdFromName(projectName, (key) =>
+    queryClient.getQueryData(key)
+  );
+
+  // Use getProjects() if not cached, to find project by name
+  const {
+    data: projectsData,
+    isLoading: isProjectsLoading,
+    error: projectsError,
+  } = useQuery({
+    queryKey: ['projects', 'list'],
+    queryFn: () => projectApi.getProjects(),
+    enabled: !!projectName && !cachedProjectId,
+  });
+
+  const matchedProject = projectsData?.items?.find(
+    (p) => p.name === projectName
+  );
+  const projectId = cachedProjectId || matchedProject?.id;
+
+  // Use getProject(id) to get details
   const {
     data: project,
-    isLoading,
-    error,
+    isLoading: isProjectLoading,
+    error: projectError,
   } = useQuery({
-    queryKey: ['project', 'byName', projectName],
-    queryFn: () => projectApi.getProjectByName(projectName ?? ''),
-    enabled: !!projectName,
+    queryKey: ['project', projectId],
+    queryFn: () => {
+      if (!projectId) throw new Error('Project ID is required');
+      return projectApi.getProjectDetail(projectId);
+    },
+    enabled: !!projectId,
   });
 
   return {
@@ -43,8 +69,8 @@ export function useProjectContext(): ProjectContextValue {
     projectName,
     project,
     projectId: project?.id,
-    isLoading,
-    error: error as Error | null,
+    isLoading: isProjectsLoading || isProjectLoading,
+    error: (projectsError || projectError) as Error | null,
   };
 }
 

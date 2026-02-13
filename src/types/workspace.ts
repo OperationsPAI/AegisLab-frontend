@@ -1,6 +1,7 @@
 /**
  * Workspace-related type definitions
  */
+import { DatapackStateString } from '@rcabench/client';
 
 // Run status
 export type RunStatus = 'running' | 'finished' | 'failed' | 'crashed';
@@ -328,10 +329,10 @@ export interface EvaluationTableRow {
 }
 
 // ============================================================================
-// Status Color Definitions
+// State Color Definitions
 // ============================================================================
 
-export const STATUS_COLORS = {
+export const STATE_COLORS = {
   pending: '#faad14',
   running: '#1890ff',
   success: '#52c41a',
@@ -343,7 +344,46 @@ export const STATUS_COLORS = {
   crashed: '#faad14',
 } as const;
 
-export type StatusColorKey = keyof typeof STATUS_COLORS;
+export type StatusColorKey = keyof typeof STATE_COLORS;
+
+const datapackStateDisplayMap: Record<
+  DatapackStateString,
+  { text: string; color: string }
+> = {
+  [DatapackStateString.InitialName]: {
+    text: 'Initial',
+    color: STATE_COLORS.initial,
+  },
+  [DatapackStateString.InjectFailedName]: {
+    text: 'Inject Failed',
+    color: STATE_COLORS.failed,
+  },
+  [DatapackStateString.InjectSuccessName]: {
+    text: 'Inject Success',
+    color: STATE_COLORS.running,
+  },
+  [DatapackStateString.BuildFailedName]: {
+    text: 'Build Failed',
+    color: STATE_COLORS.failed,
+  },
+  [DatapackStateString.BuildSuccessName]: {
+    text: 'Build Success',
+    color: STATE_COLORS.running,
+  },
+  [DatapackStateString.DetectorFailedName]: {
+    text: 'Detector Failed',
+    color: STATE_COLORS.failed,
+  },
+  [DatapackStateString.DetectorSuccessName]: {
+    text: 'Detector Success',
+    color: STATE_COLORS.success,
+  },
+};
+
+export const getDatapackStateDisplay = (state?: string) =>
+  (Object.values(DatapackStateString).includes(state as DatapackStateString)
+    ? datapackStateDisplayMap[state as DatapackStateString]
+    : null) ?? { text: state ?? 'Unknown', color: '#6b7280' };
 
 // ============================================================================
 // Shared Table Settings (for workspace store)

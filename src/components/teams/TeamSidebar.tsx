@@ -5,9 +5,12 @@ import {
   ShareAltOutlined,
   UserOutlined,
 } from '@ant-design/icons';
+import { PageSize } from '@rcabench/client';
+import { useQuery } from '@tanstack/react-query';
 import { Avatar, message, Typography } from 'antd';
 
-import type { Team, TeamMember } from '@/types/api';
+import { teamApi } from '@/api/teams';
+import type { Team } from '@/types/api';
 
 import './TeamSidebar.css';
 
@@ -15,7 +18,6 @@ const { Title } = Typography;
 
 interface TeamSidebarProps {
   team: Team;
-  members: TeamMember[];
   onInvite?: () => void;
   onNavigateToSettings?: () => void;
 }
@@ -26,10 +28,21 @@ interface TeamSidebarProps {
  */
 const TeamSidebar: React.FC<TeamSidebarProps> = ({
   team,
-  members,
   onInvite,
   onNavigateToSettings,
 }) => {
+  // Fetch first few members for sidebar display
+  const { data: membersData } = useQuery({
+    queryKey: ['team', 'members', team.id, 1, 5],
+    queryFn: () =>
+      teamApi.getTeamMembers(team.id, {
+        page: 1,
+        size: PageSize.Small,
+      }),
+  });
+
+  const members = membersData?.items || [];
+  const totalMembers = membersData?.total || 0;
   const handleShare = () => {
     const url = `${window.location.origin}/${team.name}`;
     navigator.clipboard.writeText(url);
@@ -92,7 +105,7 @@ const TeamSidebar: React.FC<TeamSidebarProps> = ({
       <div className='team-sidebar-section'>
         <div className='team-sidebar-section-header'>
           <span className='team-sidebar-section-title'>
-            MEMBERS ({members.length})
+            MEMBERS ({totalMembers})
           </span>
         </div>
         <div
@@ -107,15 +120,14 @@ const TeamSidebar: React.FC<TeamSidebarProps> = ({
         </div>
         <div className='team-sidebar-members'>
           {members.map((member) => (
-            <div key={member.id} className='team-sidebar-member'>
+            <div key={member.user_id} className='team-sidebar-member'>
               <Avatar
                 size={24}
-                src={member.user.avatar_url}
-                icon={!member.user.avatar_url && <UserOutlined />}
+                icon={<UserOutlined />}
                 style={{ backgroundColor: 'var(--color-primary-500)' }}
               />
               <span className='team-sidebar-member-name'>
-                {member.user.username}
+                {member.username}
               </span>
             </div>
           ))}

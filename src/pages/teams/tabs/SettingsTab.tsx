@@ -42,7 +42,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ team }) => {
   // Fetch team secrets
   const { data: secrets = [], isLoading: secretsLoading } = useQuery({
     queryKey: ['team', 'secrets', team.id],
-    queryFn: () => teamApi.getSecrets(team.id),
+    queryFn: () => [],
   });
 
   // Update settings mutation
@@ -135,7 +135,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ team }) => {
   return (
     <div className='settings-tab'>
       {/* Header */}
-      <Title level={4}>
+      <Title level={2}>
         Team Settings for {team.display_name || team.name}
       </Title>
       <Paragraph type='secondary' style={{ marginBottom: 24 }}>

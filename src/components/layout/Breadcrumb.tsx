@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 
-import { HomeOutlined, RightOutlined } from '@ant-design/icons';
+import { RightOutlined } from '@ant-design/icons';
 import { Breadcrumb as AntBreadcrumb } from 'antd';
 
 import './Breadcrumb.css';
@@ -119,28 +119,19 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({
   const breadcrumbItems = generateBreadcrumbItems();
 
   // Convert to Ant Design breadcrumb format
-  const antBreadcrumbItems = [
-    {
-      title: (
-        <Link to='/home'>
-          <HomeOutlined />
-        </Link>
-      ),
-    },
-    ...breadcrumbItems.map((item) => ({
-      title: item.path ? (
-        <Link to={item.path}>
-          {item.icon}
-          {item.title}
-        </Link>
-      ) : (
-        <span>
-          {item.icon}
-          {item.title}
-        </span>
-      ),
-    })),
-  ];
+  const antBreadcrumbItems = breadcrumbItems.map((item) => ({
+    title: item.path ? (
+      <Link to={item.path}>
+        {item.icon}
+        {item.title}
+      </Link>
+    ) : (
+      <span>
+        {item.icon}
+        {item.title}
+      </span>
+    ),
+  }));
 
   return (
     <AntBreadcrumb

@@ -7,7 +7,6 @@ import {
   RocketOutlined,
 } from '@ant-design/icons';
 import type { ProjectResp } from '@rcabench/client';
-import { useQuery } from '@tanstack/react-query';
 import {
   Button,
   Card,
@@ -21,7 +20,7 @@ import {
 } from 'antd';
 import dayjs from 'dayjs';
 
-import { projectApi } from '@/api/projects';
+import { useProjects } from '@/hooks/useProjects';
 import { useAuthStore } from '@/store/auth';
 
 import './HomePage.css';
@@ -37,9 +36,10 @@ const HomePage: React.FC = () => {
   const { user } = useAuthStore();
 
   // Fetch recent projects
-  const { data: projectsData, isLoading } = useQuery({
+  const { data: projectsData, isLoading } = useProjects({
+    page: 1,
+    size: 5,
     queryKey: ['projects', 'recent'],
-    queryFn: () => projectApi.getProjects({ page: 1, size: 5 }),
   });
 
   const recentProjects = projectsData?.items || [];

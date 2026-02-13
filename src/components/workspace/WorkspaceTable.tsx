@@ -22,12 +22,14 @@ import {
 
 import {
   CheckSquareOutlined,
+  EllipsisOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
 import {
   Button,
   Checkbox,
+  Dropdown,
   type MenuProps,
   Select,
   Space,
@@ -47,14 +49,14 @@ import {
   type ColumnConfig,
   type RunsDataSource,
   type SortField,
-  STATUS_COLORS,
+  STATE_COLORS,
   type StatusColorKey,
 } from '@/types/workspace';
+import { getColor } from '@/utils/colors';
 import { cropText, needsJsCropping } from '@/utils/textCrop';
 
 import ColumnHeaderDropdown from './ColumnHeaderDropdown';
 import ColumnManager from './ColumnManager';
-import RunListDropdown from './RunListDropdown';
 import TableToolbar from './TableToolbar';
 
 import './WorkspaceTable.css';
@@ -122,9 +124,6 @@ export interface WorkspaceTableProps<T extends { id: number | string }> {
   renderName?: (record: T) => ReactNode;
   renderCell?: (key: string, value: unknown, record: T) => ReactNode;
 
-  // Status field
-  statusField?: keyof T;
-
   // Extra toolbar content
   toolbarExtra?: ReactNode;
 
@@ -172,7 +171,6 @@ function WorkspaceTable<T extends { id: number | string }>({
   renderStatus,
   renderName,
   renderCell,
-  statusField = 'state' as keyof T,
   toolbarExtra,
   onBulkDelete,
   onBulkAddTags,
@@ -183,8 +181,9 @@ function WorkspaceTable<T extends { id: number | string }>({
   const [hoveredColumnKey, setHoveredColumnKey] = useState<string | null>(null);
 
   // Get shared display settings (cropMode, sortOrder, colors) from hook
-  const { cropMode, sortOrder, setCropMode, setSortOrder, randomizeColors } =
-    useRunListSettings({ dataSource: runsDataSource });
+  const { cropMode, sortOrder, setCropMode, setSortOrder } = useRunListSettings(
+    { dataSource: runsDataSource }
+  );
 
   // Column resize hook
   const { getResizeHandleProps } = useColumnResize({
@@ -275,7 +274,7 @@ function WorkspaceTable<T extends { id: number | string }>({
   // Get status color
   const getStatusColor = (status: unknown): string => {
     const statusStr = String(status).toLowerCase();
-    return STATUS_COLORS[statusStr as StatusColorKey] || STATUS_COLORS.pending;
+    return STATE_COLORS[statusStr as StatusColorKey] || STATE_COLORS.pending;
   };
 
   // Default cell renderer based on column type
@@ -334,8 +333,29 @@ function WorkspaceTable<T extends { id: number | string }>({
         case 'progress':
           return <Text>{String(value)}%</Text>;
 
-        default:
-          return <Text>{value as string}</Text>;
+        default: {
+          // For text type, add tooltip if content overflows
+          const textValue = String(value || '');
+          if (!textValue) return '-';
+          return (
+            <Tooltip
+              title={textValue}
+              placement='topLeft'
+              mouseEnterDelay={0.3}
+            >
+              <Text
+                style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  display: 'block',
+                }}
+              >
+                {textValue}
+              </Text>
+            </Tooltip>
+          );
+        }
       }
     },
     [renderCell, renderStatus]
@@ -394,7 +414,7 @@ function WorkspaceTable<T extends { id: number | string }>({
       let titleElement: React.ReactNode;
 
       if (col.key === 'name' && onVisualizeChange) {
-        // Name column gets RunListDropdown with visibility controls as extra menu items
+        // Name column: eye icon dropdown + custom settings dropdown (sorting + cropping)
         const visibilityMenuItems: MenuProps['items'] = [
           {
             key: 'make-all-visible',
@@ -441,17 +461,100 @@ function WorkspaceTable<T extends { id: number | string }>({
           },
         ];
 
+        // Custom menu items for NAME column (no pin/hide, has cropping)
+        const nameColumnMenuItems: MenuProps['items'] = [
+          {
+            key: 'sort_group',
+            type: 'group',
+            label: 'Sorting order',
+            children: [
+              {
+                key: 'sort_asc',
+                label: 'Ascending',
+                onClick: () => setSortOrder('asc'),
+                className:
+                  sortOrder === 'asc' ? 'ant-dropdown-menu-item-selected' : '',
+              },
+              {
+                key: 'sort_desc',
+                label: 'Descending',
+                onClick: () => setSortOrder('desc'),
+                className:
+                  sortOrder === 'desc' ? 'ant-dropdown-menu-item-selected' : '',
+              },
+            ],
+          },
+          { type: 'divider' as const },
+          {
+            key: 'crop_group',
+            type: 'group',
+            label: 'Run name cropping',
+            children: [
+              {
+                key: 'crop-end',
+                label: 'End (default)',
+                onClick: () => setCropMode('end'),
+                className:
+                  cropMode === 'end' ? 'ant-dropdown-menu-item-selected' : '',
+              },
+              {
+                key: 'crop-middle',
+                label: 'Middle',
+                onClick: () => setCropMode('middle'),
+                className:
+                  cropMode === 'middle'
+                    ? 'ant-dropdown-menu-item-selected'
+                    : '',
+              },
+              {
+                key: 'crop-beginning',
+                label: 'Beginning',
+                onClick: () => setCropMode('beginning'),
+                className:
+                  cropMode === 'beginning'
+                    ? 'ant-dropdown-menu-item-selected'
+                    : '',
+              },
+            ],
+          },
+        ];
+
         titleElement = (
-          <RunListDropdown
-            visualizedCount={visualizedCount}
-            sortOrder={sortOrder}
-            cropMode={cropMode}
-            onSortOrderChange={setSortOrder}
-            onCropModeChange={setCropMode}
-            onRandomizeColors={randomizeColors}
-            extraMenuItems={visibilityMenuItems}
-            headerLabel={col.title}
-          />
+          <div
+            className='column-header-dropdown-trigger'
+            style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }}
+          >
+            <Dropdown
+              menu={{ items: visibilityMenuItems }}
+              trigger={['click']}
+              placement='bottomLeft'
+            >
+              <EyeOutlined
+                className='visualized-icon'
+                style={{ cursor: 'pointer', flexShrink: 0 }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </Dropdown>
+            <span
+              className='column-header-title'
+              style={{ flex: 1, minWidth: 0 }}
+            >
+              {col.title}
+              <span style={{ marginLeft: 8, fontSize: 11, color: '#8c8c8c' }}>
+                {visualizedCount} visualized
+              </span>
+            </span>
+            <Dropdown
+              menu={{ items: nameColumnMenuItems }}
+              trigger={['click']}
+              placement='bottomLeft'
+            >
+              <EllipsisOutlined
+                className='column-menu-icon'
+                onClick={(e) => e.stopPropagation()}
+              />
+            </Dropdown>
+          </div>
         );
       } else if (onSortFieldsChange) {
         // Other columns get the sort/pin/hide dropdown
@@ -495,7 +598,7 @@ function WorkspaceTable<T extends { id: number | string }>({
           // Name column: render with eye icon and status dot
           if (col.key === 'name') {
             const isVisible = visualizedRowKeys?.includes(record.id);
-            const status = record[statusField];
+            const id = record.id as number; // Assuming ID is number for color assignment
             const nameValue = value as string;
 
             // Apply crop mode for non-'end' modes (CSS handles 'end' mode)
@@ -522,7 +625,7 @@ function WorkspaceTable<T extends { id: number | string }>({
                 )}
                 <span
                   className='status-dot'
-                  style={{ backgroundColor: getStatusColor(status) }}
+                  style={{ backgroundColor: getColor(id) }}
                 />
                 {renderName ? (
                   renderName(record)
@@ -562,7 +665,6 @@ function WorkspaceTable<T extends { id: number | string }>({
     handleColumnSort,
     currentSortField,
     currentSortOrder,
-    statusField,
     renderName,
     defaultCellRenderer,
     showOnlyVisualized,
@@ -573,7 +675,6 @@ function WorkspaceTable<T extends { id: number | string }>({
     sortOrder,
     setCropMode,
     setSortOrder,
-    randomizeColors,
   ]);
 
   return (

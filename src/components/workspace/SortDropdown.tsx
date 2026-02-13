@@ -231,7 +231,7 @@ const SortDropdown: FC<SortDropdownProps> = ({
       placement='bottomLeft'
       open={open}
       onOpenChange={setOpen}
-      overlayClassName='sort-dropdown-popover'
+      classNames={{ root: 'sort-dropdown-popover' }}
     >
       {iconOnly ? <Tooltip title='Sort'>{button}</Tooltip> : button}
     </Popover>

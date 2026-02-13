@@ -1,3 +1,6 @@
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import type {
   ChaosNode,
   ContainerResp,
@@ -18,28 +21,20 @@ import {
   Row,
   Select,
   Space,
-  Tabs,
 } from 'antd';
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
+import { useProjects } from '@/hooks/useProjects';
+
+import { AlgorithmSelector } from './components/AlgorithmSelector';
+import { TagManager } from './components/TagManager';
 
 import { containerApi } from '../../api/containers';
 import { injectionApi } from '../../api/injections';
-import { projectApi } from '../../api/projects';
 import type { FaultType } from '../../types/api';
-
-import { AlgorithmSelector } from './components/AlgorithmSelector';
-import { FaultConfigPanel } from './components/FaultConfigPanel';
-import { FaultTypePanel } from './components/FaultTypePanel';
-import { TagManager } from './components/TagManager';
-import { VisualCanvas } from './components/VisualCanvas';
-
 
 import './InjectionCreate.css';
 
 const { Option } = Select;
-const { TextArea } = Input;
 
 interface InjectionFormData {
   project_id: number;
@@ -63,17 +58,21 @@ const InjectionCreate: React.FC = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm<InjectionFormData>();
   const [selectedProject, setSelectedProject] = useState<number | null>(null);
-  const [selectedFaultType, setSelectedFaultType] = useState<FaultType | null>(null);
+  const [selectedFaultType, setSelectedFaultType] = useState<FaultType | null>(
+    null
+  );
   const [selectedAlgorithms, setSelectedAlgorithms] = useState<number[]>([]);
   const [tags, setTags] = useState<string[]>([]);
-  const [faultConfig, setFaultConfig] = useState<Record<string, string | number | boolean>>({});
+  const [faultConfig, setFaultConfig] = useState<
+    Record<string, string | number | boolean>
+  >({});
 
   // Fetch projects
-  const { data: projects = [], isLoading: projectsLoading } = useQuery({
-    queryKey: ['projects'],
-    queryFn: () => projectApi.getProjects({ page: 1, size: 50 }),
-    select: (data: any) => data.items || [],
+  const { data: projectsData, isLoading: projectsLoading } = useProjects({
+    page: 1,
+    size: 50,
   });
+  const projects = projectsData?.items || [];
 
   // Fetch containers when project is selected
   const { data: containers = [], isLoading: containersLoading } = useQuery({
@@ -88,13 +87,13 @@ const InjectionCreate: React.FC = () => {
       });
     },
     enabled: !!selectedProject,
-    select: (data: any) => data.items || [],
+    select: (data: { items?: ContainerResp[] }) => data.items || [],
   });
 
   // Fetch fault types metadata
   const { data: faultMetadata } = useQuery({
     queryKey: ['faultMetadata'],
-    queryFn: () => injectionApi.getFaultMetadata('ts' as any),
+    queryFn: () => injectionApi.getFaultMetadata('ts' as const),
   });
 
   // Convert fault metadata to fault types array
@@ -102,45 +101,54 @@ const InjectionCreate: React.FC = () => {
     if (!faultMetadata?.fault_type_map) return [];
     const configChildren = faultMetadata.config?.children || {};
 
-    return Object.entries(faultMetadata.fault_type_map).map(([key, description], index) => {
-      const faultConfig = configChildren[key];
-      const parameters = faultConfig?.children
-        ? Object.entries(faultConfig.children).map(([paramName, paramNode]: [string, any]) => {
-            // Filter out sentinel values like -999999 which indicate "no default"
-            const defaultValue = paramNode.value === -999999 ? undefined : paramNode.value;
+    return Object.entries(faultMetadata.fault_type_map).map(
+      ([key, description], index) => {
+        const faultConfig = configChildren[key];
+        const parameters = faultConfig?.children
+          ? Object.entries(faultConfig.children).map(
+              ([paramName, paramNode]: [string, ChaosNode]) => {
+                // Filter out sentinel values like -999999 which indicate "no default"
+                const defaultValue =
+                  paramNode.value === -999999 ? undefined : paramNode.value;
 
-            return {
-              name: paramName,
-              type: paramNode.range ? 'range' : (typeof paramNode.value === 'number' ? 'number' : 'string'),
-              label: paramNode.description || paramName,
-              description: paramNode.description,
-              required: false,
-              default: defaultValue,
-              min: paramNode.range?.[0],
-              max: paramNode.range?.[1],
-            };
-          })
-        : [];
+                return {
+                  name: paramName,
+                  type: paramNode.range
+                    ? 'range'
+                    : typeof paramNode.value === 'number'
+                      ? 'number'
+                      : 'string',
+                  label: paramNode.description || paramName,
+                  description: paramNode.description,
+                  required: false,
+                  default: defaultValue,
+                  min: paramNode.range?.[0],
+                  max: paramNode.range?.[1],
+                };
+              }
+            )
+          : [];
 
-      return {
-        id: index,
-        name: key,
-        type: key,
-        description: description || key,
-        parameters,
-      };
-    });
+        return {
+          id: index,
+          name: key,
+          type: key,
+          description: description || key,
+          parameters,
+        };
+      }
+    );
   }, [faultMetadata]);
 
   // Group containers by type (API returns type as string: "algorithm", "benchmark", "pedestal")
   const groupedContainers = containers.reduce(
     (
       acc: {
-        pedestals: any[];
-        benchmarks: any[];
-        algorithms: any[];
+        pedestals: ContainerResp[];
+        benchmarks: ContainerResp[];
+        algorithms: ContainerResp[];
       },
-      container: any
+      container: ContainerResp
     ) => {
       if (container.type === 'pedestal') {
         acc.pedestals.push(container);
@@ -166,7 +174,7 @@ const InjectionCreate: React.FC = () => {
   };
 
   const handleFaultTypeChange = (faultTypeName: string) => {
-    const faultType = faultTypes.find(f => f.name === faultTypeName);
+    const faultType = faultTypes.find((f) => f.name === faultTypeName);
     setSelectedFaultType(faultType || null);
     setFaultConfig({});
   };
@@ -192,32 +200,6 @@ const InjectionCreate: React.FC = () => {
     name: container.name || '',
     version: '', // Empty string is valid - backend allows optional version
   });
-
-  // Helper function to convert FaultType[][] to ChaosNode[][]
-  const toSpecs = (matrix: FaultType[][]): ChaosNode[][] => {
-    return matrix.map((batch) =>
-      batch.map((fault) => {
-        // Get the configuration for this fault from faultConfigs
-        const config = faultConfigs.get(fault.id) || {};
-
-        // Convert config to ChaosNode children format
-        const children: { [key: string]: ChaosNode } = {};
-        Object.entries(config).forEach(([key, value]) => {
-          children[key] = {
-            name: key,
-            value: value,
-          };
-        });
-
-        return {
-          name: fault.name,
-          description: fault.type,
-          children: Object.keys(children).length > 0 ? children : undefined,
-        };
-      })
-    );
-  };
-
   const handleSubmit = async (values: InjectionFormData) => {
     try {
       // Validate that a fault type has been selected
@@ -264,12 +246,16 @@ const InjectionCreate: React.FC = () => {
       const faultSpec: ChaosNode = {
         name: selectedFaultType.name,
         description: selectedFaultType.type,
-        children: Object.keys(faultConfig).length > 0
-          ? Object.entries(faultConfig).reduce((acc, [key, value]) => {
-              acc[key] = { name: key, value };
-              return acc;
-            }, {} as { [key: string]: ChaosNode })
-          : undefined,
+        children:
+          Object.keys(faultConfig).length > 0
+            ? Object.entries(faultConfig).reduce(
+                (acc, [key, value]) => {
+                  acc[key] = { name: key, value };
+                  return acc;
+                },
+                {} as { [key: string]: ChaosNode }
+              )
+            : undefined,
       };
 
       // Build the SDK request
@@ -307,101 +293,133 @@ const InjectionCreate: React.FC = () => {
           },
         }}
       >
-          <Row gutter={16}>
-            {/* Left Panel - Configuration */}
-            <Col span={12}>
-              <Card size="small" title='Configuration'>
-                <Form.Item
-                  name='project_id'
-                  label='Project'
-                  rules={[{ required: true, message: 'Required' }]}
+        <Row gutter={16}>
+          {/* Left Panel - Configuration */}
+          <Col span={12}>
+            <Card size='small' title='Configuration'>
+              <Form.Item
+                name='project_id'
+                label='Project'
+                rules={[{ required: true, message: 'Required' }]}
+              >
+                <Select
+                  placeholder='Select project'
+                  loading={projectsLoading}
+                  onChange={handleProjectChange}
+                  size='small'
                 >
-                  <Select
-                    placeholder='Select project'
-                    loading={projectsLoading}
-                    onChange={handleProjectChange}
-                    size="small"
-                  >
-                    {projects.map((project: ProjectResp) => (
-                      <Option key={project.id} value={project.id}>
-                        {project.name}
+                  {projects.map((project: ProjectResp) => (
+                    <Option key={project.id} value={project.id}>
+                      {project.name}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                name={['container_config', 'pedestal_container_id']}
+                label='Pedestal'
+                rules={[{ required: true, message: 'Required' }]}
+              >
+                <Select
+                  placeholder='Select'
+                  loading={containersLoading}
+                  disabled={!selectedProject}
+                  size='small'
+                >
+                  {groupedContainers.pedestals.map(
+                    (container: ContainerResp) => (
+                      <Option key={container.id} value={container.id}>
+                        {container.name}
                       </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
+                    )
+                  )}
+                </Select>
+              </Form.Item>
 
-                <Form.Item
-                  name={['container_config', 'pedestal_container_id']}
-                  label='Pedestal'
-                  rules={[{ required: true, message: 'Required' }]}
+              <Form.Item
+                name={['container_config', 'benchmark_container_id']}
+                label='Benchmark'
+                rules={[{ required: true, message: 'Required' }]}
+              >
+                <Select
+                  placeholder='Select'
+                  loading={containersLoading}
+                  disabled={!selectedProject}
+                  size='small'
                 >
-                  <Select placeholder='Select' loading={containersLoading} disabled={!selectedProject} size="small">
-                    {groupedContainers.pedestals.map((container: ContainerResp) => (
-                      <Option key={container.id} value={container.id}>{container.name}</Option>
-                    ))}
-                  </Select>
-                </Form.Item>
+                  {groupedContainers.benchmarks.map(
+                    (container: ContainerResp) => (
+                      <Option key={container.id} value={container.id}>
+                        {container.name}
+                      </Option>
+                    )
+                  )}
+                </Select>
+              </Form.Item>
 
-                <Form.Item
-                  name={['container_config', 'benchmark_container_id']}
-                  label='Benchmark'
-                  rules={[{ required: true, message: 'Required' }]}
-                >
-                  <Select placeholder='Select' loading={containersLoading} disabled={!selectedProject} size="small">
-                    {groupedContainers.benchmarks.map((container: ContainerResp) => (
-                      <Option key={container.id} value={container.id}>{container.name}</Option>
-                    ))}
-                  </Select>
-                </Form.Item>
+              <AlgorithmSelector
+                algorithms={groupedContainers.algorithms}
+                value={selectedAlgorithms}
+                onChange={handleAlgorithmChange}
+              />
 
-                <AlgorithmSelector
-                  algorithms={groupedContainers.algorithms}
-                  value={selectedAlgorithms}
-                  onChange={handleAlgorithmChange}
+              <Form.Item
+                name={['experiment_params', 'duration']}
+                label='Duration (s)'
+                rules={[{ required: true }]}
+              >
+                <InputNumber
+                  min={60}
+                  max={3600}
+                  style={{ width: '100%' }}
+                  size='small'
                 />
+              </Form.Item>
 
-                <Form.Item
-                  name={['experiment_params', 'duration']}
-                  label='Duration (s)'
-                  rules={[{ required: true }]}
+              <Form.Item
+                name={['experiment_params', 'interval']}
+                label='Interval (s)'
+                rules={[{ required: true }]}
+              >
+                <InputNumber
+                  min={10}
+                  max={600}
+                  style={{ width: '100%' }}
+                  size='small'
+                />
+              </Form.Item>
+
+              <TagManager value={tags} onChange={handleTagChange} />
+            </Card>
+          </Col>
+
+          {/* Right Panel - Fault Type & Configuration */}
+          <Col span={12}>
+            <Card size='small' title='Fault Injection'>
+              <Form.Item label='Fault Type' rules={[{ required: true }]}>
+                <Select
+                  placeholder='Select fault type'
+                  onChange={handleFaultTypeChange}
+                  size='small'
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.children as string)
+                      ?.toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
                 >
-                  <InputNumber min={60} max={3600} style={{ width: '100%' }} size="small" />
-                </Form.Item>
+                  {faultTypes.map((fault) => (
+                    <Option key={fault.name} value={fault.name}>
+                      {fault.name}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
 
-                <Form.Item
-                  name={['experiment_params', 'interval']}
-                  label='Interval (s)'
-                  rules={[{ required: true }]}
-                >
-                  <InputNumber min={10} max={600} style={{ width: '100%' }} size="small" />
-                </Form.Item>
-
-                <TagManager value={tags} onChange={handleTagChange} />
-              </Card>
-            </Col>
-
-            {/* Right Panel - Fault Type & Configuration */}
-            <Col span={12}>
-              <Card size="small" title='Fault Injection'>
-                <Form.Item label='Fault Type' rules={[{ required: true }]}>
-                  <Select
-                    placeholder='Select fault type'
-                    onChange={handleFaultTypeChange}
-                    size="small"
-                    showSearch
-                    filterOption={(input, option) =>
-                      (option?.children as string)?.toLowerCase().includes(input.toLowerCase())
-                    }
-                  >
-                    {faultTypes.map((fault) => (
-                      <Option key={fault.name} value={fault.name}>
-                        {fault.name}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-
-                {selectedFaultType && selectedFaultType.parameters && selectedFaultType.parameters.length > 0 && (
+              {selectedFaultType &&
+                selectedFaultType.parameters &&
+                selectedFaultType.parameters.length > 0 && (
                   <>
                     {selectedFaultType.parameters.map((param) => (
                       <Form.Item
@@ -415,14 +433,24 @@ const InjectionCreate: React.FC = () => {
                             max={param.max}
                             defaultValue={param.default as number}
                             style={{ width: '100%' }}
-                            size="small"
-                            onChange={(value) => setFaultConfig({ ...faultConfig, [param.name]: value || 0 })}
+                            size='small'
+                            onChange={(value) =>
+                              setFaultConfig({
+                                ...faultConfig,
+                                [param.name]: value || 0,
+                              })
+                            }
                           />
                         ) : (
                           <Input
                             defaultValue={param.default as string}
-                            size="small"
-                            onChange={(e) => setFaultConfig({ ...faultConfig, [param.name]: e.target.value })}
+                            size='small'
+                            onChange={(e) =>
+                              setFaultConfig({
+                                ...faultConfig,
+                                [param.name]: e.target.value,
+                              })
+                            }
                           />
                         )}
                       </Form.Item>
@@ -430,25 +458,36 @@ const InjectionCreate: React.FC = () => {
                   </>
                 )}
 
-                {selectedFaultType && (!selectedFaultType.parameters || selectedFaultType.parameters.length === 0) && (
-                  <div style={{ padding: '12px', textAlign: 'center', color: '#999', fontSize: '12px' }}>
+              {selectedFaultType &&
+                (!selectedFaultType.parameters ||
+                  selectedFaultType.parameters.length === 0) && (
+                  <div
+                    style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      color: '#999',
+                      fontSize: '12px',
+                    }}
+                  >
                     No configurable parameters for this fault type
                   </div>
                 )}
-              </Card>
-            </Col>
-          </Row>
+            </Card>
+          </Col>
+        </Row>
 
-          {/* Submit Button */}
-          <Row style={{ marginTop: 16 }}>
-            <Col span={24}>
-              <Space>
-                <Button type='primary' htmlType='submit'>Create Injection</Button>
-                <Button onClick={() => navigate('/injections')}>Cancel</Button>
-              </Space>
-            </Col>
-          </Row>
-        </Form>
+        {/* Submit Button */}
+        <Row style={{ marginTop: 16 }}>
+          <Col span={24}>
+            <Space>
+              <Button type='primary' htmlType='submit'>
+                Create Injection
+              </Button>
+              <Button onClick={() => navigate('/injections')}>Cancel</Button>
+            </Space>
+          </Col>
+        </Row>
+      </Form>
     </div>
   );
 };

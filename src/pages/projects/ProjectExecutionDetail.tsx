@@ -41,7 +41,7 @@ import {
 } from '@/components/workspace/DetailView';
 import type { ProjectOutletContext } from '@/hooks/useProjectContext';
 import { useAuthStore } from '@/store/auth';
-import { STATUS_COLORS } from '@/types/workspace';
+import { STATE_COLORS } from '@/types/workspace';
 
 const { Text } = Typography;
 
@@ -81,11 +81,11 @@ const ProjectExecutionDetail: React.FC = () => {
   const getStatusColor = (state?: string): string => {
     if (!state) return '#8c8c8c';
     const normalizedState = state.toLowerCase();
-    if (normalizedState in STATUS_COLORS) {
-      return STATUS_COLORS[normalizedState as keyof typeof STATUS_COLORS];
+    if (normalizedState in STATE_COLORS) {
+      return STATE_COLORS[normalizedState as keyof typeof STATE_COLORS];
     }
     if (normalizedState === 'crashed') {
-      return STATUS_COLORS.failed;
+      return STATE_COLORS.failed;
     }
     return '#8c8c8c';
   };

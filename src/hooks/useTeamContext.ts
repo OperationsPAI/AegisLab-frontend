@@ -1,56 +1,85 @@
 /**
- * Team Context Hook
- * Get team information from URL teamName parameter
+ * Get team context from URL params with name→id cache optimization
  */
 import { useParams } from 'react-router-dom';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { teamApi } from '@/api/teams';
 import type { Team, TeamMember } from '@/types/api';
+import { getTeamIdFromName } from '@/utils/teamNameMap';
 
 export interface TeamContextValue {
   teamName: string | undefined;
   team: Team | null | undefined;
-  teamId: number | undefined;
+  teamID: number | undefined;
   members: TeamMember[];
   isLoading: boolean;
   error: Error | null;
 }
 
 /**
- * Hook to get team context from URL teamName parameter
- * Uses team name in URL for user-friendly URLs
+ * Get team context from URL params
+ * Uses cached name→id mapping to optimize API calls
  */
 export function useTeamContext(): TeamContextValue {
   const { teamName } = useParams<{ teamName: string }>();
+  const queryClient = useQueryClient();
+
+  const cachedTeamID = getTeamIdFromName(teamName, (key) =>
+    queryClient.getQueryData(key)
+  );
+
+  // Use getTeamDetail(id) if cached, otherwise fetch all teams
+  const {
+    data: teamsData,
+    isLoading: isTeamsLoading,
+    error: teamsError,
+  } = useQuery({
+    queryKey: ['teams', 'list'],
+    queryFn: () => teamApi.getTeams(),
+    enabled: !!teamName && !cachedTeamID,
+  });
+
+  const matchedTeam = teamsData?.items?.find((t) => t.name === teamName);
+  const teamID = cachedTeamID || matchedTeam?.id;
 
   const {
-    data: team,
+    data: teamDetail,
     isLoading: isTeamLoading,
     error: teamError,
   } = useQuery({
-    queryKey: ['team', 'byName', teamName],
-    queryFn: () => teamApi.getTeamByName(teamName ?? ''),
-    enabled: !!teamName,
+    queryKey: ['team', 'detail', teamID],
+    queryFn: () => {
+      if (!teamID) throw new Error('Team ID is required');
+      return teamApi.getTeamDetail(teamID);
+    },
+    enabled: !!teamID,
   });
 
-  const { data: members = [], isLoading: isMembersLoading } = useQuery({
-    queryKey: ['team', 'members', team?.id],
-    queryFn: () => {
-      if (!team?.id) throw new Error('Team ID is required');
-      return teamApi.getTeamMembers(team.id);
-    },
-    enabled: !!team?.id,
-  });
+  // Construct Team object from API responses
+  const team: Team | null | undefined = teamDetail
+    ? {
+        id: teamDetail.id ?? 0,
+        name: teamDetail.name ?? '',
+        display_name: teamDetail.name,
+        description: teamDetail.description,
+        avatar_url: undefined,
+        created_at: teamDetail.created_at ?? '',
+        updated_at: teamDetail.updated_at ?? '',
+        member_count: teamDetail.user_count ?? 0,
+        project_count: teamDetail.project_count ?? 0,
+        settings: undefined,
+      }
+    : undefined;
 
   return {
     teamName,
     team,
-    teamId: team?.id,
-    members,
-    isLoading: isTeamLoading || isMembersLoading,
-    error: teamError as Error | null,
+    teamID,
+    members: [],
+    isLoading: isTeamsLoading || isTeamLoading,
+    error: (teamsError || teamError) as Error | null,
   };
 }
 

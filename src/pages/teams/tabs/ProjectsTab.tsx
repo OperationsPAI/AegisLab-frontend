@@ -7,13 +7,14 @@ import {
   StarOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
+import { PageSize } from '@rcabench/client';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Input, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 
 import { teamApi } from '@/api/teams';
 import { useProfileStore } from '@/store/profile';
-import type { ProjectWithStats, Team } from '@/types/api';
+import type { ProjectResp, Team } from '@/types/api';
 
 const { Text, Title } = Typography;
 const { Search } = Input;
@@ -26,7 +27,6 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({ team }) => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const pageSize = 10;
 
   const { toggleStar, isStarred } = useProfileStore();
 
@@ -34,10 +34,9 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({ team }) => {
   const { data: projectsData, isLoading } = useQuery({
     queryKey: ['team', 'projects', team.id, page, search],
     queryFn: () =>
-      teamApi.getTeamProjects(team.id, {
+      teamApi.listTeamProjects(team.id, {
         page,
-        size: pageSize,
-        search,
+        size: PageSize.Small,
       }),
   });
 
@@ -49,7 +48,7 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({ team }) => {
     await toggleStar(projectId);
   };
 
-  const columns: ColumnsType<ProjectWithStats> = [
+  const columns: ColumnsType<ProjectResp> = [
     {
       title: 'Name',
       dataIndex: 'name',
@@ -65,13 +64,23 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({ team }) => {
       ),
     },
     {
-      title: 'Last Run',
-      dataIndex: 'last_run_at',
-      key: 'last_run_at',
-      render: (date: string | undefined) => {
-        if (!date) return '-';
-        const d = new Date(date);
-        return d.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+      title: 'Last Injection',
+      dataIndex: 'last_injection_at',
+      key: 'last_injection_at',
+      render: (_: unknown, record: ProjectResp) => {
+        if (!record.last_injection_at) return '-';
+        const d = new Date(record.last_injection_at);
+        return d.toLocaleDateString('en-CA');
+      },
+    },
+    {
+      title: 'Last Execution',
+      dataIndex: 'last_execution_at',
+      key: 'last_execution_at',
+      render: (_: unknown, record: ProjectResp) => {
+        if (!record.last_execution_at) return '-';
+        const d = new Date(record.last_execution_at);
+        return d.toLocaleDateString('en-CA');
       },
     },
     {
@@ -101,13 +110,23 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({ team }) => {
       title: 'Runs',
       dataIndex: 'run_count',
       key: 'run_count',
-      render: (count: number) => count || 0,
+      render: (_: unknown, record: ProjectResp) => {
+        const injectionCount = record.injection_count || 0;
+        const executionCount = record.execution_count || 0;
+        const totalRuns = injectionCount + executionCount;
+        return (
+          <Text>
+            {totalRuns} ({injectionCount}/{executionCount})
+          </Text>
+        );
+      },
     },
     {
       title: '',
       key: 'star',
       width: 60,
-      render: (_: unknown, record: ProjectWithStats) => {
+      render: (_: unknown, record: ProjectResp) => {
+        if (!record.id) return null;
         const starred = isStarred(record.id);
         return (
           <Button
@@ -120,6 +139,7 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({ team }) => {
               )
             }
             onClick={(e) => {
+              if (!record.id) return null;
               e.stopPropagation();
               handleToggleStar(record.id);
             }}
@@ -132,7 +152,7 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({ team }) => {
   return (
     <div className='projects-tab'>
       {/* Header */}
-      <Title level={4} style={{ marginBottom: 16 }}>
+      <Title level={5} style={{ marginBottom: 16 }}>
         Projects
       </Title>
 
@@ -172,7 +192,7 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({ team }) => {
         loading={isLoading}
         pagination={{
           current: page,
-          pageSize,
+          pageSize: PageSize.Small,
           total: projectsData?.total || 0,
           onChange: setPage,
           showSizeChanger: false,

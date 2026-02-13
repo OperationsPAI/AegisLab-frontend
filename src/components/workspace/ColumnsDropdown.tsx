@@ -111,7 +111,7 @@ const ColumnsDropdown: FC<ColumnsDropdownProps> = ({
       placement='bottomLeft'
       open={open}
       onOpenChange={setOpen}
-      overlayClassName='columns-dropdown-popover'
+      classNames={{ root: 'columns-dropdown-popover' }}
     >
       {iconOnly ? <Tooltip title='Columns'>{button}</Tooltip> : button}
     </Popover>

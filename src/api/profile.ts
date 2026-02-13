@@ -170,8 +170,6 @@ export const profileApi = {
         .map((p) => ({
           id: p.id,
           name: p.name || '',
-          description: p.description,
-          is_public: p.is_public,
           visibility: p.is_public ? 'public' : 'private',
           updated_at: p.updated_at,
           created_at: p.created_at,
@@ -203,7 +201,6 @@ export const profileApi = {
         .map((p) => ({
           id: p.id,
           name: p.name || '',
-          description: p.description,
           is_public: p.is_public,
           visibility: p.is_public ? ('public' as const) : ('private' as const),
           updated_at: p.updated_at,
@@ -215,11 +212,7 @@ export const profileApi = {
       // Filter by search if provided
       if (params?.search) {
         const searchLower = params.search.toLowerCase();
-        items = items.filter(
-          (p) =>
-            p.name.toLowerCase().includes(searchLower) ||
-            p.description?.toLowerCase().includes(searchLower)
-        );
+        items = items.filter((p) => p.name.toLowerCase().includes(searchLower));
       }
 
       return {

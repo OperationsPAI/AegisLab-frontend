@@ -16,7 +16,6 @@ import {
   TeamOutlined,
 } from '@ant-design/icons';
 import type { ProjectResp as Project } from '@rcabench/client';
-import { useQuery } from '@tanstack/react-query';
 import {
   Avatar,
   Button,
@@ -31,11 +30,11 @@ import {
 } from 'antd';
 import dayjs from 'dayjs';
 
-import { projectApi } from '@/api/projects';
 import StatCard from '@/components/ui/StatCard';
 import StatusBadge, {
   type StatusBadgeProps,
 } from '@/components/ui/StatusBadge';
+import { useProjects } from '@/hooks/useProjects';
 import { useProfileStore } from '@/store/profile';
 import { ProjectState } from '@/types/api';
 
@@ -60,31 +59,28 @@ const ProjectList = () => {
   }, [loadStarredProjects]);
 
   // Fetch projects
-  const { data: projectsData, isLoading } = useQuery({
-    queryKey: ['projects', pagination.current, pagination.pageSize, searchText],
-    queryFn: () =>
-      projectApi.getProjects({
-        page: pagination.current,
-        size: pagination.pageSize,
-      }),
+  const { data: projectsData, isLoading } = useProjects({
+    page: pagination.current,
+    size: pagination.pageSize,
+    queryKey: [
+      'projects',
+      String(pagination.current),
+      String(pagination.pageSize),
+      searchText,
+    ],
   });
 
   // Statistics - mock data for now
   const stats = {
     total: projectsData?.pagination?.total || 0,
     active:
-      projectsData?.items?.filter(
-        (p: Project) => p.state === ProjectState.ACTIVE
-      ).length || 0,
+      projectsData?.items?.filter((p: Project) => p.status === 'active')
+        .length || 0,
     completedThisMonth:
       projectsData?.items?.filter((p: Project) =>
         dayjs(p.created_at).isAfter(dayjs().subtract(1, 'month'))
       ).length || 0,
-    totalExperiments:
-      projectsData?.items?.reduce(
-        (sum: number, p: Project) => sum + (p.experiment_count || 0),
-        0
-      ) || 0,
+    totalExperiments: 0, // TODO: Add experiment count when available in API
   };
 
   const handleTableChange = (newPagination: TablePaginationConfig) => {

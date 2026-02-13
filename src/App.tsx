@@ -569,7 +569,7 @@ function App() {
           }
         />
         <Route
-          path='injections/:id'
+          path='injections/:id/*'
           element={
             <Suspense fallback={<LoadingFallback />}>
               <ProjectInjectionDetail />

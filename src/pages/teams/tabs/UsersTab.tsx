@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import {
   CheckCircleFilled,
@@ -6,6 +6,8 @@ import {
   PlusOutlined,
   UserOutlined,
 } from '@ant-design/icons';
+import { PageSize, type TeamMemberResp } from '@rcabench/client';
+import { useQuery } from '@tanstack/react-query';
 import {
   Avatar,
   Button,
@@ -20,88 +22,66 @@ import type { ColumnsType } from 'antd/es/table';
 
 import { teamApi } from '@/api/teams';
 import { useAuthStore } from '@/store/auth';
-import type { Team, TeamMember, TeamRole } from '@/types/api';
+import type { Team } from '@/types/api';
 
 const { Text, Title } = Typography;
 const { Search } = Input;
 
 interface UsersTabProps {
   team: Team;
-  members: TeamMember[];
   onInvite?: () => void;
 }
 
-const UsersTab: React.FC<UsersTabProps> = ({ team, members, onInvite }) => {
+const UsersTab: React.FC<UsersTabProps> = ({ team, onInvite }) => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const pageSize = 10;
 
   const { user: currentUser } = useAuthStore();
 
-  // Sort members: current user first, then by role
-  const sortedMembers = useMemo(() => {
-    return [...members].sort((a, b) => {
-      // Current user first
-      if (a.user.username === currentUser?.username) return -1;
-      if (b.user.username === currentUser?.username) return 1;
-      // Then sort by role priority
-      const rolePriority: Record<TeamRole, number> = {
-        owner: 0,
-        admin: 1,
-        member: 2,
-      };
-      return (rolePriority[a.role] ?? 3) - (rolePriority[b.role] ?? 3);
-    });
-  }, [members, currentUser?.username]);
+  // Fetch team members with pagination
+  const { data: membersData, isLoading } = useQuery({
+    queryKey: ['team', 'members', team.id, page, search],
+    queryFn: () =>
+      teamApi.getTeamMembers(team.id, {
+        page,
+        size: PageSize.Small,
+      }),
+  });
+
+  const members = membersData?.items || [];
 
   // Check if current user is admin or owner
   const currentMember = members.find(
-    (m) => m.user.username === currentUser?.username
+    (m) => m.username === currentUser?.username
   );
-  const isAdmin =
-    currentMember?.role === 'admin' || currentMember?.role === 'owner';
+  const isAdmin = currentMember?.role_name === 'Team Admin';
 
-  // Filter members by search
-  const filteredMembers = sortedMembers.filter((m) => {
-    if (!search) return true;
-    const searchLower = search.toLowerCase();
-    return (
-      m.user.display_name.toLowerCase().includes(searchLower) ||
-      m.user.username.toLowerCase().includes(searchLower) ||
-      m.user.email.toLowerCase().includes(searchLower) ||
-      m.role.toLowerCase().includes(searchLower)
-    );
-  });
-
-  // Paginate
-  const paginatedMembers = filteredMembers.slice(
-    (page - 1) * pageSize,
-    page * pageSize
-  );
-
-  const handleRoleChange = async (memberId: number, role: TeamRole) => {
-    await teamApi.updateMemberRole(team.id, memberId, role);
+  const handleRoleChange = async (userId: number, roleName: string) => {
+    // TODO: Update API to accept role_name
+    // await teamApi.updateMemberRole(team.id, userId, roleName);
+    void userId;
+    void roleName;
   };
 
-  const handleRemoveMember = async (memberId: number) => {
-    await teamApi.removeMember(team.id, memberId);
+  const handleRemoveMember = async (userId: number) => {
+    // TODO: Update API to accept user_id
+    // await teamApi.removeMember(team.id, userId);
+    void userId;
   };
 
-  const columns: ColumnsType<TeamMember> = [
+  const columns: ColumnsType<TeamMemberResp> = [
     {
       title: 'PROFILE',
       key: 'profile',
       render: (_, record) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Avatar
-            size={40}
-            src={record.user.avatar_url}
-            icon={!record.user.avatar_url && <UserOutlined />}
-          />
+          <Avatar size={40} icon={<UserOutlined />} />
           <div>
-            <div style={{ fontWeight: 500 }}>{record.user.display_name}</div>
+            <div style={{ fontWeight: 500 }}>
+              {record.full_name || record.username}
+            </div>
             <Text type='secondary' style={{ fontSize: 13 }}>
-              @{record.user.username}
+              @{record.username}
             </Text>
           </div>
         </div>
@@ -109,23 +89,22 @@ const UsersTab: React.FC<UsersTabProps> = ({ team, members, onInvite }) => {
     },
     {
       title: 'EMAIL',
-      dataIndex: ['user', 'email'],
+      dataIndex: 'email',
       key: 'email',
     },
     {
       title: 'TEAM ROLE',
-      dataIndex: 'role',
-      key: 'role',
-      render: (role: TeamRole, record) => (
+      dataIndex: 'role_name',
+      key: 'role_name',
+      render: (_roleName: string, record) => (
         <Select
-          value={role}
-          onChange={(value) => handleRoleChange(record.id, value)}
+          value={record.role_name}
+          onChange={(value) => handleRoleChange(record.user_id || 0, value)}
           style={{ width: 100 }}
           disabled={!isAdmin}
           options={[
-            { value: 'owner', label: 'Owner' },
-            { value: 'admin', label: 'Admin' },
-            { value: 'member', label: 'Member' },
+            { value: 'Team Admin', label: 'Admin' },
+            { value: 'Team Member', label: 'Member' },
           ]}
         />
       ),
@@ -145,7 +124,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ team, members, onInvite }) => {
       width: 50,
       render: (_, record) => {
         // Only admins can remove members, and cannot remove themselves
-        const isSelf = record.user.username === currentUser?.username;
+        const isSelf = record.username === currentUser?.username;
         const canRemove = isAdmin && !isSelf;
 
         if (!canRemove) return null;
@@ -158,7 +137,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ team, members, onInvite }) => {
                   key: 'remove',
                   label: 'Remove from team',
                   danger: true,
-                  onClick: () => handleRemoveMember(record.id),
+                  onClick: () => handleRemoveMember(record.user_id || 0),
                 },
               ],
             }}
@@ -175,8 +154,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ team, members, onInvite }) => {
     <div className='users-tab'>
       {/* Header */}
       <Title level={5} style={{ marginBottom: 16 }}>
-        {members.length} users. {Math.max(0, 100 - members.length)} seats
-        available.
+        Users
       </Title>
 
       {/* Search and Actions */}
@@ -189,7 +167,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ team, members, onInvite }) => {
         }}
       >
         <Search
-          placeholder='Search by name, roles, teams...'
+          placeholder='Search by name, email...'
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -206,15 +184,16 @@ const UsersTab: React.FC<UsersTabProps> = ({ team, members, onInvite }) => {
       {/* Table */}
       <Table
         columns={columns}
-        dataSource={paginatedMembers}
+        dataSource={members}
         rowKey='id'
+        loading={isLoading}
         pagination={{
           current: page,
-          pageSize,
-          total: filteredMembers.length,
+          pageSize: PageSize.Small,
+          total: membersData?.total || 0,
           onChange: setPage,
           showSizeChanger: false,
-          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,
+          showTotal: (total) => `showing ${total}`,
         }}
       />
     </div>

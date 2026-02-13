@@ -1,13 +1,12 @@
 import { ArrowLeftOutlined, MoreOutlined } from '@ant-design/icons';
-import { Button, Dropdown, type MenuProps, Tag } from 'antd';
+import { Button, Dropdown, type MenuProps } from 'antd';
 
 import type { DetailViewAction } from './DetailView';
 
 interface DetailViewHeaderProps {
   title: string;
+  titleDotColor: string;
   subtitle?: string;
-  status: string;
-  statusColor: string;
   onBack: () => void;
   backLabel?: string;
   actions?: DetailViewAction[];
@@ -20,8 +19,7 @@ interface DetailViewHeaderProps {
  */
 const DetailViewHeader: React.FC<DetailViewHeaderProps> = ({
   title,
-  status,
-  statusColor,
+  titleDotColor,
   onBack,
   backLabel = 'Back',
   actions = [],
@@ -52,12 +50,9 @@ const DetailViewHeader: React.FC<DetailViewHeaderProps> = ({
         <div className='detail-view-name-container'>
           <span
             className='detail-view-status-dot'
-            style={{ backgroundColor: statusColor }}
+            style={{ backgroundColor: titleDotColor }}
           />
           <span className='detail-view-name'>{title}</span>
-          <Tag color={statusColor} className='detail-view-status-tag'>
-            {status}
-          </Tag>
         </div>
       </div>
 

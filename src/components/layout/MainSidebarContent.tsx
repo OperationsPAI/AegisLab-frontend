@@ -7,12 +7,12 @@ import {
   PlusOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
-import type { ProjectResp } from '@rcabench/client';
-import { useQuery } from '@tanstack/react-query';
+import { type ProjectResp } from '@rcabench/client';
 import { Button, Menu, type MenuProps } from 'antd';
 
-import { projectApi } from '@/api/projects';
-import { teamApi } from '@/api/teams';
+import { useProjects } from '@/hooks/useProjects';
+import { useTeams } from '@/hooks/useTeams';
+import type { Team } from '@/types/api';
 
 import './MainSidebarContent.css';
 
@@ -29,16 +29,16 @@ const MainSidebarContent: React.FC<MainSidebarContentProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  // Fetch recent projects for sidebar
-  const { data: projectsData } = useQuery({
+  // Fetch recent projects
+  const { data: projectsData } = useProjects({
+    page: 1,
+    size: 5,
     queryKey: ['projects', 'sidebar'],
-    queryFn: () => projectApi.getProjects({ page: 1, size: 5 }),
   });
 
-  // Fetch teams for sidebar
-  const { data: teamsData } = useQuery({
+  // Fetch teams
+  const { data: teamsData } = useTeams({
     queryKey: ['teams', 'sidebar'],
-    queryFn: () => teamApi.getTeams(),
   });
 
   const recentProjects = useMemo(
@@ -46,7 +46,7 @@ const MainSidebarContent: React.FC<MainSidebarContentProps> = ({
     [projectsData?.items]
   );
 
-  const teams = useMemo(() => teamsData || [], [teamsData]);
+  const teams = useMemo(() => teamsData?.items || [], [teamsData?.items]);
 
   // Menu items
   const menuItems: MenuProps['items'] = [
@@ -117,10 +117,10 @@ const MainSidebarContent: React.FC<MainSidebarContentProps> = ({
       ),
     },
     // Teams list
-    ...teams.map((team) => ({
+    ...teams.map((team: Team) => ({
       key: `/${team.name}`,
       icon: <TeamOutlined />,
-      label: team.display_name || team.name,
+      label: team.name,
     })),
     {
       key: 'action:create-team',

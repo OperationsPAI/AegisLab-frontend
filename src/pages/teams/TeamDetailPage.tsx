@@ -25,7 +25,7 @@ const TeamDetailPage = () => {
   const { teamName } = useParams<{ teamName: string }>();
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
 
-  const { team, members, isLoading, error } = useTeamContext();
+  const { team, isLoading, error } = useTeamContext();
 
   // Get active tab from URL path
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -105,9 +105,7 @@ const TeamDetailPage = () => {
           Users
         </span>
       ),
-      children: (
-        <UsersTab team={team} members={members} onInvite={handleInvite} />
-      ),
+      children: <UsersTab team={team} onInvite={handleInvite} />,
     },
     {
       key: 'settings',
@@ -126,7 +124,6 @@ const TeamDetailPage = () => {
       {/* Sidebar */}
       <TeamSidebar
         team={team}
-        members={members}
         onInvite={handleInvite}
         onNavigateToSettings={handleNavigateToSettings}
       />

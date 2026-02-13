@@ -28,7 +28,6 @@ export { LogViewer } from './tabs/LogViewer';
 export type { LogLine, LogViewerProps } from './tabs/LogViewer';
 
 export { default as FilesTab } from './tabs/FilesTab';
-export type { FileItem } from './tabs/FilesTab';
 
 export { default as ArtifactsTab } from './tabs/ArtifactsTab';
 export type { DetectorResult, GranularityResult } from './tabs/ArtifactsTab';

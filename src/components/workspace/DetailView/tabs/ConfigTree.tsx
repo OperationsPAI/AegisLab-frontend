@@ -6,7 +6,7 @@ import {
   CopyOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
-import { Button, Input, message, Modal, Typography } from 'antd';
+import { App, Button, Input, Modal, Typography } from 'antd';
 
 import './ConfigTree.css';
 
@@ -223,6 +223,7 @@ const ConfigTree: React.FC<ConfigTreeProps> = ({
   description = "Config parameters are your model's inputs.",
   onViewRaw,
 }) => {
+  const { message } = App.useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
 

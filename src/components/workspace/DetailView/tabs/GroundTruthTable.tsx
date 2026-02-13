@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 
 import { CopyOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Input, message, Modal, Table, Tag, Typography } from 'antd';
+import { App, Button, Input, Modal, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 
 import './GroundTruthTable.css';
@@ -84,6 +84,7 @@ const GroundTruthTable: React.FC<GroundTruthTableProps> = ({
   description = 'Expected root cause labels for this injection.',
   onViewRaw,
 }) => {
+  const { message } = App.useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
 

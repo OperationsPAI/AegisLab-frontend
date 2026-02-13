@@ -41,7 +41,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ team }) => {
   // Fetch team links
   const { data: links = [] } = useQuery({
     queryKey: ['team', 'links', team.id],
-    queryFn: () => teamApi.getLinks(team.id),
+    queryFn: () => [],
   });
 
   const runsColumns: ColumnsType<ExecutionResp> = [

@@ -4,8 +4,10 @@
  */
 import {
   type CreateProjectReq,
+  type InjectionResp,
   type LabelItem,
   type ListProjectResp,
+  type PageSize,
   type ProjectDetailResp,
   type ProjectResp,
   ProjectsApi,
@@ -15,8 +17,6 @@ import {
 import { apiClient, createApiConfig } from './config';
 
 export const projectApi = {
-  // ==================== SDK Methods ====================
-
   /**
    * Get project list - Using SDK
    */
@@ -37,16 +37,36 @@ export const projectApi = {
   },
 
   /**
-   * Get project details - Using SDK
+   * Get project details
    */
-  getProject: async (id: number): Promise<ProjectDetailResp | undefined> => {
+  getProjectDetail: async (
+    id: number
+  ): Promise<ProjectDetailResp | undefined> => {
     const api = new ProjectsApi(createApiConfig());
     const response = await api.getProjectById({ projectId: id });
     return response.data.data;
   },
 
   /**
-   * Create project - Using SDK
+   * List project injections
+   */
+  listProjectInjections: async (
+    projectId: number,
+    params?: { page?: number; size?: PageSize }
+  ): Promise<{
+    items: InjectionResp[];
+    total: number;
+  }> => {
+    const api = new ProjectsApi(createApiConfig());
+    const response = await api.listProjectInjections({ projectId, ...params });
+    return {
+      items: response.data.data?.items || [],
+      total: response.data.data?.pagination?.total || 0,
+    };
+  },
+
+  /**
+   * Create project
    */
   createProject: async (data: {
     name: string;
@@ -88,56 +108,4 @@ export const projectApi = {
    */
   updateLabels: (id: number, labels: Array<{ key: string; value: string }>) =>
     apiClient.patch(`/projects/${id}/labels`, { labels }),
-
-  /**
-   * Get project by name - Manual implementation
-   * Used for user-friendly URLs that use project names instead of IDs
-   */
-  getProjectByName: async (
-    name: string
-  ): Promise<ProjectDetailResp | undefined> => {
-    try {
-      const api = new ProjectsApi(createApiConfig());
-
-      // Find project with matching name from the list
-      // Note: This is a workaround. Ideally backend should provide a getByName endpoint
-      const allProjects = await api.listProjects({ size: 1000 });
-      const project = allProjects.data.data?.items?.find(
-        (p) => p.name === name || p.name?.toLowerCase() === name?.toLowerCase()
-      );
-
-      if (project?.id) {
-        // Get full project details
-        const detailResponse = await api.getProjectById({
-          projectId: project.id,
-        });
-        return detailResponse.data.data;
-      }
-
-      // If not found via API, return mock data for development
-      return createMockProject(name);
-    } catch (error) {
-      console.warn('Failed to fetch project from API, using mock data:', error);
-      // Return mock data when API fails
-      return createMockProject(name);
-    }
-  },
 };
-
-/**
- * Create mock project data for development
- * Used when backend API is not available
- */
-function createMockProject(name: string): ProjectDetailResp {
-  return {
-    id: Math.floor(Math.random() * 10000) + 1,
-    name,
-    description: `Mock project: ${name}`,
-    is_public: false,
-    status: 'active',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    // Add team_name for breadcrumb navigation (wandb-style)
-    team_name: 'cuhkse', // or use owner_name for personal projects
-  } as ProjectDetailResp;
-}

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { Spin, Tabs } from 'antd';
 
@@ -32,8 +33,7 @@ export interface DetailViewProps {
   // Entity info
   entityType: EntityType;
   title: string;
-  status: string;
-  statusColor: string;
+  titleDotColor: string;
   loading?: boolean;
 
   // Workspace header props
@@ -59,8 +59,7 @@ export interface DetailViewProps {
  */
 const DetailView: React.FC<DetailViewProps> = ({
   title,
-  status,
-  statusColor,
+  titleDotColor,
   loading = false,
   workspaceName,
   workspaceType = 'personal',
@@ -71,9 +70,58 @@ const DetailView: React.FC<DetailViewProps> = ({
   tabs,
   defaultActiveTab,
 }) => {
-  const [activeTab, setActiveTab] = useState(
-    defaultActiveTab || tabs[0]?.key || 'overview'
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Extract tab from path (e.g., /workspace/project/injections/123/files => 'files')
+  const pathSegments = location.pathname.split('/').filter(Boolean);
+
+  // Find injection/execution ID index and tab
+  // Pattern: .../injections/{id}/tab or .../executions/{id}/tab
+  const entityIndex = pathSegments.findIndex(
+    (seg) => seg === 'injections' || seg === 'executions'
   );
+  const entityId = entityIndex !== -1 ? pathSegments[entityIndex + 1] : null;
+  const tabFromPath =
+    entityIndex !== -1 && pathSegments.length > entityIndex + 2
+      ? pathSegments[entityIndex + 2]
+      : null;
+  const isValidTab = tabFromPath
+    ? tabs.some((tab) => tab.key === tabFromPath)
+    : false;
+
+  const [activeTab, setActiveTab] = useState(
+    isValidTab ? tabFromPath : defaultActiveTab || tabs[0]?.key || 'overview'
+  );
+
+  // Sync activeTab with path and redirect to tab if missing
+  useEffect(() => {
+    if (entityIndex !== -1 && entityId) {
+      if (!tabFromPath || !isValidTab) {
+        // No tab in URL or invalid tab, redirect to default tab
+        const defaultTab = defaultActiveTab || tabs[0]?.key || 'overview';
+        const basePath = pathSegments.slice(0, entityIndex + 2).join('/');
+        const newPath = `/${basePath}/${defaultTab}`;
+        navigate(newPath, { replace: true });
+        setActiveTab(defaultTab);
+      } else if (isValidTab && tabFromPath !== activeTab) {
+        // Valid tab in URL, sync state
+        setActiveTab(tabFromPath);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
+  // Handle tab change
+  const handleTabChange = (key: string) => {
+    setActiveTab(key);
+    // Build new path: keep everything up to and including the entity ID, then add the tab
+    if (entityIndex !== -1 && entityId) {
+      const basePath = pathSegments.slice(0, entityIndex + 2).join('/');
+      const newPath = `/${basePath}/${key}`;
+      navigate(newPath, { replace: true });
+    }
+  };
 
   // Filter out hidden tabs
   const visibleTabs = tabs.filter((tab) => !tab.hidden);
@@ -115,8 +163,7 @@ const DetailView: React.FC<DetailViewProps> = ({
 
       <DetailViewHeader
         title={title}
-        status={status}
-        statusColor={statusColor}
+        titleDotColor={titleDotColor}
         onBack={onBack}
         backLabel={backLabel}
         actions={actions}
@@ -125,7 +172,7 @@ const DetailView: React.FC<DetailViewProps> = ({
       <div className='detail-view-tabs'>
         <Tabs
           activeKey={activeTab}
-          onChange={setActiveTab}
+          onChange={handleTabChange}
           items={visibleTabs.map((tab) => ({
             key: tab.key,
             label: (

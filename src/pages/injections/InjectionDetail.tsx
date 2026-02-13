@@ -1,3 +1,5 @@
+import { useNavigate, useParams } from 'react-router-dom';
+
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
@@ -17,7 +19,6 @@ import {
   Typography,
 } from 'antd';
 import dayjs from 'dayjs';
-import { useNavigate, useParams } from 'react-router-dom';
 
 import { injectionApi } from '@/api/injections';
 
@@ -36,7 +37,7 @@ const InjectionDetail = () => {
   if (isLoading) {
     return (
       <div style={{ textAlign: 'center', padding: '100px' }}>
-        <Spin size="large" />
+        <Spin size='large' />
       </div>
     );
   }
@@ -46,21 +47,56 @@ const InjectionDetail = () => {
   }
 
   const getStateTag = (state: string) => {
-    const stateMap: Record<string, { color: string; text: string; icon: JSX.Element }> = {
-      build_success: { color: 'success', text: 'Build Success', icon: <CheckCircleOutlined /> },
-      building: { color: 'processing', text: 'Building', icon: <ClockCircleOutlined /> },
-      build_failed: { color: 'error', text: 'Build Failed', icon: <ClockCircleOutlined /> },
-      inject_success: { color: 'success', text: 'Inject Success', icon: <CheckCircleOutlined /> },
-      inject_failed: { color: 'error', text: 'Inject Failed', icon: <ClockCircleOutlined /> },
-      initial: { color: 'default', text: 'Initial', icon: <ClockCircleOutlined /> },
+    const stateMap: Record<
+      string,
+      { color: string; text: string; icon: JSX.Element }
+    > = {
+      build_success: {
+        color: 'success',
+        text: 'Build Success',
+        icon: <CheckCircleOutlined />,
+      },
+      building: {
+        color: 'processing',
+        text: 'Building',
+        icon: <ClockCircleOutlined />,
+      },
+      build_failed: {
+        color: 'error',
+        text: 'Build Failed',
+        icon: <ClockCircleOutlined />,
+      },
+      inject_success: {
+        color: 'success',
+        text: 'Inject Success',
+        icon: <CheckCircleOutlined />,
+      },
+      inject_failed: {
+        color: 'error',
+        text: 'Inject Failed',
+        icon: <ClockCircleOutlined />,
+      },
+      initial: {
+        color: 'default',
+        text: 'Initial',
+        icon: <ClockCircleOutlined />,
+      },
     };
-    const config = stateMap[state] || { color: 'default', text: state, icon: <ClockCircleOutlined /> };
-    return <Tag color={config.color} icon={config.icon}>{config.text}</Tag>;
+    const config = stateMap[state] || {
+      color: 'default',
+      text: state,
+      icon: <ClockCircleOutlined />,
+    };
+    return (
+      <Tag color={config.color} icon={config.icon}>
+        {config.text}
+      </Tag>
+    );
   };
 
   return (
     <div style={{ padding: '24px' }}>
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+      <Space direction='vertical' size='large' style={{ width: '100%' }}>
         <div>
           <Button
             icon={<ArrowLeftOutlined />}
@@ -76,38 +112,38 @@ const InjectionDetail = () => {
 
         <Row gutter={[16, 16]}>
           <Col span={24}>
-            <Card title="Basic Information">
+            <Card title='Basic Information'>
               <Descriptions column={2} bordered>
-                <Descriptions.Item label="ID">{injection.id}</Descriptions.Item>
-                <Descriptions.Item label="State">
+                <Descriptions.Item label='ID'>{injection.id}</Descriptions.Item>
+                <Descriptions.Item label='State'>
                   {getStateTag(injection.state)}
                 </Descriptions.Item>
-                <Descriptions.Item label="Fault Type">
+                <Descriptions.Item label='Fault Type'>
                   <Tag>{injection.fault_type}</Tag>
                 </Descriptions.Item>
-                <Descriptions.Item label="Category">
+                <Descriptions.Item label='Category'>
                   <Tag>{injection.category}</Tag>
                 </Descriptions.Item>
-                <Descriptions.Item label="Benchmark">
-                  {injection.benchmark?.name || '-'}
+                <Descriptions.Item label='Benchmark'>
+                  {injection.benchmark_name || '-'}
                 </Descriptions.Item>
-                <Descriptions.Item label="Pedestal">
-                  {injection.pedestal?.name || '-'}
+                <Descriptions.Item label='Pedestal'>
+                  {injection.pedestal_name || '-'}
                 </Descriptions.Item>
-                <Descriptions.Item label="Pre Duration">
+                <Descriptions.Item label='Pre Duration'>
                   {injection.pre_duration}s
                 </Descriptions.Item>
-                <Descriptions.Item label="Task ID">
+                <Descriptions.Item label='Task ID'>
                   {injection.task_id || '-'}
                 </Descriptions.Item>
-                <Descriptions.Item label="Created At">
+                <Descriptions.Item label='Created At'>
                   {dayjs(injection.created_at).format('YYYY-MM-DD HH:mm:ss')}
                 </Descriptions.Item>
-                <Descriptions.Item label="Updated At">
+                <Descriptions.Item label='Updated At'>
                   {dayjs(injection.updated_at).format('YYYY-MM-DD HH:mm:ss')}
                 </Descriptions.Item>
                 {injection.description && (
-                  <Descriptions.Item label="Description" span={2}>
+                  <Descriptions.Item label='Description' span={2}>
                     {injection.description}
                   </Descriptions.Item>
                 )}
@@ -117,7 +153,7 @@ const InjectionDetail = () => {
 
           {injection.labels && injection.labels.length > 0 && (
             <Col span={24}>
-              <Card title="Labels">
+              <Card title='Labels'>
                 <Space wrap>
                   {injection.labels.map((label) => (
                     <Tag key={label.key} color={label.color || 'blue'}>
@@ -129,15 +165,19 @@ const InjectionDetail = () => {
             </Col>
           )}
 
-          {injection.groundtruths && injection.groundtruths.length > 0 && (
+          {injection.ground_truth && injection.ground_truth.length > 0 && (
             <Col span={24}>
-              <Card title="Ground Truths">
-                <Space direction="vertical" style={{ width: '100%' }}>
-                  {injection.groundtruths.map((gt, index) => (
-                    <Card key={index} size="small" type="inner">
-                      <Descriptions column={2} size="small">
-                        <Descriptions.Item label="Type">{gt.type}</Descriptions.Item>
-                        <Descriptions.Item label="Value">{gt.value}</Descriptions.Item>
+              <Card title='Ground Truths'>
+                <Space direction='vertical' style={{ width: '100%' }}>
+                  {injection.ground_truth.map((gt, index) => (
+                    <Card key={index} size='small' type='inner'>
+                      <Descriptions column={2} size='small'>
+                        <Descriptions.Item label='Type'>
+                          {gt.type}
+                        </Descriptions.Item>
+                        <Descriptions.Item label='Value'>
+                          {gt.value}
+                        </Descriptions.Item>
                       </Descriptions>
                     </Card>
                   ))}
@@ -148,14 +188,14 @@ const InjectionDetail = () => {
 
           {injection.state === 'build_success' && (
             <Col span={24}>
-              <Card title="Datapack Information">
+              <Card title='Datapack Information'>
                 <Descriptions bordered>
-                  <Descriptions.Item label="Status">
-                    <Tag color="success">Ready for Execution</Tag>
+                  <Descriptions.Item label='Status'>
+                    <Tag color='success'>Ready for Execution</Tag>
                   </Descriptions.Item>
-                  <Descriptions.Item label="View Datapack">
+                  <Descriptions.Item label='View Datapack'>
                     <Button
-                      type="link"
+                      type='link'
                       onClick={() => navigate(`/datapacks/${injection.id}`)}
                     >
                       View Datapack Details

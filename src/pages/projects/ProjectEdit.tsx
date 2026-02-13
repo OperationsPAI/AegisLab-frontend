@@ -1,3 +1,6 @@
+import { useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+
 import {
   ArrowLeftOutlined,
   DeleteOutlined,
@@ -20,9 +23,6 @@ import {
   Switch,
   Typography,
 } from 'antd';
-import { useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-
 
 import { projectApi } from '@/api/projects';
 
@@ -49,7 +49,7 @@ const ProjectEdit = () => {
     error,
   } = useQuery({
     queryKey: ['project', projectId],
-    queryFn: () => projectApi.getProject(projectId),
+    queryFn: () => projectApi.getProjectDetail(projectId),
     enabled: !!projectId && !isNaN(projectId),
   });
 

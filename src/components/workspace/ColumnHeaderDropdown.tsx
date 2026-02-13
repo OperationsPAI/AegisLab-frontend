@@ -134,7 +134,8 @@ const ColumnHeaderDropdown: FC<ColumnHeaderDropdownProps> = ({
         title={tooltipContent}
         placement='bottomLeft'
         align={{ offset: [-8, 4], targetOffset: [0, 0] }}
-        overlayClassName='column-header-tooltip-overlay'
+        classNames={{ root: 'column-header-tooltip-overlay' }}
+        mouseEnterDelay={0.3}
       >
         <span className='column-header-title'>{children}</span>
       </Tooltip>
@@ -144,7 +145,7 @@ const ColumnHeaderDropdown: FC<ColumnHeaderDropdownProps> = ({
         placement='bottomLeft'
         open={open}
         onOpenChange={setOpen}
-        overlayClassName='column-header-dropdown-menu'
+        classNames={{ root: 'column-header-dropdown-menu' }}
       >
         <EllipsisOutlined
           className='column-menu-icon'

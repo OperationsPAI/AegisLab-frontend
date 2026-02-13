@@ -14,18 +14,18 @@ import {
   FileTextOutlined,
   ProfileOutlined,
 } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
+import type { LabelItem } from '@rcabench/client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { message, Tag } from 'antd';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
-import { injectionApi } from '@/api/injections';
+import { injectionApi, type InjectionDetailResp } from '@/api/injections';
 import {
   ChartsTab,
   DetailView,
   type DetailViewAction,
   type DetailViewTab,
-  type FileItem,
   FilesTab,
   type GroundTruthItem,
   type LogEntry,
@@ -35,50 +35,9 @@ import {
 } from '@/components/workspace/DetailView';
 import type { ProjectOutletContext } from '@/hooks/useProjectContext';
 import { useAuthStore } from '@/store/auth';
-import { STATUS_COLORS } from '@/types/workspace';
+import { getColor } from '@/utils/colors';
 
 dayjs.extend(relativeTime);
-
-// Mock config data for testing
-const MOCK_CONFIG_DATA: Record<string, unknown> = {
-  data: {
-    datagen: {
-      name: null,
-      path: null,
-    },
-    sampler: {
-      class_name: null,
-      class_path: null,
-    },
-    shuffle: true,
-    use_shm: false,
-    image_key: 'images',
-    tokenizer: null,
-    val_files: '~/data/rlhf/gsm8k/test.parquet',
-    video_key: 'videos',
-    custom_cls: {
-      name: null,
-      path: null,
-    },
-    prompt_key: 'prompt',
-    truncation: 'error',
-    train_files: '~/data/rlhf/gsm8k/train.parquet',
-    reward_fn_key: 'data_source',
-    val_batch_size: null,
-  },
-  model: {
-    path: 'Qwen/Qwen2.5-0.5B-Instruct',
-    dtype: 'bfloat16',
-    trust_remote_code: false,
-    use_remove_padding: false,
-    external_lib: null,
-  },
-  trainer: {
-    total_epochs: 2,
-    default_hdfs_dir: null,
-    default_local_dir: 'checkpoints/gsm8k/qwen2.5-0.5b_function_rm',
-  },
-};
 
 // Mock ground truth data for testing
 const MOCK_GROUND_TRUTH_DATA: GroundTruthItem[] = [
@@ -110,10 +69,12 @@ const ProjectInjectionDetail: React.FC = () => {
     project: _project,
     teamName,
     projectName,
+    projectId,
   } = useOutletContext<ProjectOutletContext>();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
 
   // Workspace name for header
   const workspaceName = `${user?.username || 'User'}'s workspace`;
@@ -125,40 +86,12 @@ const ProjectInjectionDetail: React.FC = () => {
 
   // Fetch injection data
   const { data: injection, isLoading } = useQuery({
-    queryKey: ['injection', id],
+    queryKey: ['injection', id, projectId],
     queryFn: () => injectionApi.getInjection(Number(id)),
     enabled: !!id,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
-
-  // Get status color
-  const getStatusColor = (state?: string): string => {
-    if (!state) return '#8c8c8c';
-    const normalizedState = state.toLowerCase();
-    if (normalizedState in STATUS_COLORS) {
-      return STATUS_COLORS[normalizedState as keyof typeof STATUS_COLORS];
-    }
-    // Handle special cases
-    if (
-      normalizedState === 'inject_success' ||
-      normalizedState === 'build_success' ||
-      normalizedState === 'finished'
-    ) {
-      return STATUS_COLORS.success;
-    }
-    if (normalizedState === 'crashed') {
-      return STATUS_COLORS.failed;
-    }
-    return '#8c8c8c';
-  };
-
-  // Format status display
-  const formatStatus = (state?: string): string => {
-    if (!state) return 'Unknown';
-    return state
-      .split('_')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
 
   // Calculate runtime
   const runtime = useMemo(() => {
@@ -191,6 +124,54 @@ const ProjectInjectionDetail: React.FC = () => {
 
   const handleDelete = () => {
     message.warning('Delete run functionality coming soon');
+  };
+
+  // Label handlers
+  const handleAddLabel = async (key: string, value: string) => {
+    try {
+      // Create label object
+      const newLabel: LabelItem = { key, value };
+
+      // Add to backend
+      await injectionApi.manageLabels(Number(id), [newLabel], []);
+
+      // Update cache
+      queryClient.setQueryData<InjectionDetailResp>(
+        ['injection', id, projectId],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            labels: [...(old.labels || []), newLabel],
+          };
+        }
+      );
+    } catch (error) {
+      message.error('Failed to add label');
+      throw error;
+    }
+  };
+
+  const handleRemoveLabel = async (label: LabelItem) => {
+    try {
+      // Remove from backend
+      await injectionApi.manageLabels(Number(id), [], [label]);
+      queryClient.setQueryData<InjectionDetailResp>(
+        ['injection', id, projectId],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            labels:
+              old.labels?.filter(
+                (l: LabelItem) => l.key !== label.key || l.value !== label.value
+              ) || [],
+          };
+        }
+      );
+    } catch (error) {
+      message.error('Failed to remove label');
+    }
   };
 
   // Define actions for dropdown menu (wandb style)
@@ -227,30 +208,42 @@ const ProjectInjectionDetail: React.FC = () => {
     if (!injection) return [];
     return [
       {
+        label: 'Pre Duration',
+        value: `${injection.pre_duration || 0}m 0s`,
+      },
+      {
         label: 'Fault Type',
-        value: <Tag color='orange'>{injection.fault_type}</Tag>,
+        value: injection.fault_type,
       },
       {
         label: 'Category',
         value: <Tag>{injection.category}</Tag>,
       },
       {
-        label: 'Benchmark ID',
-        value: injection.benchmark_id || '-',
+        label: 'Benchmark',
+        value: injection.benchmark_name || '-',
       },
       {
-        label: 'Pedestal ID',
-        value: injection.pedestal_id || '-',
-      },
-      {
-        label: 'Pre Duration',
-        value: `${injection.pre_duration || 0}s`,
-      },
-      {
-        label: 'Task ID',
-        value: injection.task_id || '-',
+        label: 'Pedestal',
+        value: injection.pedestal_name || '-',
       },
     ];
+  }, [injection]);
+
+  // Build config object for display (use mock if no real data)
+  const configData = useMemo(() => {
+    if (!injection) return undefined;
+    // Use display_config if available, otherwise build from engine_config
+    if (
+      injection.display_config &&
+      Object.keys(injection.display_config).length > 0
+    ) {
+      return injection.display_config as Record<string, unknown>;
+    }
+    if (injection.engine_config && injection.engine_config.length > 0) {
+      return { engine_config: injection.engine_config };
+    }
+    return undefined;
   }, [injection]);
 
   // Transform ground_truth data for OverviewTab (use mock if no real data)
@@ -267,23 +260,6 @@ const ProjectInjectionDetail: React.FC = () => {
       function: gt.function,
       span: gt.span,
     }));
-  }, [injection]);
-
-  // Build config object for display (use mock if no real data)
-  const configData = useMemo(() => {
-    if (!injection) return MOCK_CONFIG_DATA;
-    // Use display_config if available, otherwise build from engine_config
-    if (
-      injection.display_config &&
-      Object.keys(injection.display_config).length > 0
-    ) {
-      return injection.display_config as Record<string, unknown>;
-    }
-    if (injection.engine_config && injection.engine_config.length > 0) {
-      return { engine_config: injection.engine_config };
-    }
-    // Use mock data if no config available
-    return MOCK_CONFIG_DATA;
   }, [injection]);
 
   // Mock logs for demo
@@ -324,24 +300,6 @@ const ProjectInjectionDetail: React.FC = () => {
     ];
   }, [injection]);
 
-  // Mock files for demo
-  const mockFiles: FileItem[] = [
-    {
-      name: 'requirements.txt',
-      path: '/requirements.txt',
-      type: 'file',
-      size: 5800,
-      modifiedAt: dayjs().subtract(3, 'month').toISOString(),
-    },
-    {
-      name: 'injection-config.json',
-      path: '/injection-config.json',
-      type: 'file',
-      size: 3600,
-      modifiedAt: dayjs().subtract(3, 'month').toISOString(),
-    },
-  ];
-
   // Define tabs
   const tabs: DetailViewTab[] = [
     {
@@ -357,16 +315,19 @@ const ProjectInjectionDetail: React.FC = () => {
       content: (
         <OverviewTab
           notes={injection?.description}
-          tags={injection?.labels?.map((l) => `${l.key}: ${l.value}`) || []}
-          author='admin'
-          state={injection?.state || 'unknown'}
+          labels={injection?.labels || []}
+          author={user?.username || 'Unknown'}
+          state={injection?.state}
           startTime={injection?.start_time}
           runtime={runtime}
+          taskID={injection?.task_id}
           createdAt={injection?.created_at || new Date().toISOString()}
           updatedAt={injection?.updated_at}
           additionalFields={additionalFields}
           config={configData}
           groundTruth={groundTruthData}
+          onAddLabel={handleAddLabel}
+          onRemoveLabel={handleRemoveLabel}
         />
       ),
     },
@@ -380,7 +341,7 @@ const ProjectInjectionDetail: React.FC = () => {
       key: 'files',
       label: 'Files',
       icon: <FileOutlined />,
-      content: <FilesTab files={mockFiles} />,
+      content: id ? <FilesTab injectionId={Number(id)} /> : null,
     },
   ];
 
@@ -388,10 +349,7 @@ const ProjectInjectionDetail: React.FC = () => {
     <DetailView
       entityType='injection'
       title={injection?.name || injectionFromState?.name || ''}
-      status={formatStatus(injection?.state || injectionFromState?.state)}
-      statusColor={getStatusColor(
-        injection?.state || injectionFromState?.state
-      )}
+      titleDotColor={getColor(injection?.id || 0)}
       loading={isLoading}
       workspaceName={workspaceName}
       workspaceType='personal'

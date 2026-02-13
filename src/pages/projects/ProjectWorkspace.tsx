@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 
+import { PageSize } from '@rcabench/client';
+import { useQuery } from '@tanstack/react-query';
+
+import { projectApi } from '@/api/projects';
 import ChartsPanel from '@/components/workspace/ChartsPanel';
 import RunsPanel from '@/components/workspace/RunsPanel';
 import WorkspacePageHeader from '@/components/workspace/WorkspacePageHeader';
@@ -19,15 +23,6 @@ import { toRunId } from '@/utils/idUtils';
 
 import './ProjectWorkspace.css';
 
-// Fault types for injections
-const FAULT_TYPES = [
-  'network',
-  'cpu',
-  'memory',
-  'disk',
-  'process',
-  'kubernetes',
-];
 const INJECTION_STATUSES: RunStatus[] = [
   'running',
   'finished',
@@ -42,32 +37,6 @@ const ALGORITHM_NAMES = [
   'DiagNet',
   'TraceAnomaly',
 ];
-
-// Generate mock injections data
-const generateMockInjections = (count: number): Run[] => {
-  return Array.from({ length: count }, (_, i) => {
-    const faultType =
-      FAULT_TYPES[Math.floor(Math.random() * FAULT_TYPES.length)];
-    const status =
-      INJECTION_STATUSES[Math.floor(Math.random() * INJECTION_STATUSES.length)];
-    return {
-      id: `inj_${i + 1}`,
-      name: `${faultType}_delay_${String(i + 1).padStart(3, '0')}`,
-      status,
-      created_at: new Date(
-        Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000
-      ).toISOString(),
-      metrics: {
-        duration: Array.from({ length: 50 }, () => Math.random() * 60),
-        impact_score: Array.from({ length: 50 }, () => Math.random()),
-      },
-      config: {
-        fault_type: faultType,
-        target: `service-${Math.floor(Math.random() * 10)}`,
-      },
-    };
-  });
-};
 
 // Generate mock executions data
 const generateMockExecutions = (count: number): Run[] => {
@@ -173,6 +142,7 @@ const ProjectWorkspace: React.FC = () => {
     project: _project,
     teamName,
     projectName,
+    projectId,
   } = useOutletContext<ProjectOutletContext>();
   const { user } = useAuthStore();
   const navigate = useNavigate();
@@ -215,14 +185,50 @@ const ProjectWorkspace: React.FC = () => {
     searchText: searchQuery,
   } = tableSettings;
 
-  // Mock data based on data source - replace with API calls later
-  const mockInjections = useMemo(() => generateMockInjections(33), []);
+  // Convert page size to enum
+  const toPageSizeEnum = (size: number): PageSize => {
+    if (size <= 10) return PageSize.Small;
+    if (size <= 20) return PageSize.Medium;
+    return PageSize.Large;
+  };
+
+  // Fetch injections data from API
+  const { data: injectionsData } = useQuery({
+    queryKey: ['injections', projectId, page, pageSize],
+    queryFn: () => {
+      if (!projectId) throw new Error('Project ID is required');
+      return projectApi.listProjectInjections(projectId, {
+        page,
+        size: toPageSizeEnum(pageSize),
+      });
+    },
+    enabled: !!projectId && runsDataSource === 'injections',
+  });
+
+  // Convert API injections to Run format
+  const apiInjections = useMemo((): Run[] => {
+    if (!injectionsData?.items) return [];
+    return injectionsData.items.map((item) => ({
+      id: String(item.id),
+      name: item.name ?? `Injection #${item.id}`,
+      status: (item.state ? String(item.state) : 'unknown') as RunStatus,
+      created_at: item.created_at ?? new Date().toISOString(),
+      metrics: {},
+      config: {
+        fault_type: item.fault_type,
+        benchmark: item.benchmark_name,
+        pedestal: item.pedestal_name,
+      },
+    }));
+  }, [injectionsData]);
+
+  // Mock data for executions
   const mockExecutions = useMemo(() => generateMockExecutions(28), []);
 
   // Select data based on current data source
   const allRuns = useMemo(() => {
-    return runsDataSource === 'injections' ? mockInjections : mockExecutions;
-  }, [runsDataSource, mockInjections, mockExecutions]);
+    return runsDataSource === 'injections' ? apiInjections : mockExecutions;
+  }, [runsDataSource, apiInjections, mockExecutions]);
 
   const charts = useMemo(() => generateMockCharts(allRuns), [allRuns]);
 

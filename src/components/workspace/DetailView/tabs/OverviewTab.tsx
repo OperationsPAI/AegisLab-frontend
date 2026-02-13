@@ -1,10 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
-import { PlusOutlined, UserOutlined } from '@ant-design/icons';
-import { Button, Col, List, Row, Space, Tag, Typography } from 'antd';
+import { DownOutlined, UpOutlined, UserOutlined } from '@ant-design/icons';
+import type { LabelItem } from '@rcabench/client';
+import { Button, Col, List, Row, Space, Table, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
 
-import { STATUS_COLORS } from '@/types/workspace';
+import AddLabelDropdown from '@/components/workspace/AddLabelDropdown';
+import { getDatapackStateDisplay } from '@/types/workspace';
 
 import ConfigTree from './ConfigTree';
 import GroundTruthTable, { type GroundTruthItem } from './GroundTruthTable';
@@ -30,11 +32,12 @@ interface ListItem {
 interface OverviewTabProps {
   // Basic info
   notes?: string;
-  tags?: string[];
+  labels?: LabelItem[];
   author?: string;
-  state: string;
+  state?: string;
   startTime?: string;
   runtime?: string;
+  taskID?: string;
   createdAt: string;
   updatedAt?: string;
 
@@ -46,8 +49,9 @@ interface OverviewTabProps {
   groundTruth?: GroundTruthItem[];
 
   // Actions
-  onAddTag?: () => void;
   onEditNotes?: () => void;
+  onAddLabel?: (key: string, value: string) => Promise<void>;
+  onRemoveLabel?: (label: LabelItem) => void;
 }
 
 /**
@@ -56,45 +60,44 @@ interface OverviewTabProps {
  */
 const OverviewTab: React.FC<OverviewTabProps> = ({
   notes,
-  tags = [],
+  labels = [],
   author,
   state,
   startTime,
   runtime,
+  taskID,
   createdAt,
   updatedAt,
   additionalFields = [],
   config,
   groundTruth,
-  onAddTag,
+  onAddLabel,
   onEditNotes,
+  onRemoveLabel,
 }) => {
-  // Get status color from STATUS_COLORS map
-  const getStatusColor = (status: string): string => {
-    const normalizedStatus = status.toLowerCase();
-    if (normalizedStatus in STATUS_COLORS) {
-      return STATUS_COLORS[normalizedStatus as keyof typeof STATUS_COLORS];
-    }
-    // Handle special cases
-    if (
-      normalizedStatus === 'inject_success' ||
-      normalizedStatus === 'build_success'
-    ) {
-      return STATUS_COLORS.success;
-    }
-    if (normalizedStatus === 'crashed') {
-      return STATUS_COLORS.failed;
-    }
-    return '#8c8c8c';
-  };
+  // State for controlling metrics table expansion
+  const [metricsExpanded, setMetricsExpanded] = useState(true);
 
-  // Format display status
-  const formatStatus = (status: string): string => {
-    return status
-      .split('_')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
+  // Categorize labels
+  const categorizedLabels = useMemo(() => {
+    const tags: LabelItem[] = [];
+    const metrics: LabelItem[] = [];
+    const customLabels: LabelItem[] = [];
+
+    labels.forEach((label) => {
+      if (label.key?.toLowerCase() === 'tag') {
+        // Type 1: Tags - only show value
+        tags.push(label);
+      } else if (label.is_system) {
+        metrics.push(label);
+      } else {
+        // Type 3: Custom user labels
+        customLabels.push(label);
+      }
+    });
+
+    return { tags, metrics, customLabels };
+  }, [labels]);
 
   // Build data items for list
   const listData: ListItem[] = useMemo(() => {
@@ -125,18 +128,41 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
         label: 'Tags',
         value: (
           <Space wrap size={4}>
-            {tags.map((tag, index) => (
+            {categorizedLabels.tags.map((l, index) => (
               <Tag key={index} color='blue'>
-                {tag}
+                {l.value}
               </Tag>
             ))}
-            <Button
-              type='text'
-              size='small'
-              icon={<PlusOutlined />}
-              onClick={onAddTag}
-              className='overview-add-tag-btn'
-            />
+            {categorizedLabels.tags.length === 0 && (
+              <Text type='secondary'>No tags</Text>
+            )}
+          </Space>
+        ),
+      },
+      {
+        key: 'customLabels',
+        label: 'Labels',
+        value: (
+          <Space wrap size={4}>
+            {categorizedLabels.customLabels.map((l, index) => (
+              <Tag
+                key={index}
+                color='purple'
+                closable
+                onClose={(e) => {
+                  e.preventDefault();
+                  onRemoveLabel?.(l);
+                }}
+              >
+                {`${l.key}: ${l.value}`}
+              </Tag>
+            ))}
+            {onAddLabel && (
+              <AddLabelDropdown
+                existingLabels={labels}
+                onAddLabel={onAddLabel}
+              />
+            )}
           </Space>
         ),
       },
@@ -157,10 +183,10 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           <div className='overview-status'>
             <span
               className='overview-status-dot'
-              style={{ backgroundColor: getStatusColor(state) }}
+              style={{ backgroundColor: getDatapackStateDisplay(state).color }}
             />
-            <span style={{ color: getStatusColor(state) }}>
-              {formatStatus(state)}
+            <span style={{ color: getDatapackStateDisplay(state).color }}>
+              {getDatapackStateDisplay(state).text}
             </span>
           </div>
         ),
@@ -170,9 +196,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
         label: 'Start time',
         value: (
           <Text>
-            {startTime
-              ? dayjs(startTime).format('MMMM D, YYYY h:mm:ss A')
-              : '-'}
+            {startTime ? dayjs(startTime).format('YYYY-MM-DD H:mm:ss') : '-'}
           </Text>
         ),
       },
@@ -195,6 +219,12 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
         ),
         isCommand: field.isCommand,
       });
+    });
+
+    items.push({
+      key: 'taskID',
+      label: 'Task ID',
+      value: <Text>{taskID || '-'}</Text>,
     });
 
     // Add timestamps
@@ -220,19 +250,77 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       });
     }
 
+    items.push({
+      key: 'metrics',
+      label: 'Metrics',
+      value: (
+        <div className='overview-metrics-section'>
+          {categorizedLabels.metrics.length > 0 ? (
+            <>
+              <Button
+                type='text'
+                size='small'
+                onClick={() => setMetricsExpanded(!metricsExpanded)}
+                icon={metricsExpanded ? <UpOutlined /> : <DownOutlined />}
+                style={{ marginBottom: 8 }}
+              >
+                {metricsExpanded ? 'Hide' : 'Show'}{' '}
+                {categorizedLabels.metrics.length} system metrics
+              </Button>
+              {metricsExpanded && (
+                <Table
+                  size='small'
+                  dataSource={categorizedLabels.metrics.map((m, idx) => ({
+                    key: idx,
+                    metric: m.key,
+                    value: m.value,
+                  }))}
+                  columns={[
+                    {
+                      title: 'Metric',
+                      dataIndex: 'metric',
+                      key: 'metric',
+                      width: '50%',
+                      render: (text) => <Text code>{text}</Text>,
+                    },
+                    {
+                      title: 'Value',
+                      dataIndex: 'value',
+                      key: 'value',
+                      width: '50%',
+                    },
+                  ]}
+                  pagination={false}
+                  style={{ maxHeight: 300, overflowY: 'auto' }}
+                />
+              )}
+            </>
+          ) : (
+            <Text type='secondary'>No system metrics</Text>
+          )}
+        </div>
+      ),
+    });
+
     return items;
   }, [
     notes,
-    tags,
+    onEditNotes,
+    categorizedLabels.tags,
+    categorizedLabels.customLabels,
+    categorizedLabels.metrics,
+    onAddLabel,
+    onRemoveLabel,
+    metricsExpanded,
     author,
     state,
     startTime,
     runtime,
+    additionalFields,
+    taskID,
     createdAt,
     updatedAt,
-    additionalFields,
-    onAddTag,
-    onEditNotes,
+    labels,
   ]);
 
   // Render list item
@@ -267,14 +355,14 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           <Row gutter={24}>
             {/* Left column: Config JSON tree */}
             {hasConfig && (
-              <Col xs={24} lg={hasGroundTruth ? 12 : 24}>
+              <Col flex={hasGroundTruth ? '1 1 50%' : '1 1 100%'}>
                 <ConfigTree config={config} />
               </Col>
             )}
 
             {/* Right column: Ground Truth table */}
             {hasGroundTruth && (
-              <Col xs={24} lg={hasConfig ? 12 : 24}>
+              <Col flex={hasConfig ? '1 1 50%' : '1 1 100%'}>
                 <GroundTruthTable groundTruth={groundTruth} />
               </Col>
             )}

@@ -84,7 +84,7 @@ const GroupDropdown: FC<GroupDropdownProps> = ({
       placement='bottomLeft'
       open={open}
       onOpenChange={setOpen}
-      overlayClassName='group-dropdown-popover'
+      classNames={{ root: 'group-dropdown-popover' }}
     >
       {iconOnly ? <Tooltip title='Group'>{button}</Tooltip> : button}
     </Popover>

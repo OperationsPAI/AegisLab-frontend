@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import {
   DashboardOutlined,
-  HomeOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuOutlined,
@@ -102,7 +101,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     if (sidebarMode === 'toggle' && onToggleSidebar) {
       onToggleSidebar();
     } else {
-      setDrawerOpen(true);
+      setDrawerOpen((prev) => !prev);
     }
   };
 
@@ -111,7 +110,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     if (sidebarMode === 'toggle') {
       return sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />;
     }
-    return <MenuOutlined />;
+    // Drawer mode: show fold icon when open, menu icon when closed
+    return drawerOpen ? <MenuFoldOutlined /> : <MenuOutlined />;
   };
 
   // Generate breadcrumb items from path if not provided
@@ -131,24 +131,38 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     // Auto-generate from path
     const pathParts = location.pathname.split('/').filter(Boolean);
 
-    // Special handling for team pages: only show team name
-    if (pathParts[0] === 'teams' && pathParts[1]) {
+    // Special handling for profile page: show username instead of "Profile"
+    if (pathParts[0] === 'profile' && user) {
       return [
         {
-          title: <span>{pathParts[1]}</span>,
+          title: <span>{user.username}</span>,
         },
       ];
     }
 
-    const items = [
-      {
-        title: (
-          <Link to='/home'>
-            <HomeOutlined />
-          </Link>
-        ),
-      },
+    // Special handling for team pages at root level: check if first segment is a team name
+    // Team pages don't have a prefix, so we check if it's not a known route
+    const knownRootRoutes = [
+      'home',
+      'projects',
+      'profile',
+      'admin',
+      'utility-test',
     ];
+    if (
+      pathParts.length >= 1 &&
+      !knownRootRoutes.includes(pathParts[0]) &&
+      !pathParts[0].match(/^\d+$/)
+    ) {
+      // This is likely a team or project page, preserve original case
+      return [
+        {
+          title: <span>{pathParts[0]}</span>,
+        },
+      ];
+    }
+
+    const items = [];
 
     let currentPath = '';
     pathParts.forEach((part, index) => {
@@ -186,7 +200,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 ? sidebarCollapsed
                   ? 'Expand sidebar'
                   : 'Collapse sidebar'
-                : 'Open navigation menu'
+                : drawerOpen
+                  ? 'Close navigation menu'
+                  : 'Open navigation menu'
             }
           />
 
