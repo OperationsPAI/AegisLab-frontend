@@ -13,8 +13,10 @@ fullnameOverride: ""
 apiTarget: http://rcabench-exp:8080
 
 service:
+  # type: ClusterIP or NodePort
   type: ClusterIP
   port: 80
+  # nodePort: 30080  # Only used when type is NodePort (range: 30000-32767)
 
 ingress:
   enabled: false
