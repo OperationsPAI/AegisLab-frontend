@@ -1,0 +1,24 @@
+name: Publish Helm Chart
+
+on:
+  push:
+    paths:
+      - 'helm/**'
+      - '.github/workflows/release-helm.yml'
+    tags:
+      - 'v*'
+
+  workflow_dispatch:
+    inputs:
+      tag_version:
+        description: "Version tag to simulate (e.g., v1.0.0)"
+        required: true
+        default: "v0.0.0"
+
+jobs:
+  call-helm-release:
+    uses: OperationsPAI/shared-workflows/.github/workflows/release-helm.yml@main
+    with: 
+      repo_name: AegisLab-frontend
+      repo_url: https://operationspai.github.io/AegisLab-frontend/
+    secrets: inherit
