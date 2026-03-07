@@ -2,14 +2,20 @@ set dotenv-load := true
 set dotenv-filename := ".env.local"
 
 npm_token := env_var_or_default("NPM_TOKEN", "")
-registry := "10.10.10.240"
-image := "library/rcabench-frontend"
+registry := env_var_or_default("REGISTRY", "docker.io/opspai")
+image := "rcabench-frontend"
 
 default:
     @just --list
 
-# Get version from latest git tag (strip leading 'v'), fallback to 'latest'
-version := `git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "latest"`
+# Use short commit hash as version
+version := `git rev-parse --short HEAD`
+
+local-install:
+    LOCAL_API=true pnpm install
+
+local-debug:
+    LOCAL_API=true pnpm run dev --host
 
 build tag=version:
     @if [ -z "{{npm_token}}" ]; then \
@@ -20,28 +26,22 @@ build tag=version:
     docker build \
         --network=host \
         --secret id=NPM_TOKEN,env=NPM_TOKEN \
-        -t {{registry}}/{{image}}:latest .
+        -t {{registry}}/{{image}}:{{tag}} .
 
-run tag=version api_target="http://172.17.0.1:8082":
-    docker run -itd -p 3090:80 \
-        -e API_TARGET={{api_target}} \
-        {{registry}}/{{image}}:{{tag}}
-
-local-debug:
-    LOCAL_API=true pnpm run dev
-
-deploy tag=version: (build tag)
-    docker push {{registry}}/{{image}}:{{tag}}
-
-# Deploy with both version tag and latest
-deploy-latest tag=version: (build tag)
+push tag=version: (build tag)
     docker tag {{registry}}/{{image}}:{{tag}} {{registry}}/{{image}}:latest
     docker push {{registry}}/{{image}}:{{tag}}
     docker push {{registry}}/{{image}}:latest
 
-# Helm install/upgrade
-helm-install release="rcabench-frontend" namespace="default" api_target="http://rcabench-backend:8082" tag=version:
-    helm upgrade --install {{release}} ./helm/rcabench-frontend \
-        --namespace {{namespace}} \
-        --set image.tag={{tag}} \
-        --set apiTarget={{api_target}}
+update-version version:
+    @if command -v jq >/dev/null 2>&1; then \
+        jq --arg v "{{version}}" '.version = $v' package.json > package.json.tmp && mv package.json.tmp package.json; \
+    else \
+        sed -i 's/"version": "[^"]*"/"version": "{{version}}"/' package.json; \
+    fi
+    @if command -v yq >/dev/null 2>&1; then \
+        yq -i '.appVersion = "{{version}}"' helm/Chart.yaml; \
+    else \
+        sed -i 's/^appVersion:.*/appVersion: {{version}}/' helm/Chart.yaml; \
+    fi
+    @echo "Updated version to {{version}} in package.json and helm/Chart.yaml"

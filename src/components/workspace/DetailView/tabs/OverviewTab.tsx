@@ -38,6 +38,7 @@ interface OverviewTabProps {
   startTime?: string;
   runtime?: string;
   taskID?: string;
+  traceID?: string;
   createdAt: string;
   updatedAt?: string;
 
@@ -66,6 +67,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   startTime,
   runtime,
   taskID,
+  traceID,
   createdAt,
   updatedAt,
   additionalFields = [],
@@ -227,6 +229,12 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       value: <Text>{taskID || '-'}</Text>,
     });
 
+    items.push({
+      key: 'traceID',
+      label: 'Trace ID',
+      value: <Text>{traceID || '-'}</Text>,
+    });
+
     // Add timestamps
     items.push({
       key: 'created',
@@ -318,6 +326,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     runtime,
     additionalFields,
     taskID,
+    traceID,
     createdAt,
     updatedAt,
     labels,

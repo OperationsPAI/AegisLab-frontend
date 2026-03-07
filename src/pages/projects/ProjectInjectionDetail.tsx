@@ -28,7 +28,6 @@ import {
   type DetailViewTab,
   FilesTab,
   type GroundTruthItem,
-  type LogEntry,
   LogsTab,
   type OverviewField,
   OverviewTab,
@@ -262,44 +261,6 @@ const ProjectInjectionDetail: React.FC = () => {
     }));
   }, [injection]);
 
-  // Mock logs for demo
-  const mockLogs: LogEntry[] = useMemo(() => {
-    if (!injection) return [];
-    const baseTime = dayjs(injection.created_at);
-    return [
-      {
-        timestamp: baseTime.toISOString(),
-        level: 'info',
-        message: `Injection ${injection.name} started`,
-      },
-      {
-        timestamp: baseTime.add(1, 'second').toISOString(),
-        level: 'info',
-        message: `Fault type: ${injection.fault_type}`,
-      },
-      {
-        timestamp: baseTime.add(2, 'second').toISOString(),
-        level: 'info',
-        message: `Target benchmark ID: ${injection.benchmark_id || 'N/A'}`,
-      },
-      {
-        timestamp: baseTime.add(5, 'second').toISOString(),
-        level: 'info',
-        message: 'Preparing fault injection...',
-      },
-      {
-        timestamp: baseTime.add(10, 'second').toISOString(),
-        level: 'info',
-        message: 'Fault injection executed',
-      },
-      {
-        timestamp: baseTime.add(15, 'second').toISOString(),
-        level: injection.state === 'failed' ? 'error' : 'info',
-        message: `Injection completed with state: ${injection.state}`,
-      },
-    ];
-  }, [injection]);
-
   // Define tabs
   const tabs: DetailViewTab[] = [
     {
@@ -321,6 +282,7 @@ const ProjectInjectionDetail: React.FC = () => {
           startTime={injection?.start_time}
           runtime={runtime}
           taskID={injection?.task_id}
+          traceID={injection?.trace_id}
           createdAt={injection?.created_at || new Date().toISOString()}
           updatedAt={injection?.updated_at}
           additionalFields={additionalFields}
@@ -335,7 +297,7 @@ const ProjectInjectionDetail: React.FC = () => {
       key: 'logs',
       label: 'Logs',
       icon: <FileTextOutlined />,
-      content: <LogsTab logs={mockLogs} />,
+      content: <LogsTab mode='injection' traceId={injection?.trace_id} />,
     },
     {
       key: 'files',
