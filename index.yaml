@@ -1,0 +1,24 @@
+apiVersion: v1
+entries:
+  rcabench-frontend:
+  - apiVersion: v2
+    appVersion: 0.1.2
+    created: "2026-03-07T07:40:12.704881432Z"
+    description: AegisLab RCABench Frontend Helm Chart
+    digest: c6acc4cfeb2da5ab6144244f45b4aa204d18451470d060c09962a27c795dd20c
+    name: rcabench-frontend
+    type: application
+    urls:
+    - https://operationspai.github.io/AegisLab-frontend/rcabench-frontend-0.1.1.tgz
+    version: 0.1.1
+  - apiVersion: v2
+    appVersion: 1.0.0
+    created: "2026-02-15T04:32:30.029650591Z"
+    description: AegisLab RCABench Frontend Helm Chart
+    digest: 460da749f4b144c71872829ebd0d55900052025df422c5a9419bca785cdc4d67
+    name: rcabench-frontend
+    type: application
+    urls:
+    - https://operationspai.github.io/AegisLab-frontend/rcabench-frontend-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-03-07T07:40:12.704465193Z"
