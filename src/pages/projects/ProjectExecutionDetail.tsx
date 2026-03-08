@@ -34,7 +34,6 @@ import {
   type FileItem,
   FilesTab,
   type GranularityResult,
-  type LogEntry,
   LogsTab,
   type OverviewField,
   OverviewTab,
@@ -221,47 +220,6 @@ const ProjectExecutionDetail: React.FC = () => {
     ];
   }, [execution, runtime]);
 
-  // Mock logs for demo
-  const mockLogs: LogEntry[] = useMemo(() => {
-    if (!execution) return [];
-    const baseTime = dayjs(execution.created_at);
-    return [
-      {
-        timestamp: baseTime.toISOString(),
-        level: 'info',
-        message: 'Execution started...',
-      },
-      {
-        timestamp: baseTime.add(1, 'second').toISOString(),
-        level: 'info',
-        message: `Loading algorithm: ${execution.algorithm_name}`,
-      },
-      {
-        timestamp: baseTime.add(2, 'second').toISOString(),
-        level: 'info',
-        message: `Loading datapack: ${execution.datapack_id || 'N/A'}`,
-      },
-      {
-        timestamp: baseTime.add(5, 'second').toISOString(),
-        level: 'info',
-        message: 'Running RCA algorithm...',
-      },
-      {
-        timestamp: baseTime.add(30, 'second').toISOString(),
-        level: 'info',
-        message: 'Generating results...',
-      },
-      {
-        timestamp: baseTime.add(60, 'second').toISOString(),
-        level: execution.state === 'failed' ? 'error' : 'info',
-        message:
-          execution.state === 'success'
-            ? 'Execution completed successfully'
-            : `Execution ended with state: ${execution.state}`,
-      },
-    ];
-  }, [execution]);
-
   // Mock files for demo
   const mockFiles: FileItem[] = [
     {
@@ -314,7 +272,7 @@ const ProjectExecutionDetail: React.FC = () => {
       key: 'logs',
       label: 'Logs',
       icon: <FileTextOutlined />,
-      content: <LogsTab logs={mockLogs} />,
+      content: <LogsTab mode='execution' traceId='' />,
     },
     {
       key: 'files',

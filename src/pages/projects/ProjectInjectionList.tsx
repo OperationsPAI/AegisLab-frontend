@@ -206,11 +206,21 @@ const ProjectInjectionList: React.FC = () => {
         title: 'State',
         dataIndex: 'state',
         type: 'status',
-        width: 100,
+        width: 120,
         visible: true,
         pinned: false,
         order: 2,
         filterable: true,
+      },
+      {
+        key: 'pre_duration',
+        title: 'Pre_Duration',
+        dataIndex: 'pre_duration',
+        type: 'duration',
+        width: 100,
+        visible: true,
+        pinned: false,
+        order: 3,
       },
       {
         key: 'benchmark_name',
@@ -220,7 +230,7 @@ const ProjectInjectionList: React.FC = () => {
         width: 80,
         visible: true,
         pinned: false,
-        order: 3,
+        order: 4,
       },
       {
         key: 'pedestal_name',
@@ -230,7 +240,7 @@ const ProjectInjectionList: React.FC = () => {
         width: 120,
         visible: true,
         pinned: false,
-        order: 4,
+        order: 5,
       },
       {
         key: 'created_at',
@@ -240,7 +250,7 @@ const ProjectInjectionList: React.FC = () => {
         width: 120,
         visible: true,
         pinned: false,
-        order: 5,
+        order: 6,
         sortable: true,
       },
       {
@@ -251,7 +261,7 @@ const ProjectInjectionList: React.FC = () => {
         width: 150,
         visible: true,
         pinned: false,
-        order: 6,
+        order: 7,
       },
       {
         key: 'id',
@@ -262,16 +272,6 @@ const ProjectInjectionList: React.FC = () => {
         visible: false,
         pinned: false,
         order: 100,
-      },
-      {
-        key: 'pre_duration',
-        title: 'Duration',
-        dataIndex: 'pre_duration',
-        type: 'duration',
-        width: 100,
-        visible: true,
-        pinned: false,
-        order: 103,
       },
     ];
     return enhancedColumns;

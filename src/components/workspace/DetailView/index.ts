@@ -22,10 +22,15 @@ export type { GroundTruthItem } from './tabs/GroundTruthTable';
 export { default as ChartsTab } from './tabs/ChartsTab';
 
 export { default as LogsTab } from './tabs/LogsTab';
-export type { LogEntry } from './tabs/LogsTab';
 
 export { LogViewer } from './tabs/LogViewer';
 export type { LogLine, LogViewerProps } from './tabs/LogViewer';
+
+export { default as PipelineLogsViewer } from './tabs/PipelineLogsViewer';
+export type { PhaseStep } from './tabs/PipelineLogsViewer';
+export type { StepPhase } from '@/hooks/useTraceSSE';
+
+export { default as FaultInjectionPanel } from './tabs/FaultInjectionPanel';
 
 export { default as FilesTab } from './tabs/FilesTab';
 
