@@ -12,13 +12,9 @@ const Login = lazy(() => import('@/pages/auth/Login'));
 const HomePage = lazy(() => import('@/pages/home/HomePage'));
 const ProjectList = lazy(() => import('@/pages/projects/ProjectList'));
 const ProjectOverview = lazy(() => import('@/pages/projects/ProjectOverview'));
-const ProjectWorkspace = lazy(
-  () => import('@/pages/projects/ProjectWorkspace')
-);
 const ProjectSettings = lazy(() => import('@/pages/projects/ProjectSettings'));
 
-// Project-scoped pages (injections, executions, artifacts under /:projectName)
-// W&B-style table pages for workspace
+// Project-scoped pages (injections, executions under /:teamName/:projectName)
 const ProjectInjectionList = lazy(
   () => import('@/pages/projects/ProjectInjectionList')
 );
@@ -36,8 +32,7 @@ const InjectionCreate = lazy(
 );
 const ExecutionForm = lazy(() => import('@/pages/executions/ExecutionForm'));
 
-// Admin pages (original flat routes with /admin prefix)
-const Dashboard = lazy(() => import('@/pages/dashboard/Dashboard'));
+// Admin pages
 const ProjectEdit = lazy(() => import('@/pages/projects/ProjectEdit'));
 const ContainerList = lazy(() => import('@/pages/containers/ContainerList'));
 const ContainerForm = lazy(() => import('@/pages/containers/ContainerForm'));
@@ -50,41 +45,30 @@ const ContainerVersions = lazy(
 const DatasetList = lazy(() => import('@/pages/datasets/DatasetList'));
 const DatasetForm = lazy(() => import('@/pages/datasets/DatasetForm'));
 const DatasetDetail = lazy(() => import('@/pages/datasets/DatasetDetail'));
-const DatapackList = lazy(() => import('@/pages/datapacks/DatapackList'));
-const DatapackDetail = lazy(() => import('@/pages/datapacks/DatapackDetail'));
-const AdminInjectionList = lazy(
-  () => import('@/pages/injections/InjectionList')
-);
-const AdminInjectionCreate = lazy(
-  () => import('@/pages/injections/InjectionCreate')
-);
-const AdminInjectionDetail = lazy(
-  () => import('@/pages/injections/InjectionDetail')
-);
-const AdminExecutionList = lazy(
-  () => import('@/pages/executions/ExecutionList')
-);
-const AdminExecutionForm = lazy(
-  () => import('@/pages/executions/ExecutionForm')
-);
-const AdminExecutionDetail = lazy(
-  () => import('@/pages/executions/ExecutionDetail')
-);
 const EvaluationList = lazy(() => import('@/pages/evaluations/EvaluationList'));
-const EvaluationForm = lazy(() => import('@/pages/evaluations/EvaluationForm'));
 const EvaluationDetail = lazy(
   () => import('@/pages/evaluations/EvaluationDetail')
 );
 const TaskList = lazy(() => import('@/pages/tasks/TaskList'));
 const TaskDetail = lazy(() => import('@/pages/tasks/TaskDetail'));
 const SystemSettings = lazy(() => import('@/pages/system/SystemSettings'));
-const UserProfile = lazy(() => import('@/pages/settings/UserProfile'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
 const Settings = lazy(() => import('@/pages/settings/Settings'));
-const UtilityTest = lazy(() => import('@/pages/UtilityTest'));
 
 // Team pages
 const TeamDetailPage = lazy(() => import('@/pages/teams/TeamDetailPage'));
+
+// Traces pages
+const TracesPage = lazy(() => import('@/pages/traces/TracesPage'));
+const TraceDetailPage = lazy(() => import('@/pages/traces/TraceDetailPage'));
+
+// Notifications page
+const NotificationsPage = lazy(
+  () => import('@/pages/notifications/NotificationsPage')
+);
+
+// Admin pages (new)
+const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -161,12 +145,50 @@ function App() {
           }
         />
 
-        {/* Profile - New Wandb-style profile page */}
+        {/* Profile */}
         <Route
           path='profile'
           element={
             <Suspense fallback={<LoadingFallback />}>
               <ProfilePage />
+            </Suspense>
+          }
+        />
+
+        {/* Settings */}
+        <Route
+          path='settings'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Settings />
+            </Suspense>
+          }
+        />
+
+        {/* Tasks (promoted from /admin/tasks) */}
+        <Route
+          path='tasks'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <TaskList />
+            </Suspense>
+          }
+        />
+        <Route
+          path='tasks/:id'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <TaskDetail />
+            </Suspense>
+          }
+        />
+
+        {/* Notifications */}
+        <Route
+          path='notifications'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <NotificationsPage />
             </Suspense>
           }
         />
@@ -218,29 +240,13 @@ function App() {
         </Route>
 
         {/* ==================== Admin Routes (/admin/*) ==================== */}
-        <Route
-          path='admin/dashboard'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <Dashboard />
-            </Suspense>
-          }
-        />
 
-        {/* Admin Projects */}
+        {/* Admin Users */}
         <Route
-          path='admin/projects'
+          path='admin/users'
           element={
             <Suspense fallback={<LoadingFallback />}>
-              <ProjectList />
-            </Suspense>
-          }
-        />
-        <Route
-          path='admin/projects/:id/edit'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <ProjectEdit />
+              <AdminUsersPage />
             </Suspense>
           }
         />
@@ -321,120 +327,6 @@ function App() {
           }
         />
 
-        {/* Admin Datapacks */}
-        <Route
-          path='admin/datapacks'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <DatapackList />
-            </Suspense>
-          }
-        />
-        <Route
-          path='admin/datapacks/:id'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <DatapackDetail />
-            </Suspense>
-          }
-        />
-
-        {/* Admin Injections */}
-        <Route
-          path='admin/injections'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <AdminInjectionList />
-            </Suspense>
-          }
-        />
-        <Route
-          path='admin/injections/create'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <AdminInjectionCreate />
-            </Suspense>
-          }
-        />
-        <Route
-          path='admin/injections/:id'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <AdminInjectionDetail />
-            </Suspense>
-          }
-        />
-
-        {/* Admin Executions */}
-        <Route
-          path='admin/executions'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <AdminExecutionList />
-            </Suspense>
-          }
-        />
-        <Route
-          path='admin/executions/new'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <AdminExecutionForm />
-            </Suspense>
-          }
-        />
-        <Route
-          path='admin/executions/:id'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <AdminExecutionDetail />
-            </Suspense>
-          }
-        />
-
-        {/* Admin Evaluations */}
-        <Route
-          path='admin/evaluations'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <EvaluationList />
-            </Suspense>
-          }
-        />
-        <Route
-          path='admin/evaluations/new'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <EvaluationForm />
-            </Suspense>
-          }
-        />
-        <Route
-          path='admin/evaluations/:id'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <EvaluationDetail />
-            </Suspense>
-          }
-        />
-
-        {/* Admin Tasks */}
-        <Route
-          path='admin/tasks'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <TaskList />
-            </Suspense>
-          }
-        />
-        <Route
-          path='admin/tasks/:id'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <TaskDetail />
-            </Suspense>
-          }
-        />
-
         {/* Admin System */}
         <Route
           path='admin/system'
@@ -443,76 +335,6 @@ function App() {
               <SystemSettings />
             </Suspense>
           }
-        />
-
-        {/* Admin Settings */}
-        <Route
-          path='admin/settings/profile'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <UserProfile />
-            </Suspense>
-          }
-        />
-        <Route
-          path='admin/settings'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <Settings />
-            </Suspense>
-          }
-        />
-
-        {/* Utility Test */}
-        <Route
-          path='utility-test'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <UtilityTest />
-            </Suspense>
-          }
-        />
-
-        {/* Legacy route redirects (for backward compatibility) */}
-        <Route
-          path='dashboard'
-          element={<Navigate to='/admin/dashboard' replace />}
-        />
-        <Route
-          path='containers/*'
-          element={<Navigate to='/admin/containers' replace />}
-        />
-        <Route
-          path='datasets/*'
-          element={<Navigate to='/admin/datasets' replace />}
-        />
-        <Route
-          path='datapacks/*'
-          element={<Navigate to='/admin/datapacks' replace />}
-        />
-        <Route
-          path='injections'
-          element={<Navigate to='/admin/injections' replace />}
-        />
-        <Route
-          path='executions'
-          element={<Navigate to='/admin/executions' replace />}
-        />
-        <Route
-          path='evaluations/*'
-          element={<Navigate to='/admin/evaluations' replace />}
-        />
-        <Route
-          path='tasks/*'
-          element={<Navigate to='/admin/tasks' replace />}
-        />
-        <Route
-          path='system'
-          element={<Navigate to='/admin/system' replace />}
-        />
-        <Route
-          path='settings/*'
-          element={<Navigate to='/admin/settings' replace />}
         />
       </Route>
 
@@ -541,17 +363,7 @@ function App() {
           }
         />
 
-        {/* Workspace */}
-        <Route
-          path='workspace'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <ProjectWorkspace />
-            </Suspense>
-          }
-        />
-
-        {/* Injections - W&B style table */}
+        {/* Injections */}
         <Route
           path='injections'
           element={
@@ -577,7 +389,7 @@ function App() {
           }
         />
 
-        {/* Executions - W&B style table */}
+        {/* Executions */}
         <Route
           path='executions'
           element={
@@ -621,50 +433,20 @@ function App() {
           }
         />
 
-        {/* Reports (placeholder) */}
+        {/* Traces */}
         <Route
-          path='reports'
+          path='traces'
           element={
             <Suspense fallback={<LoadingFallback />}>
-              <div style={{ padding: 24 }}>Reports list coming soon</div>
+              <TracesPage />
             </Suspense>
           }
         />
         <Route
-          path='reports/:id'
+          path='traces/:id'
           element={
             <Suspense fallback={<LoadingFallback />}>
-              <div style={{ padding: 24 }}>Report detail coming soon</div>
-            </Suspense>
-          }
-        />
-
-        {/* Artifacts (placeholder) */}
-        <Route
-          path='artifacts'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <div style={{ padding: 24 }}>Artifacts list coming soon</div>
-            </Suspense>
-          }
-        />
-        <Route
-          path='artifacts/:id'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <div style={{ padding: 24 }}>Artifact detail coming soon</div>
-            </Suspense>
-          }
-        />
-
-        {/* Charts */}
-        <Route
-          path='charts'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <div style={{ padding: 24 }}>
-                Charts configuration coming soon
-              </div>
+              <TraceDetailPage />
             </Suspense>
           }
         />

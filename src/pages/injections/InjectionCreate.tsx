@@ -23,6 +23,7 @@ import {
   Space,
 } from 'antd';
 
+import { useProjectContext } from '@/hooks/useProjectContext';
 import { useProjects } from '@/hooks/useProjects';
 
 import { AlgorithmSelector } from './components/AlgorithmSelector';
@@ -30,7 +31,8 @@ import { TagManager } from './components/TagManager';
 
 import { containerApi } from '../../api/containers';
 import { injectionApi } from '../../api/injections';
-import type { FaultType } from '../../types/api';
+import { projectApi } from '../../api/projects';
+import type { FaultTypeConfig } from '../../types/api';
 
 import './InjectionCreate.css';
 
@@ -45,7 +47,7 @@ interface InjectionFormData {
     benchmark_container_id: number;
     algorithm_container_ids: number[];
   };
-  fault_matrix: FaultType[][];
+  fault_matrix: FaultTypeConfig[][];
   experiment_params: {
     duration: number;
     interval: number;
@@ -56,11 +58,11 @@ interface InjectionFormData {
 
 const InjectionCreate: React.FC = () => {
   const navigate = useNavigate();
+  const { teamName, projectName, projectId } = useProjectContext();
   const [form] = Form.useForm<InjectionFormData>();
   const [selectedProject, setSelectedProject] = useState<number | null>(null);
-  const [selectedFaultType, setSelectedFaultType] = useState<FaultType | null>(
-    null
-  );
+  const [selectedFaultType, setSelectedFaultType] =
+    useState<FaultTypeConfig | null>(null);
   const [selectedAlgorithms, setSelectedAlgorithms] = useState<number[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [faultConfig, setFaultConfig] = useState<
@@ -93,7 +95,7 @@ const InjectionCreate: React.FC = () => {
   // Fetch fault types metadata
   const { data: faultMetadata } = useQuery({
     queryKey: ['faultMetadata'],
-    queryFn: () => injectionApi.getFaultMetadata('ts' as const),
+    queryFn: () => injectionApi.getMetadata({ system: 'ts' }),
   });
 
   // Convert fault metadata to fault types array
@@ -264,15 +266,20 @@ const InjectionCreate: React.FC = () => {
         pedestal: toContainerSpec(pedestalContainer),
         benchmark: toContainerSpec(benchmarkContainer),
         algorithms: algorithmSpecs.length > 0 ? algorithmSpecs : undefined,
-        interval: Math.ceil(values.experiment_params.duration / 60),
-        pre_duration: Math.ceil(values.experiment_params.interval / 60),
+        // UI accepts seconds; API expects minutes, so convert with Math.ceil
+        interval: Math.ceil(values.experiment_params.interval / 60),
+        pre_duration: Math.ceil(values.experiment_params.duration / 60),
         labels: labels.length > 0 ? labels : undefined,
         specs: [[faultSpec]], // Single fault in a single batch
       };
 
-      await injectionApi.submitInjection(payload);
+      if (!projectId) {
+        message.error('Project context not available');
+        return;
+      }
+      await projectApi.submitInjection(projectId, payload);
       message.success('Fault injection submitted successfully');
-      navigate('/injections');
+      navigate(`/${teamName}/${projectName}/injections`);
     } catch (error) {
       message.error('Failed to submit fault injection');
       console.error('Submit injection error:', error);
@@ -397,7 +404,7 @@ const InjectionCreate: React.FC = () => {
           {/* Right Panel - Fault Type & Configuration */}
           <Col span={12}>
             <Card size='small' title='Fault Injection'>
-              <Form.Item label='Fault Type' rules={[{ required: true }]}>
+              <Form.Item label='Fault Type'>
                 <Select
                   placeholder='Select fault type'
                   onChange={handleFaultTypeChange}
@@ -483,7 +490,13 @@ const InjectionCreate: React.FC = () => {
               <Button type='primary' htmlType='submit'>
                 Create Injection
               </Button>
-              <Button onClick={() => navigate('/injections')}>Cancel</Button>
+              <Button
+                onClick={() =>
+                  navigate(`/${teamName}/${projectName}/injections`)
+                }
+              >
+                Cancel
+              </Button>
             </Space>
           </Col>
         </Row>

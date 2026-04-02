@@ -7,8 +7,22 @@ import {
   SettingOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
-import { Button, Modal, Result, Spin, Tabs } from 'antd';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Button,
+  Form,
+  Input,
+  message,
+  Modal,
+  Result,
+  Select,
+  Space,
+  Spin,
+  Tabs,
+} from 'antd';
 
+import { roleApi } from '@/api/roles';
+import { teamApi } from '@/api/teams';
 import TeamSidebar from '@/components/teams/TeamSidebar';
 import { useTeamContext } from '@/hooks/useTeamContext';
 
@@ -24,8 +38,35 @@ const TeamDetailPage = () => {
   const location = useLocation();
   const { teamName } = useParams<{ teamName: string }>();
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
+  const [inviteForm] = Form.useForm();
+  const queryClient = useQueryClient();
 
   const { team, isLoading, error } = useTeamContext();
+
+  // Fetch available roles for the invite form
+  const { data: rolesData } = useQuery({
+    queryKey: ['roles', 'team-scope'],
+    queryFn: () => roleApi.getRoles({ page: 1, size: 100, scope: 'team' }),
+  });
+
+  // Add member mutation
+  const addMemberMutation = useMutation({
+    mutationFn: (data: { email: string; role_id: number }) =>
+      teamApi.addMember(team?.id || 0, data),
+    onSuccess: () => {
+      message.success('Member invited successfully');
+      queryClient.invalidateQueries({ queryKey: ['team', 'members'] });
+      setInviteModalVisible(false);
+      inviteForm.resetFields();
+    },
+    onError: () => {
+      message.error('Failed to invite member');
+    },
+  });
+
+  const handleInviteSubmit = (values: { email: string; role_id: number }) => {
+    addMemberMutation.mutate(values);
+  };
 
   // Get active tab from URL path
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -142,10 +183,71 @@ const TeamDetailPage = () => {
       <Modal
         title='Invite Team Members'
         open={inviteModalVisible}
-        onCancel={() => setInviteModalVisible(false)}
+        onCancel={() => {
+          setInviteModalVisible(false);
+          inviteForm.resetFields();
+        }}
         footer={null}
       >
-        <p>Team member invitation coming soon...</p>
+        <Form form={inviteForm} layout='vertical' onFinish={handleInviteSubmit}>
+          <Form.Item
+            name='email'
+            label='Email Address'
+            rules={[
+              { required: true, message: 'Please enter the user email' },
+              { type: 'email', message: 'Please enter a valid email' },
+            ]}
+          >
+            <Input placeholder='user@example.com' />
+          </Form.Item>
+          <Form.Item
+            name='role_id'
+            label='Role'
+            rules={[{ required: true, message: 'Please select a role' }]}
+          >
+            <Select
+              placeholder='Select a role'
+              options={
+                rolesData?.items?.length
+                  ? rolesData.items.map(
+                      (role: {
+                        id?: number;
+                        display_name?: string;
+                        name?: string;
+                      }) => ({
+                        value: role.id,
+                        label:
+                          role.display_name || role.name || `Role ${role.id}`,
+                      })
+                    )
+                  : [
+                      // Fallback when roles API is unavailable
+                      { value: 1, label: 'Admin' },
+                      { value: 2, label: 'Member' },
+                    ]
+              }
+            />
+          </Form.Item>
+          <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
+            <Space>
+              <Button
+                onClick={() => {
+                  setInviteModalVisible(false);
+                  inviteForm.resetFields();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type='primary'
+                htmlType='submit'
+                loading={addMemberMutation.isPending}
+              >
+                Invite
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );

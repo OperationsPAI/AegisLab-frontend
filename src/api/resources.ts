@@ -1,40 +1,12 @@
-/**
- * Resource API
- * Using @rcabench/client SDK
- */
-import {
-  type ListResourceReq,
-  type ResourceResp,
-  ResourcesApi,
-} from '@rcabench/client';
-
-import { createApiConfig } from './config';
+import apiClient from './client';
 
 export const resourceApi = {
-  /**
-   * Get resource list
-   */
-  getResources: async (params?: ListResourceReq) => {
-    const api = new ResourcesApi(createApiConfig());
-    const response = await api.listResources(params);
-    return response.data.data;
-  },
+  getResources: (params?: { page?: number; size?: number }) =>
+    apiClient.get('/resources', { params }).then((r) => r.data.data),
 
-  /**
-   * Get resource details
-   */
-  getResource: async (id: number) => {
-    const api = new ResourcesApi(createApiConfig());
-    const response = await api.getResourceById({ id });
-    return response.data.data;
-  },
+  getResource: (id: number) =>
+    apiClient.get(`/resources/${id}`).then((r) => r.data.data),
 
-  /**
-   * Get permission list for resource
-   */
-  getResourcePermissions: async (id: number) => {
-    const api = new ResourcesApi(createApiConfig());
-    const response = await api.listResourcePermissions({ id });
-    return response.data.data;
-  },
+  getResourcePermissions: (id: number) =>
+    apiClient.get(`/resources/${id}/permissions`).then((r) => r.data.data),
 };

@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
@@ -13,8 +16,7 @@ import {
   ReloadOutlined,
   SyncOutlined,
 } from '@ant-design/icons';
-import { TaskState, TaskType } from '@rcabench/client';
-import type { TaskDetailResp } from '@rcabench/client';
+import { type TaskDetailResp, TaskState, TaskType } from '@rcabench/client';
 import { useQuery } from '@tanstack/react-query';
 import {
   Badge,
@@ -37,12 +39,10 @@ import {
 } from 'antd';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 
 import { taskApi } from '@/api/tasks';
+import { createTraceStream } from '@/api/traces';
 import StatusBadge from '@/components/ui/StatusBadge';
-
 
 dayjs.extend(duration);
 
@@ -78,11 +78,10 @@ const TaskDetail = () => {
 
   // Real-time log streaming via SSE
   useEffect(() => {
-    if (!task || task.state !== '1') return; // 1 = RUNNING
+    if (!task || String(task.state) !== String(TaskState.Running)) return;
+    if (!task.trace_id) return;
 
-    const eventSource = new EventSource(
-      `/api/v2/traces/${task.trace_id}/stream`
-    );
+    const eventSource = createTraceStream(task.trace_id);
 
     eventSource.onmessage = (event) => {
       try {
@@ -111,8 +110,8 @@ const TaskDetail = () => {
   }, [task, refetch]);
 
   const handleCancelTask = () => {
-    if (task?.state !== '1' && task?.state !== '0') {
-      // Not RUNNING or PENDING
+    const taskState = getTaskState(task?.state);
+    if (taskState !== TaskState.Running && taskState !== TaskState.Pending) {
       message.warning('Only running or pending tasks can be cancelled');
       return;
     }
@@ -123,14 +122,8 @@ const TaskDetail = () => {
       okText: 'Yes, cancel it',
       okButtonProps: { danger: true },
       cancelText: 'No',
-      onOk: async () => {
-        try {
-          // TODO: Implement task cancellation when API is ready
-          message.success('Task cancellation requested');
-          refetch();
-        } catch (error) {
-          message.error('Failed to cancel task');
-        }
+      onOk: () => {
+        message.info('Task cancellation is not yet supported by the backend');
       },
     });
   };
@@ -146,14 +139,8 @@ const TaskDetail = () => {
       content: `Are you sure you want to retry task "${taskId}"?`,
       okText: 'Yes, retry it',
       cancelText: 'No',
-      onOk: async () => {
-        try {
-          // TODO: Implement task retry when API is ready
-          message.success('Task retry requested');
-          refetch();
-        } catch (error) {
-          message.error('Failed to retry task');
-        }
+      onOk: () => {
+        message.info('Task retry is not yet supported by the backend');
       },
     });
   };
@@ -298,18 +285,20 @@ const TaskDetail = () => {
     return TaskType.BuildContainer;
   };
 
+  const isRunning = getTaskState(taskData?.state) === TaskState.Running;
+  const isRescheduled = getTaskState(taskData?.state) === TaskState.Rescheduled;
+  const isIndeterminate = isRunning || isRescheduled;
+
   // Safe version of getTaskProgress
   const getSafeTaskProgress = (taskData?: TaskDetailResp): number => {
     if (!taskData) return 0;
     const state = getTaskState(taskData.state);
     if (state === TaskState.Completed) return 100;
     if (state === TaskState.Error || state === TaskState.Cancelled) return 0;
-    if (state === TaskState.Running) return 50;
-    if (state === TaskState.Rescheduled) return 25;
     return 0;
   };
 
-  const progress = getSafeTaskProgress(taskData);
+  const progress = isIndeterminate ? 100 : getSafeTaskProgress(taskData);
 
   return (
     <div style={{ padding: 24 }}>
@@ -441,6 +430,7 @@ const TaskDetail = () => {
                 : 'active'
           }
           strokeColor={getStateColor(getTaskState(taskData?.state))}
+          showInfo={!isIndeterminate}
           format={(percent) => (
             <Space>
               {getStateIcon(getTaskState(taskData?.state))}
@@ -448,6 +438,14 @@ const TaskDetail = () => {
             </Space>
           )}
         />
+        {isIndeterminate && (
+          <Text type='secondary' style={{ marginTop: 8, display: 'block' }}>
+            <SyncOutlined spin style={{ marginRight: 4 }} />
+            {isRunning
+              ? 'Task is running...'
+              : 'Task is rescheduled, waiting...'}
+          </Text>
+        )}
       </Card>
 
       {/* Tabs */}
@@ -571,7 +569,22 @@ const TaskDetail = () => {
                             level={3}
                             style={{ margin: 0, color: '#3b82f6' }}
                           >
-                            N/A
+                            {taskData?.created_at && taskData?.updated_at
+                              ? (() => {
+                                  const dur = dayjs.duration(
+                                    dayjs(taskData.updated_at).diff(
+                                      dayjs(taskData.created_at)
+                                    )
+                                  );
+                                  const hours = Math.floor(dur.asHours());
+                                  const mins = dur.minutes();
+                                  const secs = dur.seconds();
+                                  if (hours > 0)
+                                    return `${hours}h ${mins}m ${secs}s`;
+                                  if (mins > 0) return `${mins}m ${secs}s`;
+                                  return `${secs}s`;
+                                })()
+                              : 'N/A'}
                           </Title>
                         </div>
                       </Space>
@@ -692,52 +705,46 @@ const TaskDetail = () => {
                   )}
 
                   {getTaskState(taskData?.state) === TaskState.Completed && (
-                      <Timeline.Item
-                        color='green'
-                        dot={<CheckCircleOutlined />}
-                      >
-                        <Text strong>Task Completed</Text>
-                        <br />
-                        <Text type='secondary'>
-                          {taskData?.updated_at
-                            ? dayjs(taskData.updated_at).format(
-                                'MMM D, YYYY HH:mm:ss'
-                              )
-                            : 'N/A'}
-                        </Text>
-                      </Timeline.Item>
-                    )}
+                    <Timeline.Item color='green' dot={<CheckCircleOutlined />}>
+                      <Text strong>Task Completed</Text>
+                      <br />
+                      <Text type='secondary'>
+                        {taskData?.updated_at
+                          ? dayjs(taskData.updated_at).format(
+                              'MMM D, YYYY HH:mm:ss'
+                            )
+                          : 'N/A'}
+                      </Text>
+                    </Timeline.Item>
+                  )}
 
                   {getTaskState(taskData?.state) === TaskState.Error && (
-                      <Timeline.Item color='red' dot={<CloseCircleOutlined />}>
-                        <Text strong>Task Failed</Text>
-                        <br />
-                        <Text type='secondary'>
-                          {taskData?.updated_at
-                            ? dayjs(taskData.updated_at).format(
-                                'MMM D, YYYY HH:mm:ss'
-                              )
-                            : 'N/A'}
-                        </Text>
-                      </Timeline.Item>
-                    )}
+                    <Timeline.Item color='red' dot={<CloseCircleOutlined />}>
+                      <Text strong>Task Failed</Text>
+                      <br />
+                      <Text type='secondary'>
+                        {taskData?.updated_at
+                          ? dayjs(taskData.updated_at).format(
+                              'MMM D, YYYY HH:mm:ss'
+                            )
+                          : 'N/A'}
+                      </Text>
+                    </Timeline.Item>
+                  )}
 
                   {getTaskState(taskData?.state) === TaskState.Cancelled && (
-                      <Timeline.Item
-                        color='orange'
-                        dot={<PauseCircleOutlined />}
-                      >
-                        <Text strong>Task Cancelled</Text>
-                        <br />
-                        <Text type='secondary'>
-                          {taskData?.updated_at
-                            ? dayjs(taskData.updated_at).format(
-                                'MMM D, YYYY HH:mm:ss'
-                              )
-                            : 'N/A'}
-                        </Text>
-                      </Timeline.Item>
-                    )}
+                    <Timeline.Item color='orange' dot={<PauseCircleOutlined />}>
+                      <Text strong>Task Cancelled</Text>
+                      <br />
+                      <Text type='secondary'>
+                        {taskData?.updated_at
+                          ? dayjs(taskData.updated_at).format(
+                              'MMM D, YYYY HH:mm:ss'
+                            )
+                          : 'N/A'}
+                      </Text>
+                    </Timeline.Item>
+                  )}
                 </Timeline>
               </Card>
             ),

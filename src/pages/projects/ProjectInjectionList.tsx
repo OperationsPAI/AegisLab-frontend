@@ -17,16 +17,16 @@ import {
   type InjectionResp,
   PageSize,
 } from '@rcabench/client';
-import { useQuery } from '@tanstack/react-query';
-import { message, Modal, Space, Tag, Typography } from 'antd';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Input, message, Modal, Space, Tag, Typography } from 'antd';
 
+import { injectionApi } from '@/api/injections';
 import { projectApi } from '@/api/projects';
 import WorkspacePageHeader from '@/components/workspace/WorkspacePageHeader';
 import WorkspaceTable from '@/components/workspace/WorkspaceTable';
 import { COLORS } from '@/consts/consts';
 import type { ProjectOutletContext } from '@/hooks/useProjectContext';
 import { useAuthStore } from '@/store/auth';
-import { useWorkspaceStore } from '@/store/workspace';
 import type { ColumnConfig, SortField } from '@/types/workspace';
 import { getVisibleIdsFromMap } from '@/utils/idUtils';
 
@@ -105,24 +105,58 @@ const ProjectInjectionList: React.FC = () => {
   const { teamName, projectName, projectId } =
     useOutletContext<ProjectOutletContext>();
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
 
   // Handle back to workspace
   const handleBackToWorkspace = () => {
     navigate(`/${teamName}/${projectName}/workspace`);
   };
 
-  // Get shared table settings and visibility state from workspace store
-  const {
-    injectionsTableSettings,
-    setInjectionsTableSettings,
-    runsPanelCollapsed,
-    setRunsPanelCollapsed,
-    // Visibility management
-    visibleRuns,
-    runColors,
-    setItemsVisible,
-    initializeVisibility,
-  } = useWorkspaceStore();
+  // Table settings local state (workspace store removed)
+  const [injectionsTableSettings, setInjectionsTableSettingsRaw] = useState({
+    sortFields: [] as SortField[],
+    groupBy: null as string | null,
+    pageSize: 20,
+    currentPage: 1,
+    columns: [] as ColumnConfig[],
+    searchText: '',
+    filters: {} as Record<string, unknown>,
+  });
+  const setInjectionsTableSettings = useCallback(
+    (update: Partial<typeof injectionsTableSettings>) =>
+      setInjectionsTableSettingsRaw((prev) => ({ ...prev, ...update })),
+    []
+  );
+  const [runsPanelCollapsed, setRunsPanelCollapsed] = useState(false);
+  const [visibleRuns, setVisibleRunsState] = useState<Record<string, boolean>>(
+    {}
+  );
+  const [runColors] = useState<Record<string, string>>({});
+  const setItemsVisible = useCallback(
+    (_type: string, ids: number[], visible: boolean) => {
+      setVisibleRunsState((prev) => {
+        const next = { ...prev };
+        ids.forEach((id) => {
+          next[`inj_${id}`] = visible;
+        });
+        return next;
+      });
+    },
+    []
+  );
+  const initializeVisibility = useCallback(
+    (_type: string, ids: number[], defaultCount: number) => {
+      setVisibleRunsState((prev) => {
+        if (Object.keys(prev).length > 0) return prev;
+        const next: Record<string, boolean> = {};
+        ids.forEach((id, i) => {
+          next[`inj_${id}`] = i < defaultCount;
+        });
+        return next;
+      });
+    },
+    []
+  );
 
   // Workspace info
   const workspaceName = `${user?.username || 'User'}'s workspace`;
@@ -375,7 +409,6 @@ const ProjectInjectionList: React.FC = () => {
       }));
     }
 
-    // Use mock data as fallback (when no data or empty array)
     return [];
   }, [injectionsData]);
 
@@ -422,11 +455,6 @@ const ProjectInjectionList: React.FC = () => {
     navigate(`/${teamName}/${projectName}/injections/create`);
   };
 
-  // Handle filter click (placeholder for now)
-  const handleFilterClick = () => {
-    // TODO: Implement filter modal/drawer
-  };
-
   // Handle export to CSV
   const handleExportClick = () => {
     if (tableData.length === 0) return;
@@ -467,22 +495,71 @@ const ProjectInjectionList: React.FC = () => {
       okText: 'Delete',
       okButtonProps: { danger: true },
       onOk: async () => {
-        // TODO: Implement bulk delete API call
-        message.success(`Deleted ${selectedRowKeys.length} injection(s)`);
-        setSelectedRowKeys([]);
+        try {
+          await injectionApi.batchDelete(selectedRowKeys.map(Number));
+          message.success(`Deleted ${selectedRowKeys.length} injection(s)`);
+          setSelectedRowKeys([]);
+          queryClient.invalidateQueries({
+            queryKey: ['injections', projectId],
+          });
+        } catch {
+          message.error('Failed to delete injections');
+        }
+      },
+    });
+  }, [selectedRowKeys, queryClient, projectId]);
+
+  const handleBulkAddTags = useCallback(() => {
+    let tagKey = '';
+    let tagValue = '';
+    Modal.confirm({
+      title: `Add Labels to ${selectedRowKeys.length} Injection(s)`,
+      content: (
+        <div
+          style={{
+            marginTop: 12,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}
+        >
+          <Input
+            placeholder='Label key'
+            onChange={(e) => {
+              tagKey = e.target.value;
+            }}
+          />
+          <Input
+            placeholder='Label value'
+            onChange={(e) => {
+              tagValue = e.target.value;
+            }}
+          />
+        </div>
+      ),
+      okText: 'Add Label',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        if (!tagKey.trim()) {
+          message.warning('Label key is required');
+          return Promise.reject();
+        }
+        try {
+          await injectionApi.batchManageLabels({
+            injection_ids: selectedRowKeys.map(Number),
+            add_labels: [{ key: tagKey.trim(), value: tagValue.trim() }],
+            remove_labels: [],
+          });
+          message.success(
+            `Label added to ${selectedRowKeys.length} injection(s)`
+          );
+          setSelectedRowKeys([]);
+        } catch {
+          message.error('Failed to add labels');
+        }
       },
     });
   }, [selectedRowKeys]);
-
-  const handleBulkAddTags = useCallback(() => {
-    // TODO: Implement tag modal
-    message.info('Add tags feature coming soon');
-  }, []);
-
-  const handleBulkMoveToProject = useCallback(() => {
-    // TODO: Implement move to project modal
-    message.info('Move to project feature coming soon');
-  }, []);
 
   // Custom name renderer - simplified to show only name
   const renderName = (record: InjectionTableData) => (
@@ -533,7 +610,7 @@ const ProjectInjectionList: React.FC = () => {
       <WorkspacePageHeader
         workspaceName={workspaceName}
         workspaceType='personal'
-        lastSaved={new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()}
+        lastSaved={undefined}
         runsPanelCollapsed={runsPanelCollapsed}
         onToggleRunsPanel={handleToggleRunsPanel}
       />
@@ -564,7 +641,6 @@ const ProjectInjectionList: React.FC = () => {
         onGroupByChange={setGroupBy}
         onRowClick={handleRowClick}
         onNewClick={handleNewClick}
-        onFilterClick={handleFilterClick}
         onExportClick={handleExportClick}
         newButtonText='New Injection'
         renderName={renderName}
@@ -575,7 +651,6 @@ const ProjectInjectionList: React.FC = () => {
         backTooltip='Back to Workspace'
         onBulkDelete={handleBulkDelete}
         onBulkAddTags={handleBulkAddTags}
-        onBulkMoveToProject={handleBulkMoveToProject}
       />
     </div>
   );

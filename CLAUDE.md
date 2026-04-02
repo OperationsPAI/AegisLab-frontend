@@ -6,26 +6,60 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 RCABench frontend is a React 18 + TypeScript application using Ant Design 5, built with Vite. It serves as the web interface for the AegisLab RCA benchmarking platform.
 
+## Environment Setup
+
+1. **Install Nix** (devbox 的前置依赖):
+
+   ```bash
+   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+   ```
+
+2. **Install devbox**:
+
+   ```bash
+   curl -fsSL https://get.jetify.com/devbox | bash
+   ```
+
+3. **安装 devbox 包** (提供 pnpm 8):
+
+   ```bash
+   devbox install
+   ```
+
+4. **激活 devbox 环境** (每次新开终端都需要):
+
+   ```bash
+   eval "$(devbox shellenv)"
+   ```
+
+5. **安装前端依赖**:
+   ```bash
+   NPM_TOKEN=<your_github_token> pnpm install
+   ```
+
+> **重要**: 项目依赖私有包 `@OperationsPAI/client`（托管在 GitHub Packages）。安装时必须设置 `NPM_TOKEN` 环境变量为有 `read:packages` 权限的 GitHub Personal Access Token。Token 配置在 `.npmrc` 中通过 `${NPM_TOKEN}` 引用。
+
 ## Essential Commands
 
 ```bash
 # Development
-npm run dev          # Start dev server on http://localhost:3000
+pnpm dev             # Start dev server on http://localhost:3000
 
 # Code Quality
-npm run lint         # Run ESLint checks
-npm run lint:fix     # Auto-fix ESLint issues
-npm run format       # Format code with Prettier
-npm run type-check   # Run TypeScript type checking
+pnpm lint            # Run ESLint checks
+pnpm lint:fix        # Auto-fix ESLint issues
+pnpm format          # Format code with Prettier
+pnpm type-check      # Run TypeScript type checking
 
 # Build
-npm run build        # Build for production
-npm run preview      # Preview production build
+pnpm build           # Build for production (vite build)
+pnpm preview         # Preview production build
 ```
 
 ## Architecture
 
 ### Technology Stack
+
 - **Framework**: React 18.3.1 with TypeScript (strict mode)
 - **Build Tool**: Vite 5 with React plugin
 - **UI Library**: Ant Design 5.x with custom theme
@@ -36,6 +70,7 @@ npm run preview      # Preview production build
 - **Code Editor**: Monaco Editor
 
 ### Project Structure
+
 ```
 src/
 ├── api/           # API clients (modular by domain)
@@ -65,6 +100,7 @@ src/
 ## Development Guidelines
 
 ### API Integration (CRITICAL)
+
 - **NEVER modify backend field names** - Use exact field names from API
 - **Backend uses snake_case** - Keep it in frontend types
 - **All API types in `src/types/api.ts`** - Must match backend exactly
@@ -72,6 +108,7 @@ src/
 - **Handle errors consistently** - 401 triggers auto-refresh, others show message
 
 ### Component Development
+
 - **Functional components only** with hooks
 - **Use Ant Design components** as base building blocks
 - **Follow existing patterns** in similar components
@@ -79,25 +116,28 @@ src/
 - **Keep components focused** - one component per file
 
 ### State Management
+
 - **Server state**: Use TanStack Query for API data
   ```typescript
   const { data, isLoading, error } = useQuery({
     queryKey: ['projects', { page, size }],
     queryFn: () => projectApi.getProjects({ page, size }),
-  })
+  });
   ```
 - **Client state**: Use Zustand stores
   ```typescript
-  const { user, login, logout } = useAuthStore()
+  const { user, login, logout } = useAuthStore();
   ```
 
 ### Styling
+
 - **Ant Design theme** configured in `src/main.tsx`
 - **Primary color**: #2563eb (deep blue)
 - **CSS variables** for theming in `src/styles/`
 - **Responsive design** using Ant Design Grid system
 
 ### Code Quality
+
 - **ESLint rules enforced** - no unused vars, explicit types preferred
 - **Prettier formatting** - 80 char width, single quotes, semicolons
 - **Import organization** - external libs first, then internal modules
@@ -106,15 +146,18 @@ src/
 ## Backend Integration Notes
 
 ### Current API Proxy
+
 Vite dev server proxies `/api` to `http://10.10.10.220:32080` (change in `vite.config.ts` if needed)
 
 ### Authentication Flow
+
 1. Login stores JWT in localStorage
 2. Axios interceptor adds Authorization header
 3. 401 responses trigger token refresh
 4. Refresh failure redirects to login
 
 ### Key Backend Concepts
+
 - **Projects**: Container for experiments
 - **Containers**: Pedestal/Benchmark/Algorithm types
 - **Injections**: Fault injection configurations
@@ -125,24 +168,28 @@ Vite dev server proxies `/api` to `http://10.10.10.220:32080` (change in `vite.c
 ## Common Tasks
 
 ### Adding a New Page
+
 1. Create component in `src/pages/`
 2. Add route in `src/App.tsx`
 3. Add navigation item in `src/components/layout/MainLayout.tsx`
 4. Create API client if needed in `src/api/`
 
 ### Creating API Integration
+
 1. Define types in `src/types/api.ts` (match backend exactly)
 2. Create API client in `src/api/` using `apiClient`
 3. Use TanStack Query for data fetching
 4. Handle loading/error states
 
 ### Working with Forms
+
 - Use Ant Design Form component
 - Define form types based on API requirements
 - Handle validation before submission
 - Show success/error feedback
 
 ### Adding Charts
+
 - Use ECharts for standard charts
 - Use D3.js for custom visualizations
 - Use Cytoscape.js for network graphs

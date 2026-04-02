@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import {
   ClockCircleOutlined,
   CloudUploadOutlined,
@@ -35,13 +38,9 @@ import {
   Upload,
 } from 'antd';
 import dayjs from 'dayjs';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-
 
 import { datasetApi } from '@/api/datasets';
 import StatCard from '@/components/ui/StatCard';
-
 
 // DatasetType for internal use
 type DatasetType = 'Trace' | 'Log' | 'Metric';
@@ -78,6 +77,8 @@ const DatasetList = () => {
       typeFilter,
     ],
     queryFn: () =>
+      // NOTE: datasetApi.getDatasets does not support a search/name param.
+      // searchText filtering only works client-side on the current page.
       datasetApi.getDatasets({
         page: pagination.current,
         size: pagination.pageSize,
@@ -157,31 +158,11 @@ const DatasetList = () => {
   const handleUpload = async () => {
     if (!uploadingFile) return;
 
-    // Simulate upload progress
+    // TODO: Implement actual file upload when API is ready
+    message.info('File upload is not yet supported');
+    setUploadModalVisible(false);
+    setUploadingFile(null);
     setUploadProgress(0);
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(interval);
-          return 90;
-        }
-        return prev + 10;
-      });
-    }, 200);
-
-    try {
-      // TODO: Implement actual file upload when API is ready
-      message.success('Dataset uploaded successfully');
-      setUploadModalVisible(false);
-      setUploadingFile(null);
-      setUploadProgress(0);
-      refetch();
-    } catch (error) {
-      message.error('Failed to upload dataset');
-      setUploadProgress(0);
-    } finally {
-      clearInterval(interval);
-    }
   };
 
   const handleBatchDelete = () => {
@@ -198,7 +179,11 @@ const DatasetList = () => {
       cancelText: 'Cancel',
       onOk: async () => {
         try {
-          await datasetApi.batchDelete(selectedRowKeys as number[]);
+          await Promise.all(
+            (selectedRowKeys as number[]).map((deleteId) =>
+              datasetApi.deleteDataset(deleteId)
+            )
+          );
           message.success(
             `${selectedRowKeys.length} datasets deleted successfully`
           );
@@ -284,7 +269,10 @@ const DatasetList = () => {
       key: 'type',
       width: '15%',
       render: (type: string) => (
-        <Tag color={getTypeColor(type as DatasetType)} style={{ fontWeight: 500 }}>
+        <Tag
+          color={getTypeColor(type as DatasetType)}
+          style={{ fontWeight: 500 }}
+        >
           {type}
         </Tag>
       ),
@@ -422,7 +410,13 @@ const DatasetList = () => {
       </div>
 
       {/* Statistics Cards */}
-      <Row gutter={[{ xs: 8, sm: 16, lg: 24 }, { xs: 8, sm: 16, lg: 24 }]} className='stats-row'>
+      <Row
+        gutter={[
+          { xs: 8, sm: 16, lg: 24 },
+          { xs: 8, sm: 16, lg: 24 },
+        ]}
+        className='stats-row'
+      >
         <Col xs={12} sm={12} lg={6}>
           <StatCard
             title='Total Datasets'
@@ -493,7 +487,9 @@ const DatasetList = () => {
                   Delete Selected ({selectedRowKeys.length})
                 </Button>
               )}
-              <Button icon={<UploadOutlined />}>Import Dataset</Button>
+              <Button icon={<UploadOutlined />} onClick={handleUploadDataset}>
+                Import Dataset
+              </Button>
             </Space>
           </Col>
         </Row>

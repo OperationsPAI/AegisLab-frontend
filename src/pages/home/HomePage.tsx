@@ -2,12 +2,18 @@ import { useNavigate } from 'react-router-dom';
 
 import {
   ArrowRightOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ExperimentOutlined,
   FolderOutlined,
   PlusOutlined,
   RocketOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import type { ProjectResp } from '@rcabench/client';
+import { useQuery } from '@tanstack/react-query';
 import {
+  Badge,
   Button,
   Card,
   Col,
@@ -16,11 +22,15 @@ import {
   Row,
   Skeleton,
   Space,
+  Statistic,
   Typography,
 } from 'antd';
 import dayjs from 'dayjs';
 
+import { metricsApi } from '@/api/metrics';
+import { systemApi } from '@/api/system';
 import { useProjects } from '@/hooks/useProjects';
+import { useProjectTeamMap } from '@/hooks/useProjectTeamMap';
 import { useAuthStore } from '@/store/auth';
 
 import './HomePage.css';
@@ -29,7 +39,7 @@ const { Title, Text, Paragraph } = Typography;
 
 /**
  * Home Page
- * Personal dashboard showing recent projects and quick actions
+ * Personal dashboard showing recent projects, metrics, and quick actions
  */
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -42,7 +52,39 @@ const HomePage: React.FC = () => {
     queryKey: ['projects', 'recent'],
   });
 
+  // Fetch metrics
+  const { data: injectionMetrics } = useQuery({
+    queryKey: ['metrics', 'injections'],
+    queryFn: () => metricsApi.getInjectionMetrics(),
+  });
+
+  const { data: executionMetrics } = useQuery({
+    queryKey: ['metrics', 'executions'],
+    queryFn: () => metricsApi.getExecutionMetrics(),
+  });
+
+  const { data: algorithmMetrics } = useQuery({
+    queryKey: ['metrics', 'algorithms'],
+    queryFn: () => metricsApi.getAlgorithmMetrics(),
+  });
+
+  // Fetch system status
+  const { data: systemMetrics } = useQuery({
+    queryKey: ['system', 'metrics'],
+    queryFn: () => systemApi.getSystemMetrics(),
+    refetchInterval: 60000, // Refresh every minute
+  });
+
   const recentProjects = projectsData?.items || [];
+
+  // Project name → team name mapping for navigation
+  const projectTeamMap = useProjectTeamMap();
+
+  // Determine system health
+  const systemHealthy =
+    systemMetrics?.status === 'healthy' ||
+    systemMetrics?.status === 'ok' ||
+    (systemMetrics && !systemMetrics.status);
 
   return (
     <div className='home-page'>
@@ -75,6 +117,101 @@ const HomePage: React.FC = () => {
         </Space>
       </Card>
 
+      {/* Metrics Cards */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} sm={12} md={6}>
+          <Card>
+            <Statistic
+              title='Total Injections'
+              value={injectionMetrics?.total ?? '-'}
+              prefix={<ExperimentOutlined />}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card>
+            <Statistic
+              title='Total Executions'
+              value={executionMetrics?.total ?? '-'}
+              prefix={<ThunderboltOutlined />}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card>
+            <Statistic
+              title='Algorithms'
+              value={algorithmMetrics?.total ?? '-'}
+              prefix={<RocketOutlined />}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card>
+            <Space direction='vertical' size={4}>
+              <Text type='secondary'>System Status</Text>
+              {systemMetrics ? (
+                <Badge
+                  status={systemHealthy ? 'success' : 'error'}
+                  text={
+                    <Text strong style={{ fontSize: 16 }}>
+                      {systemHealthy ? 'Healthy' : 'Degraded'}
+                    </Text>
+                  }
+                />
+              ) : (
+                <Badge
+                  status='default'
+                  text={<Text type='secondary'>Loading...</Text>}
+                />
+              )}
+              {systemMetrics?.cpu_usage != null && (
+                <Text type='secondary' style={{ fontSize: 12 }}>
+                  CPU: {systemMetrics.cpu_usage}% | Mem:{' '}
+                  {systemMetrics.memory_usage}%
+                </Text>
+              )}
+            </Space>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Execution Metrics Summary */}
+      {executionMetrics && (
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={24} sm={8}>
+            <Card size='small'>
+              <Statistic
+                title='Completed'
+                value={executionMetrics.completed ?? 0}
+                valueStyle={{ color: '#52c41a' }}
+                prefix={<CheckCircleOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Card size='small'>
+              <Statistic
+                title='Running'
+                value={executionMetrics.running ?? 0}
+                valueStyle={{ color: '#1890ff' }}
+                prefix={<ThunderboltOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Card size='small'>
+              <Statistic
+                title='Failed'
+                value={executionMetrics.failed ?? 0}
+                valueStyle={{ color: '#ff4d4f' }}
+                prefix={<CloseCircleOutlined />}
+              />
+            </Card>
+          </Col>
+        </Row>
+      )}
+
       <Row gutter={[24, 24]}>
         {/* Recent Projects */}
         <Col xs={24} lg={16}>
@@ -100,7 +237,14 @@ const HomePage: React.FC = () => {
                 renderItem={(project: ProjectResp) => (
                   <List.Item
                     className='project-list-item'
-                    onClick={() => navigate(`/${project.name}`)}
+                    onClick={() => {
+                      const teamName = projectTeamMap.get(project.name ?? '');
+                      if (teamName) {
+                        navigate(`/${teamName}/${project.name}`);
+                      } else {
+                        navigate('/projects');
+                      }
+                    }}
                     style={{ cursor: 'pointer' }}
                     actions={[
                       <Button

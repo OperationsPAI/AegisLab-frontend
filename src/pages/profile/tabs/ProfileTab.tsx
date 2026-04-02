@@ -2,45 +2,51 @@ import { useNavigate } from 'react-router-dom';
 
 import { FolderOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card, Col, Empty, Row, Typography } from 'antd';
+import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  Descriptions,
+  Empty,
+  Row,
+  Skeleton,
+  Typography,
+} from 'antd';
+import dayjs from 'dayjs';
 
-import { profileApi } from '@/api/profile';
-import ActivityGraph from '@/components/profile/ActivityGraph';
-import ProjectCard from '@/components/profile/ProjectCard';
-import RecentRuns from '@/components/profile/RecentRuns';
-import { useProfileStore } from '@/store/profile';
+import { authApi } from '@/api/auth';
+import { useProjects } from '@/hooks/useProjects';
 
 const { Text, Title } = Typography;
 
 const ProfileTab = () => {
   const navigate = useNavigate();
-  const { toggleStar, isStarred } = useProfileStore();
 
-  // Fetch activity data
-  const { data: activityData, isLoading: activityLoading } = useQuery({
-    queryKey: ['profile', 'activity'],
-    queryFn: () => profileApi.getActivity(),
+  // Fetch profile data
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ['profile'],
+    queryFn: () => authApi.getProfile(),
   });
 
-  // Fetch recent runs
-  const { data: recentRuns, isLoading: runsLoading } = useQuery({
-    queryKey: ['profile', 'recent-runs'],
-    queryFn: () => profileApi.getRecentRuns(5),
-  });
-
-  // Fetch user projects (top 6)
-  const { data: projectsData, isLoading: projectsLoading } = useQuery({
-    queryKey: ['profile', 'projects'],
-    queryFn: () => profileApi.getUserProjects({ size: 6 }),
+  // Fetch user projects
+  const { data: projectsData, isLoading: projectsLoading } = useProjects({
+    page: 1,
+    size: 6,
+    queryKey: ['projects', 'profile'],
   });
 
   const handleCreateProject = () => {
     navigate('/projects/new');
   };
 
+  if (profileLoading) {
+    return <Skeleton active paragraph={{ rows: 8 }} />;
+  }
+
   return (
     <div className='profile-tab'>
-      {/* Intro Section */}
+      {/* Profile Info Section */}
       <Card className='profile-section' style={{ marginBottom: 24 }}>
         <div
           style={{
@@ -50,34 +56,61 @@ const ProfileTab = () => {
           }}
         >
           <Title level={5} style={{ margin: 0 }}>
-            Intro
+            Profile
           </Title>
-          <Button type='link' size='small'>
-            Edit
-          </Button>
         </div>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '40px 0',
-            color: '#666',
-          }}
-        >
-          <UserOutlined
-            style={{ fontSize: 48, marginBottom: 16, color: '#ccc' }}
-          />
-          <Text strong style={{ fontSize: 16 }}>
-            Introduce yourself to the world
-          </Text>
-          <Text type='secondary'>
-            Let others know a little bit about who you are and what you do.
-          </Text>
-          <Button type='link' style={{ marginTop: 8 }}>
-            Add an intro
-          </Button>
-        </div>
+        {profile ? (
+          <>
+            <Alert
+              message='Profile information is read-only'
+              description='Contact your administrator to update profile details.'
+              type='info'
+              showIcon
+              style={{ marginTop: 16, marginBottom: 16 }}
+            />
+            <Descriptions bordered column={{ xs: 1, sm: 2 }}>
+              <Descriptions.Item label='Username'>
+                @{profile.username}
+              </Descriptions.Item>
+              <Descriptions.Item label='Full Name'>
+                {profile.full_name || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label='Email'>
+                {profile.email}
+              </Descriptions.Item>
+              <Descriptions.Item label='Phone'>
+                {profile.phone || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label='Member Since'>
+                {profile.created_at
+                  ? dayjs(profile.created_at).format('MMMM D, YYYY')
+                  : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label='Last Login'>
+                {profile.last_login_at
+                  ? dayjs(profile.last_login_at).format('MMMM D, YYYY HH:mm')
+                  : 'Never'}
+              </Descriptions.Item>
+            </Descriptions>
+          </>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              padding: '40px 0',
+              color: '#666',
+            }}
+          >
+            <UserOutlined
+              style={{ fontSize: 48, marginBottom: 16, color: '#ccc' }}
+            />
+            <Text strong style={{ fontSize: 16 }}>
+              Unable to load profile
+            </Text>
+          </div>
+        )}
       </Card>
 
       {/* Projects Section */}
@@ -106,18 +139,24 @@ const ProfileTab = () => {
         </div>
 
         {projectsLoading ? (
-          <div style={{ padding: '40px 0', textAlign: 'center' }}>
-            <Text type='secondary'>Loading projects...</Text>
-          </div>
-        ) : projectsData?.items.length ? (
+          <Skeleton active paragraph={{ rows: 3 }} />
+        ) : projectsData?.items?.length ? (
           <Row gutter={[16, 16]}>
             {projectsData.items.map((project) => (
               <Col key={project.id} xs={24} sm={12} lg={8}>
-                <ProjectCard
-                  project={project}
-                  isStarred={isStarred(project.id)}
-                  onToggleStar={toggleStar}
-                />
+                <Card
+                  size='small'
+                  hoverable
+                  onClick={() => navigate(`/${project.name}`)}
+                >
+                  <Text strong>{project.name}</Text>
+                  <br />
+                  <Text type='secondary' style={{ fontSize: 12 }}>
+                    {project.created_at
+                      ? dayjs(project.created_at).fromNow()
+                      : ''}
+                  </Text>
+                </Card>
               </Col>
             ))}
           </Row>
@@ -126,7 +165,7 @@ const ProfileTab = () => {
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={
               <span>
-                <Text strong>Highlight your latest projects</Text>
+                <Text strong>No projects yet</Text>
                 <br />
                 <Text type='secondary'>
                   Get started by creating your first project.
@@ -140,20 +179,6 @@ const ProfileTab = () => {
           </Empty>
         )}
       </Card>
-
-      {/* Activity Section */}
-      <Card className='profile-section' style={{ marginBottom: 24 }}>
-        <Title level={5} style={{ marginBottom: 16 }}>
-          Activity
-        </Title>
-        <ActivityGraph
-          contributions={activityData?.contributions || []}
-          isLoading={activityLoading}
-        />
-      </Card>
-
-      {/* Recent Runs Section */}
-      <RecentRuns runs={recentRuns || []} isLoading={runsLoading} />
     </div>
   );
 };

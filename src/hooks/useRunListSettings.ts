@@ -3,10 +3,11 @@
  *
  * Provides synchronized access to display settings (cropMode, sortOrder)
  * between RunsPanel sidebar and WorkspaceTable views.
+ *
+ * NOTE: Workspace store was removed. This hook now uses local state as a stub.
  */
-import { useCallback, useMemo } from 'react';
+import { useCallback, useState } from 'react';
 
-import { useWorkspaceStore } from '@/store/workspace';
 import type {
   RunListDisplaySettings,
   RunNameCropMode,
@@ -37,6 +38,11 @@ export interface UseRunListSettingsReturn {
   updateSettings: (settings: Partial<RunListDisplaySettings>) => void;
 }
 
+const DEFAULT_SETTINGS: RunListDisplaySettings = {
+  cropMode: 'auto' as RunNameCropMode,
+  sortOrder: 'desc',
+};
+
 /**
  * Hook for managing run list display settings
  *
@@ -52,54 +58,37 @@ export interface UseRunListSettingsReturn {
  * ```
  */
 export function useRunListSettings({
-  dataSource,
+  dataSource: _dataSource,
 }: UseRunListSettingsOptions): UseRunListSettingsReturn {
-  const getDisplaySettings = useWorkspaceStore((s) => s.getDisplaySettings);
-  const setDisplaySettingsAction = useWorkspaceStore(
-    (s) => s.setDisplaySettings
-  );
-  const setCropModeAction = useWorkspaceStore((s) => s.setCropMode);
-  const setListSortOrderAction = useWorkspaceStore((s) => s.setListSortOrder);
-  const randomizeRunColorsAction = useWorkspaceStore(
-    (s) => s.randomizeRunColors
-  );
-
-  // Get current display settings
-  const displaySettings = useMemo(
-    () => getDisplaySettings(dataSource),
-    [getDisplaySettings, dataSource]
-  );
+  const [displaySettings, setDisplaySettings] =
+    useState<RunListDisplaySettings>(DEFAULT_SETTINGS);
 
   const { cropMode, sortOrder } = displaySettings;
 
-  // Memoized action callbacks
-  const setCropMode = useCallback(
-    (mode: RunNameCropMode) => {
-      setCropModeAction(dataSource, mode);
-    },
-    [setCropModeAction, dataSource]
-  );
+  const setCropMode = useCallback((mode: RunNameCropMode) => {
+    setDisplaySettings((prev) => ({ ...prev, cropMode: mode }));
+  }, []);
 
-  const setSortOrder = useCallback(
-    (order: 'asc' | 'desc') => {
-      setListSortOrderAction(dataSource, order);
-    },
-    [setListSortOrderAction, dataSource]
-  );
+  const setSortOrder = useCallback((order: 'asc' | 'desc') => {
+    setDisplaySettings((prev) => ({ ...prev, sortOrder: order }));
+  }, []);
 
   const toggleSortOrder = useCallback(() => {
-    setListSortOrderAction(dataSource, sortOrder === 'asc' ? 'desc' : 'asc');
-  }, [setListSortOrderAction, dataSource, sortOrder]);
+    setDisplaySettings((prev) => ({
+      ...prev,
+      sortOrder: prev.sortOrder === 'asc' ? 'desc' : 'asc',
+    }));
+  }, []);
 
   const randomizeColors = useCallback(() => {
-    randomizeRunColorsAction(dataSource);
-  }, [randomizeRunColorsAction, dataSource]);
+    // No-op stub (workspace store removed)
+  }, []);
 
   const updateSettings = useCallback(
     (settings: Partial<RunListDisplaySettings>) => {
-      setDisplaySettingsAction(dataSource, settings);
+      setDisplaySettings((prev) => ({ ...prev, ...settings }));
     },
-    [setDisplaySettingsAction, dataSource]
+    []
   );
 
   return {

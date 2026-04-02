@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 
 import {
   ClockCircleOutlined,
@@ -12,15 +13,14 @@ import {
 import { GetInjectionMetadataSystem } from '@rcabench/client';
 import { useQuery } from '@tanstack/react-query';
 import { Card, Empty, List, Spin, Tag, Tooltip } from 'antd';
-import { useState, useMemo } from 'react';
 
 import { injectionApi } from '../../../api/injections';
-import type { FaultType } from '../../../types/api';
+import type { FaultTypeConfig } from '../../../types/api';
 
 import './FaultTypePanel.css';
 
 interface FaultTypePanelProps {
-  onFaultSelect: (fault: FaultType) => void;
+  onFaultSelect: (fault: FaultTypeConfig) => void;
 }
 
 const faultTypeIcons: Record<string, React.ReactNode> = {
@@ -48,7 +48,9 @@ const faultTypeColors: Record<string, string> = {
 export const FaultTypePanel: React.FC<FaultTypePanelProps> = ({
   onFaultSelect,
 }: FaultTypePanelProps) => {
-  const [selectedFault, setSelectedFault] = useState<FaultType | null>(null);
+  const [selectedFault, setSelectedFault] = useState<FaultTypeConfig | null>(
+    null
+  );
 
   // Fetch fault metadata using the SDK
   // Use 'ts' as default system - fault_type_map is global across systems
@@ -58,11 +60,12 @@ export const FaultTypePanel: React.FC<FaultTypePanelProps> = ({
     error,
   } = useQuery({
     queryKey: ['faultMetadata'],
-    queryFn: () => injectionApi.getFaultMetadata(GetInjectionMetadataSystem.ts),
+    queryFn: () =>
+      injectionApi.getMetadata({ system: GetInjectionMetadataSystem.ts }),
   });
 
-  // Convert fault_type_map to FaultType array with parameters from config
-  const faultTypes: FaultType[] = useMemo(() => {
+  // Convert fault_type_map to FaultTypeConfig array with parameters from config
+  const faultTypes: FaultTypeConfig[] = useMemo(() => {
     if (!metadata?.fault_type_map) return [];
 
     // Define category mappings based on fault type names
@@ -104,7 +107,9 @@ export const FaultTypePanel: React.FC<FaultTypePanelProps> = ({
     const configChildren = metadata.config?.children || {};
 
     // Helper to determine parameter type from ChaosNode
-    const getParameterType = (node: any): 'string' | 'number' | 'boolean' | 'select' | 'range' => {
+    const getParameterType = (
+      node: Record<string, unknown>
+    ): 'string' | 'number' | 'boolean' | 'select' | 'range' => {
       if (node.range && Array.isArray(node.range) && node.range.length === 2) {
         return 'range';
       }
@@ -124,59 +129,64 @@ export const FaultTypePanel: React.FC<FaultTypePanelProps> = ({
       return 'string';
     };
 
-    return Object.entries(metadata.fault_type_map).map(([key, description], index) => {
-      const faultConfig = configChildren[key];
-      const parameters = faultConfig?.children
-        ? Object.entries(faultConfig.children).map(([paramName, paramNode]) => {
-            const paramType = getParameterType(paramNode);
-            return {
-              name: paramName,
-              type: paramType,
-              label: paramNode.description || paramName,
-              description: paramNode.description,
-              required: false,
-              default: paramNode.value,
-              min: paramNode.range?.[0],
-              max: paramNode.range?.[1],
-              options: paramType === 'select' && paramNode.children
-                ? Object.keys(paramNode.children)
-                : undefined,
-            };
-          })
-        : [];
+    return Object.entries(metadata.fault_type_map).map(
+      ([key, description], index) => {
+        const faultConfig = configChildren[key];
+        const parameters = faultConfig?.children
+          ? Object.entries(faultConfig.children).map(
+              ([paramName, paramNode]) => {
+                const paramType = getParameterType(paramNode);
+                return {
+                  name: paramName,
+                  type: paramType,
+                  label: paramNode.description || paramName,
+                  description: paramNode.description,
+                  required: false,
+                  default: paramNode.value,
+                  min: paramNode.range?.[0],
+                  max: paramNode.range?.[1],
+                  options:
+                    paramType === 'select' && paramNode.children
+                      ? Object.keys(paramNode.children)
+                      : undefined,
+                };
+              }
+            )
+          : [];
 
-      return {
-        id: index,
-        name: key,
-        type: key,
-        category: categoryMap[key] || 'Other',
-        description: description || key,
-        parameters,
-      };
-    });
+        return {
+          id: index,
+          name: key,
+          type: key,
+          category: categoryMap[key] || 'Other',
+          description: description || key,
+          parameters,
+        };
+      }
+    );
   }, [metadata]);
 
-  const handleFaultClick = (fault: FaultType) => {
+  const handleFaultClick = (fault: FaultTypeConfig) => {
     setSelectedFault(fault);
     onFaultSelect(fault);
   };
 
-  const handleDragStart = (e: React.DragEvent, fault: FaultType) => {
+  const handleDragStart = (e: React.DragEvent, fault: FaultTypeConfig) => {
     e.dataTransfer.setData('application/reactflow', JSON.stringify(fault));
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const getFaultIcon = (faultType: FaultType) => {
+  const getFaultIcon = (faultType: FaultTypeConfig) => {
     const key = faultType.category?.toLowerCase() || 'default';
     return faultTypeIcons[key] || faultTypeIcons.default;
   };
 
-  const getFaultColor = (faultType: FaultType) => {
+  const getFaultColor = (faultType: FaultTypeConfig) => {
     const key = faultType.category?.toLowerCase() || 'default';
     return faultTypeColors[key] || faultTypeColors.default;
   };
 
-  const groupFaultTypesByCategory = (faultTypes: FaultType[]) => {
+  const groupFaultTypeConfigsByCategory = (faultTypes: FaultTypeConfig[]) => {
     return faultTypes.reduce(
       (acc, fault) => {
         const category = fault.category || 'Other';
@@ -186,11 +196,11 @@ export const FaultTypePanel: React.FC<FaultTypePanelProps> = ({
         acc[category].push(fault);
         return acc;
       },
-      {} as Record<string, FaultType[]>
+      {} as Record<string, FaultTypeConfig[]>
     );
   };
 
-  const groupedFaultTypes = groupFaultTypesByCategory(faultTypes);
+  const groupedFaultTypeConfigs = groupFaultTypeConfigsByCategory(faultTypes);
 
   if (error) {
     return (
@@ -212,7 +222,7 @@ export const FaultTypePanel: React.FC<FaultTypePanelProps> = ({
         </div>
       ) : (
         <div className='fault-type-list'>
-          {Object.entries(groupedFaultTypes).map(([category, faults]) => (
+          {Object.entries(groupedFaultTypeConfigs).map(([category, faults]) => (
             <div key={category} className='fault-category'>
               <div className='category-header'>
                 <Tag color='blue' className='category-tag'>
@@ -248,9 +258,7 @@ export const FaultTypePanel: React.FC<FaultTypePanelProps> = ({
                           <Tooltip
                             title={`${fault.parameters.length} parameters`}
                           >
-                            <Tag>
-                              {fault.parameters.length} params
-                            </Tag>
+                            <Tag>{fault.parameters.length} params</Tag>
                           </Tooltip>
                         </div>
                       )}

@@ -1,88 +1,40 @@
-/**
- * Task API
- * Using @rcabench/client SDK, manually implementing missing endpoints
- */
-import {
-  type GroupStats,
-  type ListTaskResp,
-  type ListTasksTaskType,
-  type StatusType,
-  type TaskDetailResp,
-  TasksApi,
-  type TaskState,
-  TracesApi,
+import type {
+  ListTaskResp,
+  StatusType,
+  TaskDetailResp,
+  TaskState,
 } from '@rcabench/client';
 
-import { apiClient, createApiConfig } from './config';
+import apiClient from './client';
 
 export const taskApi = {
-  // ==================== SDK Methods ====================
-
-  /**
-   * Get task list - Using SDK
-   */
-  getTasks: async (params?: {
+  getTasks: (params?: {
     page?: number;
     size?: number;
-    taskType?: ListTasksTaskType;
+    taskType?: string;
     immediate?: boolean;
     traceId?: string;
     groupId?: string;
     projectId?: number;
     state?: TaskState;
     status?: StatusType;
-  }): Promise<ListTaskResp | undefined> => {
-    const api = new TasksApi(createApiConfig());
-    const response = await api.listTasks({
-      page: params?.page,
-      size: params?.size,
-      taskType: params?.taskType,
-      immediate: params?.immediate,
-      traceId: params?.traceId,
-      groupId: params?.groupId,
-      projectId: params?.projectId,
-      state: params?.state,
-      status: params?.status,
-    });
-    return response.data.data;
-  },
+  }): Promise<ListTaskResp | undefined> =>
+    apiClient.get('/tasks', { params }).then((r) => r.data.data),
 
-  /**
-   * Get task details - Using SDK
-   */
-  getTask: async (taskId: string): Promise<TaskDetailResp | undefined> => {
-    const api = new TasksApi(createApiConfig());
-    const response = await api.getTaskById({ taskId });
-    return response.data.data;
-  },
+  getTask: (taskId: string): Promise<TaskDetailResp | undefined> =>
+    apiClient.get(`/tasks/${taskId}`).then((r) => r.data.data),
 
-  /**
-   * Get trace group statistics - Using SDK
-   */
-  getGroupStats: async (groupId: string): Promise<GroupStats | undefined> => {
-    const api = new TracesApi(createApiConfig());
-    const response = await api.getGroupStats({ groupId });
-    return response.data.data;
-  },
-
-  // ==================== Manual Implementation (SDK Missing) ====================
-
-  /**
-   * Batch delete tasks - Manual implementation (SDK missing)
-   */
   batchDelete: (ids: string[]) =>
-    apiClient.post('/tasks/batch-delete', { ids }),
+    apiClient.post('/tasks/batch-delete', { ids }).then((r) => r.data),
 };
 
 /**
- * Create real-time log stream (SSE)
- * Note: EventSource does not support custom headers,
- * If authentication is needed, backend should support passing token via query params
+ * Create WebSocket connection for task logs
+ * Backend endpoint: GET /tasks/:task_id/logs/ws
  */
-export const createLogStream = (traceId: string): EventSource => {
+export const createTaskLogWebSocket = (taskId: string): WebSocket => {
   const token = localStorage.getItem('access_token');
-  // SSE connection typically needs to pass token via URL parameter
-  const url = `/api/v2/traces/${traceId}/stream${token ? `?token=${encodeURIComponent(token)}` : ''}`;
-
-  return new EventSource(url);
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const url = `${protocol}//${window.location.host}/api/v2/tasks/${taskId}/logs/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  return new WebSocket(url);
 };

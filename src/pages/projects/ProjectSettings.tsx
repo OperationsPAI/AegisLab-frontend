@@ -32,7 +32,7 @@ const { TextArea } = Input;
 const ProjectSettings: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { project, projectId, projectName } =
+  const { project, projectId, projectName, teamName } =
     useOutletContext<ProjectOutletContext>();
   const [form] = Form.useForm();
 
@@ -59,7 +59,7 @@ const ProjectSettings: React.FC = () => {
     mutationFn: () => projectApi.deleteProject(projectId),
     onSuccess: () => {
       message.success('Project deleted successfully');
-      navigate('/projects');
+      navigate(`/${teamName}`);
     },
     onError: () => {
       message.error('Failed to delete project');

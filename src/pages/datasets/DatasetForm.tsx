@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+
 import {
   CloseOutlined,
   DatabaseOutlined,
@@ -7,7 +10,6 @@ import {
   LineChartOutlined,
   SaveOutlined,
   TagsOutlined,
-  UploadOutlined,
 } from '@ant-design/icons';
 import type { LabelItem } from '@rcabench/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -25,11 +27,7 @@ import {
   Switch,
   Tag,
   Typography,
-  Upload,
 } from 'antd';
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-
 
 import { datasetApi } from '@/api/datasets';
 
@@ -39,7 +37,6 @@ type DatasetType = 'Trace' | 'Log' | 'Metric';
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
-const { Dragger } = Upload;
 
 interface DatasetFormData {
   name: string;
@@ -57,7 +54,6 @@ const DatasetForm = () => {
   const datasetId = id ? Number(id) : undefined;
   const [labelInput, setLabelInput] = useState('');
   const [labels, setLabels] = useState<LabelItem[]>([]);
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
 
   // Fetch dataset data if editing
   const { data: datasetData, isLoading } = useQuery({
@@ -145,11 +141,6 @@ const DatasetForm = () => {
 
   const removeLabel = (key: string) => {
     setLabels(labels.filter((l) => l.key !== key));
-  };
-
-  const handleFileUpload = (file: File) => {
-    setUploadFile(file);
-    return false; // Prevent auto upload
   };
 
   if (isLoading && datasetId) {
@@ -292,43 +283,6 @@ const DatasetForm = () => {
                 />
               </Form.Item>
 
-              {!datasetId && (
-                <>
-                  <Divider />
-                  <Form.Item label='Upload Dataset File (Optional)'>
-                    <Dragger
-                      accept='.csv,.json,.parquet,.zip'
-                      maxCount={1}
-                      beforeUpload={handleFileUpload}
-                      showUploadList={false}
-                    >
-                      <p className='ant-upload-drag-icon'>
-                        <UploadOutlined
-                          style={{ fontSize: 48, color: '#3b82f6' }}
-                        />
-                      </p>
-                      <p className='ant-upload-text'>
-                        Click or drag dataset file to this area
-                      </p>
-                      <p className='ant-upload-hint'>
-                        Support for single file upload. File types: .csv, .json,
-                        .parquet, .zip
-                      </p>
-                    </Dragger>
-                    {uploadFile && (
-                      <div style={{ marginTop: 8 }}>
-                        <Text>Selected file: </Text>
-                        <Text strong>{uploadFile.name}</Text>
-                        <br />
-                        <Text type='secondary'>
-                          Size: {(uploadFile.size / 1024 / 1024).toFixed(2)} MB
-                        </Text>
-                      </div>
-                    )}
-                  </Form.Item>
-                </>
-              )}
-
               <Divider />
 
               <Form.Item label='Labels'>
@@ -463,8 +417,8 @@ const DatasetForm = () => {
                   type='secondary'
                   style={{ display: 'block', marginTop: 4 }}
                 >
-                  You can upload dataset files in various formats. The system
-                  will automatically detect the format and create a version.
+                  File uploads are handled at the version level. After creating
+                  a dataset, add versions from the dataset detail page.
                 </Text>
               </div>
             </Space>

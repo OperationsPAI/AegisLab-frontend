@@ -1,53 +1,62 @@
-import { PlusOutlined, SearchOutlined, DeleteOutlined } from '@ant-design/icons'
-import type { ContainerResp } from '@rcabench/client'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import {
-  Table,
+  DeleteOutlined,
+  PlusOutlined,
+  SearchOutlined,
+} from '@ant-design/icons';
+import type { ContainerResp, ContainerType } from '@rcabench/client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
   Button,
+  Card,
   Input,
+  message,
+  Popconfirm,
+  Select,
   Space,
+  Table,
   Tag,
   Typography,
-  Select,
-  Popconfirm,
-  message,
-  Card,
-} from 'antd'
-import type { ColumnsType } from 'antd/es/table'
-import dayjs from 'dayjs'
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+} from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import dayjs from 'dayjs';
 
-import { containerApi } from '@/api/containers'
+import { containerApi } from '@/api/containers';
 
-
-const { Title } = Typography
+const { Title } = Typography;
 
 const ContainerList = () => {
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const [page, setPage] = useState(1)
-  const [size, setSize] = useState(10)
-  const [searchText, setSearchText] = useState('')
-  const [typeFilter, setTypeFilter] = useState<string | undefined>()
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const [size, setSize] = useState(10);
+  const [searchText, setSearchText] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string | undefined>();
 
   // Fetch containers
   const { data, isLoading } = useQuery({
     queryKey: ['containers', { page, size, type: typeFilter }],
-    queryFn: () => containerApi.getContainers({ page, size, type: typeFilter as any }),
-  })
+    queryFn: () =>
+      containerApi.getContainers({
+        page,
+        size,
+        type: typeFilter as ContainerType | undefined,
+      }),
+  });
 
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: (id: number) => containerApi.deleteContainer(id),
     onSuccess: () => {
-      message.success('Container deleted successfully')
-      queryClient.invalidateQueries({ queryKey: ['containers'] })
+      message.success('Container deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['containers'] });
     },
     onError: () => {
-      message.error('Failed to delete container')
+      message.error('Failed to delete container');
     },
-  })
+  });
 
   const columns: ColumnsType<ContainerResp> = [
     {
@@ -56,7 +65,8 @@ const ContainerList = () => {
       key: 'name',
       filteredValue: searchText ? [searchText] : null,
       onFilter: (value, record) =>
-        record.name?.toLowerCase().includes((value as string).toLowerCase()) ?? false,
+        record.name?.toLowerCase().includes((value as string).toLowerCase()) ??
+        false,
       render: (text: string) => (
         <Typography.Text strong style={{ color: '#2563eb' }}>
           {text}
@@ -73,8 +83,8 @@ const ContainerList = () => {
           Pedestal: 'blue',
           Benchmark: 'green',
           Algorithm: 'purple',
-        }
-        return <Tag color={colorMap[type] || 'default'}>{type}</Tag>
+        };
+        return <Tag color={colorMap[type] || 'default'}>{type}</Tag>;
       },
     },
     {
@@ -113,29 +123,31 @@ const ContainerList = () => {
       render: (_, record) => (
         <Space>
           <Button
-            type="link"
-            size="small"
+            type='link'
+            size='small'
             onClick={() => navigate(`/containers/${record.id}`)}
           >
             View
           </Button>
           <Button
-            type="link"
-            size="small"
+            type='link'
+            size='small'
             onClick={() => navigate(`/containers/${record.id}/edit`)}
           >
             Edit
           </Button>
           <Popconfirm
-            title="Confirm Deletion"
-            description="Are you sure you want to delete this container?"
-            onConfirm={() => record.id !== undefined && deleteMutation.mutate(record.id)}
-            okText="Confirm"
-            cancelText="Cancel"
+            title='Confirm Deletion'
+            description='Are you sure you want to delete this container?'
+            onConfirm={() =>
+              record.id !== undefined && deleteMutation.mutate(record.id)
+            }
+            okText='Confirm'
+            cancelText='Cancel'
           >
             <Button
-              type="link"
-              size="small"
+              type='link'
+              size='small'
               danger
               icon={<DeleteOutlined />}
               loading={deleteMutation.isPending}
@@ -144,11 +156,12 @@ const ContainerList = () => {
         </Space>
       ),
     },
-  ]
+  ];
 
   return (
-    <div className="container-list page-container">
-      <div className="page-header"
+    <div className='container-list page-container'>
+      <div
+        className='page-header'
         style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -156,12 +169,12 @@ const ContainerList = () => {
           marginBottom: '24px',
         }}
       >
-        <Title level={3} className="page-title" style={{ margin: 0 }}>
+        <Title level={3} className='page-title' style={{ margin: 0 }}>
           Containers
         </Title>
         <Space>
           <Select
-            placeholder="Container Type"
+            placeholder='Container Type'
             style={{ width: 150 }}
             allowClear
             value={typeFilter}
@@ -173,14 +186,18 @@ const ContainerList = () => {
             ]}
           />
           <Input
-            placeholder="Search container name"
+            placeholder='Search container name'
             prefix={<SearchOutlined />}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             style={{ width: 250 }}
             allowClear
           />
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/containers/new')}>
+          <Button
+            type='primary'
+            icon={<PlusOutlined />}
+            onClick={() => navigate('/containers/new')}
+          >
             Create Container
           </Button>
         </Space>
@@ -190,7 +207,7 @@ const ContainerList = () => {
         <Table
           columns={columns}
           dataSource={data?.items || []}
-          rowKey="id"
+          rowKey='id'
           loading={isLoading}
           className='containers-table'
           pagination={{
@@ -201,14 +218,14 @@ const ContainerList = () => {
             showQuickJumper: true,
             showTotal: (total) => `Total ${total} containers`,
             onChange: (newPage, newSize) => {
-              setPage(newPage)
-              setSize(newSize)
+              setPage(newPage);
+              setSize(newSize);
             },
           }}
         />
       </Card>
     </div>
-  )
-}
+  );
+};
 
-export default ContainerList
+export default ContainerList;

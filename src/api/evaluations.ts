@@ -1,73 +1,36 @@
-import {
-  Configuration,
-  type EvaluateDatapackSpec,
-  type EvaluateDatasetSpec,
-  EvaluationsApi,
+import type {
+  EvaluateDatapackItem,
+  EvaluateDatapackSpec,
+  EvaluateDatasetSpec,
 } from '@rcabench/client';
-import axios, { type AxiosRequestConfig } from 'axios';
 
-// Create configuration with dynamic token
-const createEvaluationConfig = () => {
-  const token = localStorage.getItem('access_token');
+import apiClient from './client';
 
-  return new Configuration({
-    basePath: '/api/v2',
-    accessToken: token ? `Bearer ${token}` : undefined,
-    baseOptions: {
-      timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    } as AxiosRequestConfig,
-  });
-};
+export interface EvaluationListResponse {
+  items: EvaluateDatapackItem[];
+  total: number;
+}
 
-// Create axios instance for manual API calls
-const apiClient = axios.create({
-  baseURL: '/api/v2',
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Request interceptor for auth
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('access_token');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Export the evaluations API using generated SDK
 export const evaluationApi = {
-  // Evaluate datapacks - using generated SDK
-  evaluateDatapacks: async (specs: Array<Record<string, unknown>>) => {
-    const evaluationsApi = new EvaluationsApi(createEvaluationConfig());
-    const response = await evaluationsApi.evaluateAlgorithmOnDatapacks({
-      request: {
-        specs: specs as unknown as EvaluateDatapackSpec[],
-      },
-    });
-    return response;
-  },
+  getEvaluations: (params?: {
+    page?: number;
+    size?: number;
+  }): Promise<EvaluationListResponse> =>
+    apiClient
+      .get('/evaluations', { params })
+      .then((r) => r.data.data ?? { items: [], total: 0 }),
 
-  // Evaluate datasets - using generated SDK
-  evaluateDatasets: async (specs: Array<Record<string, unknown>>) => {
-    const evaluationsApi = new EvaluationsApi(createEvaluationConfig());
-    const response = await evaluationsApi.evaluateAlgorithmOnDatasets({
-      request: {
-        specs: specs as unknown as EvaluateDatasetSpec[],
-      },
-    });
-    return response;
-  },
+  getEvaluation: (id: number): Promise<EvaluateDatapackItem> =>
+    apiClient
+      .get(`/evaluations/${id}`)
+      .then((r) => r.data.data ?? ({} as EvaluateDatapackItem)),
+
+  deleteEvaluation: (id: number) =>
+    apiClient.delete(`/evaluations/${id}`).then((r) => r.data),
+
+  evaluateDatasets: (specs: EvaluateDatasetSpec[]) =>
+    apiClient.post('/evaluations/datasets', { specs }).then((r) => r.data),
+
+  evaluateDatapacks: (specs: EvaluateDatapackSpec[]) =>
+    apiClient.post('/evaluations/datapacks', { specs }).then((r) => r.data),
 };
-
-export default apiClient;

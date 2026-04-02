@@ -23,7 +23,7 @@ import {
 } from '@ant-design/icons';
 import { Button, message, Space } from 'antd';
 
-import type { FaultType } from '../../../types/api';
+import type { FaultTypeConfig } from '../../../types/api';
 
 import { FaultNode } from './FaultNode';
 
@@ -34,9 +34,9 @@ const nodeTypes = {
 };
 
 interface VisualCanvasProps {
-  faultMatrix: FaultType[][];
-  onFaultMatrixChange: (matrix: FaultType[][]) => void;
-  selectedFault: FaultType | null;
+  faultMatrix: FaultTypeConfig[][];
+  onFaultMatrixChange: (matrix: FaultTypeConfig[][]) => void;
+  selectedFault: FaultTypeConfig | null;
 }
 
 let id = 0;
@@ -51,7 +51,7 @@ const VisualCanvasContent: React.FC<VisualCanvasProps> = ({
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  const handleConfigureFault = useCallback((fault: FaultType) => {
+  const handleConfigureFault = useCallback((fault: FaultTypeConfig) => {
     message.info(`Configuring ${fault.name} fault...`);
   }, []);
 
@@ -107,7 +107,8 @@ const VisualCanvasContent: React.FC<VisualCanvasProps> = ({
           data: {
             fault,
             onDelete: (nodeId: string) => handleDeleteNode(nodeId),
-            onConfigure: (fault: FaultType) => handleConfigureFault(fault),
+            onConfigure: (fault: FaultTypeConfig) =>
+              handleConfigureFault(fault),
           },
         });
 
@@ -149,7 +150,7 @@ const VisualCanvasContent: React.FC<VisualCanvasProps> = ({
       if (!faultTypeJson) return;
 
       try {
-        const fault: FaultType = JSON.parse(faultTypeJson);
+        const fault: FaultTypeConfig = JSON.parse(faultTypeJson);
 
         if (!reactFlowWrapper.current) return;
 

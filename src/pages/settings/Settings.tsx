@@ -1,5 +1,6 @@
+import { useState } from 'react';
+
 import {
-  BellOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
   LockOutlined,
@@ -17,21 +18,17 @@ import {
   Card,
   Col,
   Descriptions,
-  Divider,
   Form,
   Input,
   message,
   Row,
-  Select,
   Skeleton,
   Space,
-  Switch,
   Tabs,
   Tag,
   Typography,
 } from 'antd';
 import dayjs from 'dayjs';
-import { useState } from 'react';
 
 import { authApi } from '../../api/auth';
 
@@ -39,8 +36,6 @@ const { Title, Text } = Typography;
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('profile');
-  const [profileForm] = Form.useForm();
-  const [notificationForm] = Form.useForm();
   const [securityForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
@@ -53,34 +48,6 @@ const Settings = () => {
     queryKey: ['profile'],
     queryFn: () => authApi.getProfile(),
   });
-
-  const handleSaveProfile = async (values: Record<string, unknown>) => {
-    setLoading(true);
-    try {
-      // TODO: 实现更新资料 API（后端需要添加）
-      console.log('Updating profile:', values);
-      message.success('Profile updated successfully');
-    } catch (err) {
-      message.error('Failed to update profile');
-      console.error('Update profile error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSaveNotifications = async (values: Record<string, unknown>) => {
-    setLoading(true);
-    try {
-      // TODO: 实现通知设置 API（后端需要添加）
-      console.log('Updating notifications:', values);
-      message.success('Notification settings updated successfully');
-    } catch (err) {
-      message.error('Failed to update notification settings');
-      console.error('Update notifications error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleChangePassword = async (values: {
     oldPassword: string;
@@ -203,261 +170,47 @@ const Settings = () => {
               </span>
             ),
             children: (
-              <Card
-                title='Profile Settings'
-                extra={
-                  <Button
-                    type='primary'
-                    icon={<SaveOutlined />}
-                    loading={loading}
-                    onClick={() => profileForm.submit()}
-                  >
-                    Save Changes
-                  </Button>
-                }
-              >
-                <Form
-                  form={profileForm}
-                  layout='vertical'
-                  onFinish={handleSaveProfile}
-                  initialValues={{
-                    full_name: userData.full_name,
-                    email: userData.email,
-                    phone: userData.phone,
-                    timezone: 'UTC',
-                    language: 'en',
-                    dateFormat: 'YYYY-MM-DD',
-                    timeFormat: '24h',
-                  }}
-                >
-                  <Row gutter={[24, 24]}>
-                    <Col xs={24} lg={12}>
-                      <Form.Item
-                        label='Full Name'
-                        name='full_name'
-                        rules={[
-                          {
-                            required: true,
-                            message: 'Please enter your full name',
-                          },
-                        ]}
-                      >
-                        <Input prefix={<UserOutlined />} />
-                      </Form.Item>
-
-                      <Form.Item
-                        label='Email'
-                        name='email'
-                        rules={[
-                          {
-                            required: true,
-                            message: 'Please enter your email',
-                          },
-                          {
-                            type: 'email',
-                            message: 'Please enter a valid email',
-                          },
-                        ]}
-                      >
-                        <Input prefix={<MailOutlined />} />
-                      </Form.Item>
-
-                      <Form.Item label='Phone' name='phone'>
-                        <Input prefix={<PhoneOutlined />} />
-                      </Form.Item>
-                    </Col>
-
-                    <Col xs={24} lg={12}>
-                      <Form.Item
-                        label='Timezone'
-                        name='timezone'
-                        rules={[
-                          {
-                            required: true,
-                            message: 'Please select your timezone',
-                          },
-                        ]}
-                      >
-                        <Select>
-                          <Select.Option value='UTC'>UTC</Select.Option>
-                          <Select.Option value='America/New_York'>
-                            America/New_York
-                          </Select.Option>
-                          <Select.Option value='Europe/London'>
-                            Europe/London
-                          </Select.Option>
-                          <Select.Option value='Asia/Shanghai'>
-                            Asia/Shanghai
-                          </Select.Option>
-                        </Select>
-                      </Form.Item>
-
-                      <Form.Item
-                        label='Language'
-                        name='language'
-                        rules={[
-                          {
-                            required: true,
-                            message: 'Please select your language',
-                          },
-                        ]}
-                      >
-                        <Select>
-                          <Select.Option value='en'>English</Select.Option>
-                          <Select.Option value='zh'>中文</Select.Option>
-                          <Select.Option value='es'>Español</Select.Option>
-                        </Select>
-                      </Form.Item>
-
-                      <Form.Item
-                        label='Date Format'
-                        name='dateFormat'
-                        rules={[
-                          {
-                            required: true,
-                            message: 'Please select date format',
-                          },
-                        ]}
-                      >
-                        <Select>
-                          <Select.Option value='YYYY-MM-DD'>
-                            YYYY-MM-DD
-                          </Select.Option>
-                          <Select.Option value='MM/DD/YYYY'>
-                            MM/DD/YYYY
-                          </Select.Option>
-                          <Select.Option value='DD/MM/YYYY'>
-                            DD/MM/YYYY
-                          </Select.Option>
-                        </Select>
-                      </Form.Item>
-
-                      <Form.Item
-                        label='Time Format'
-                        name='timeFormat'
-                        rules={[
-                          {
-                            required: true,
-                            message: 'Please select time format',
-                          },
-                        ]}
-                      >
-                        <Select>
-                          <Select.Option value='24h'>24-hour</Select.Option>
-                          <Select.Option value='12h'>12-hour</Select.Option>
-                        </Select>
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </Form>
-              </Card>
-            ),
-          },
-
-          {
-            key: 'notifications',
-            label: (
-              <span>
-                <BellOutlined />
-                Notifications
-              </span>
-            ),
-            children: (
-              <Card
-                title='Notification Settings'
-                extra={
-                  <Button
-                    type='primary'
-                    icon={<SaveOutlined />}
-                    loading={loading}
-                    onClick={() => notificationForm.submit()}
-                  >
-                    Save Changes
-                  </Button>
-                }
-              >
-                <Form
-                  form={notificationForm}
-                  layout='vertical'
-                  onFinish={handleSaveNotifications}
-                  initialValues={{
-                    emailNotifications: true,
-                    pushNotifications: false,
-                    smsNotifications: false,
-                    experimentCompleted: true,
-                    experimentFailed: true,
-                    systemAlerts: true,
-                    weeklyReports: false,
-                  }}
-                >
-                  <Alert
-                    message='Notification Preferences'
-                    description='Choose how you want to be notified about different events.'
-                    type='info'
-                    showIcon
-                    style={{ marginBottom: 24 }}
-                  />
-
-                  <Title level={4}>Notification Channels</Title>
-                  <Form.Item
-                    label='Email Notifications'
-                    name='emailNotifications'
-                    valuePropName='checked'
-                  >
-                    <Switch />
-                  </Form.Item>
-
-                  <Form.Item
-                    label='Push Notifications'
-                    name='pushNotifications'
-                    valuePropName='checked'
-                  >
-                    <Switch />
-                  </Form.Item>
-
-                  <Form.Item
-                    label='SMS Notifications'
-                    name='smsNotifications'
-                    valuePropName='checked'
-                  >
-                    <Switch />
-                  </Form.Item>
-
-                  <Divider />
-
-                  <Title level={4}>Event Notifications</Title>
-                  <Form.Item
-                    label='Experiment Completed'
-                    name='experimentCompleted'
-                    valuePropName='checked'
-                  >
-                    <Switch />
-                  </Form.Item>
-
-                  <Form.Item
-                    label='Experiment Failed'
-                    name='experimentFailed'
-                    valuePropName='checked'
-                  >
-                    <Switch />
-                  </Form.Item>
-
-                  <Form.Item
-                    label='System Alerts'
-                    name='systemAlerts'
-                    valuePropName='checked'
-                  >
-                    <Switch />
-                  </Form.Item>
-
-                  <Form.Item
-                    label='Weekly Reports'
-                    name='weeklyReports'
-                    valuePropName='checked'
-                  >
-                    <Switch />
-                  </Form.Item>
-                </Form>
+              <Card title='Profile Information'>
+                <Alert
+                  message='Profile is read-only'
+                  description='Profile editing is managed by your administrator. Contact your admin to update your profile information.'
+                  type='info'
+                  showIcon
+                  style={{ marginBottom: 24 }}
+                />
+                <Descriptions bordered column={{ xs: 1, sm: 2 }}>
+                  <Descriptions.Item label='Full Name'>
+                    <Space>
+                      <UserOutlined />
+                      {userData.full_name || '-'}
+                    </Space>
+                  </Descriptions.Item>
+                  <Descriptions.Item label='Username'>
+                    @{userData.username}
+                  </Descriptions.Item>
+                  <Descriptions.Item label='Email'>
+                    <Space>
+                      <MailOutlined />
+                      {userData.email}
+                    </Space>
+                  </Descriptions.Item>
+                  <Descriptions.Item label='Phone'>
+                    <Space>
+                      <PhoneOutlined />
+                      {userData.phone || '-'}
+                    </Space>
+                  </Descriptions.Item>
+                  <Descriptions.Item label='Status'>
+                    <Tag color={userData.is_active ? 'green' : 'orange'}>
+                      {userData.is_active ? 'Active' : 'Inactive'}
+                    </Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label='Member Since'>
+                    {userData.created_at
+                      ? dayjs(userData.created_at).format('MMMM D, YYYY')
+                      : '-'}
+                  </Descriptions.Item>
+                </Descriptions>
               </Card>
             ),
           },

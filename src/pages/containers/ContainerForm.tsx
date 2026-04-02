@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+
 import {
   CloseOutlined,
   ContainerOutlined,
@@ -23,8 +26,6 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 
 import { containerApi } from '@/api/containers';
 
@@ -64,11 +65,18 @@ const ContainerForm = () => {
   // Set form data when editing
   useEffect(() => {
     if (containerData) {
-      // Convert string type to ContainerType enum
-      const typeValue =
-        containerData.type !== undefined
-          ? (Number(containerData.type) as ContainerType)
-          : undefined;
+      // Convert type to ContainerType enum safely
+      let typeValue: ContainerType | undefined;
+      if (containerData.type !== undefined) {
+        const numValue = Number(containerData.type);
+        if (!Number.isNaN(numValue)) {
+          typeValue = numValue as ContainerType;
+        } else if (typeof containerData.type === 'string') {
+          // Look up string enum name (e.g. "Algorithm") in the ContainerType enum
+          typeValue =
+            ContainerType[containerData.type as keyof typeof ContainerType];
+        }
+      }
 
       form.setFieldsValue({
         name: containerData.name,
@@ -272,10 +280,7 @@ const ContainerForm = () => {
                   },
                 ]}
               >
-                <TextArea
-                  rows={6}
-                  placeholder='输入容器的使用说明和文档...'
-                />
+                <TextArea rows={6} placeholder='输入容器的使用说明和文档...' />
               </Form.Item>
 
               <Form.Item
@@ -331,7 +336,9 @@ const ContainerForm = () => {
                     type='primary'
                     htmlType='submit'
                     icon={<SaveOutlined />}
-                    loading={createMutation.isPending || updateMutation.isPending}
+                    loading={
+                      createMutation.isPending || updateMutation.isPending
+                    }
                   >
                     {containerId ? '更新容器' : '创建容器'}
                   </Button>
@@ -359,12 +366,14 @@ const ContainerForm = () => {
                 <ul style={{ marginTop: 8, marginBottom: 16 }}>
                   <li>
                     <Text>
-                      <strong>Pedestal:</strong> 基础微服务环境，用于故障注入和观测
+                      <strong>Pedestal:</strong>{' '}
+                      基础微服务环境，用于故障注入和观测
                     </Text>
                   </li>
                   <li>
                     <Text>
-                      <strong>Benchmark:</strong> 基准测试容器，用于生成负载和评估
+                      <strong>Benchmark:</strong>{' '}
+                      基准测试容器，用于生成负载和评估
                     </Text>
                   </li>
                   <li>

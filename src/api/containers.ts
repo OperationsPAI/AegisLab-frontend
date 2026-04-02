@@ -1,123 +1,41 @@
-/**
- * Container API
- * Using @rcabench/client SDK, manually implementing missing endpoints
- */
-import {
-  type ContainerDetailResp,
-  type ContainerResp,
-  ContainersApi,
-  type ContainerType,
-  type ContainerVersionResp,
-  type CreateContainerReq,
-  type CreateContainerVersionReq,
-  type LabelItem,
-  type ListContainerResp,
-  type ListContainerVersionResp,
-  type StatusType,
+import type {
+  ContainerDetailResp,
+  ContainerResp,
+  ContainerType,
+  ContainerVersionResp,
+  LabelItem,
+  ListContainerResp,
+  ListContainerVersionResp,
+  StatusType,
 } from '@rcabench/client';
 
-import { apiClient, createApiConfig } from './config';
+import apiClient from './client';
 
 export const containerApi = {
-  // ==================== SDK Methods ====================
-
-  /**
-   * Get container list - Using SDK
-   */
-  getContainers: async (params?: {
+  getContainers: (params?: {
     page?: number;
     size?: number;
     type?: ContainerType;
     isPublic?: boolean;
     status?: StatusType;
-  }): Promise<ListContainerResp> => {
-    const api = new ContainersApi(createApiConfig());
-    const response = await api.listContainers({
-      page: params?.page,
-      size: params?.size,
-      type: params?.type,
-      isPublic: params?.isPublic,
-      status: params?.status,
-    });
-    return response.data.data!;
-  },
+  }): Promise<ListContainerResp> =>
+    apiClient
+      .get('/containers', { params })
+      .then((r) => r.data.data ?? { items: [], total: 0 }),
 
-  /**
-   * Get container details - Using SDK
-   */
-  getContainer: async (id: number): Promise<ContainerDetailResp> => {
-    const api = new ContainersApi(createApiConfig());
-    const response = await api.getContainerById({ containerId: id });
-    return response.data.data!;
-  },
+  getContainer: (id: number): Promise<ContainerDetailResp> =>
+    apiClient
+      .get(`/containers/${id}`)
+      .then((r) => r.data.data ?? ({} as ContainerDetailResp)),
 
-  /**
-   * Create container - Using SDK
-   */
-  createContainer: async (data: {
+  createContainer: (data: {
     name: string;
     type: ContainerType;
     readme?: string;
     is_public?: boolean;
-  }): Promise<ContainerResp | undefined> => {
-    const api = new ContainersApi(createApiConfig());
-    const request: CreateContainerReq = {
-      name: data.name,
-      type: data.type,
-      readme: data.readme,
-      is_public: data.is_public,
-    };
-    const response = await api.createContainer({ request });
-    return response.data.data;
-  },
+  }): Promise<ContainerResp | undefined> =>
+    apiClient.post('/containers', data).then((r) => r.data.data),
 
-  /**
-   * Get container version list - Using SDK
-   */
-  getVersions: async (
-    containerId: number,
-    params?: { page?: number; size?: number; status?: StatusType }
-  ): Promise<ListContainerVersionResp> => {
-    const api = new ContainersApi(createApiConfig());
-    const response = await api.listContainerVersions({
-      containerId,
-      page: params?.page,
-      size: params?.size,
-      status: params?.status,
-    });
-    return response.data.data!;
-  },
-
-  /**
-   * Create container version - Using SDK
-   * Note: SDK uses image_ref format, e.g., "registry/repository:tag"
-   */
-  createVersion: async (
-    containerId: number,
-    data: {
-      name: string;
-      image_ref: string;
-      command?: string;
-    }
-  ): Promise<ContainerVersionResp | undefined> => {
-    const api = new ContainersApi(createApiConfig());
-    const request: CreateContainerVersionReq = {
-      name: data.name,
-      image_ref: data.image_ref,
-      command: data.command,
-    };
-    const response = await api.createContainerVersion({
-      containerId,
-      request,
-    });
-    return response.data.data;
-  },
-
-  // ==================== Manual Implementation (SDK Missing) ====================
-
-  /**
-   * Update container - Manual implementation (SDK missing)
-   */
   updateContainer: (
     id: number,
     data: {
@@ -128,16 +46,47 @@ export const containerApi = {
       labels?: LabelItem[];
     }
   ) =>
-    apiClient.patch<{ data: ContainerDetailResp }>(`/containers/${id}`, data),
+    apiClient
+      .patch<{ data: ContainerDetailResp }>(`/containers/${id}`, data)
+      .then((r) => r.data.data),
 
-  /**
-   * Delete container - Manual implementation (SDK missing)
-   */
-  deleteContainer: (id: number) => apiClient.delete(`/containers/${id}`),
+  deleteContainer: (id: number) =>
+    apiClient.delete(`/containers/${id}`).then((r) => r.data),
 
-  /**
-   * Update container version - Manual implementation (SDK missing)
-   */
+  updateLabels: (id: number, labels: Array<{ key: string; value: string }>) =>
+    apiClient.patch(`/containers/${id}/labels`, { labels }).then((r) => r.data),
+
+  buildContainer: (data: Record<string, unknown>) =>
+    apiClient.post('/containers/build', data).then((r) => r.data.data),
+
+  getVersions: (
+    containerId: number,
+    params?: { page?: number; size?: number; status?: StatusType }
+  ): Promise<ListContainerVersionResp> =>
+    apiClient
+      .get(`/containers/${containerId}/versions`, { params })
+      .then((r) => r.data.data ?? { items: [], total: 0 }),
+
+  getVersion: (
+    containerId: number,
+    versionId: number
+  ): Promise<ContainerVersionResp | undefined> =>
+    apiClient
+      .get(`/containers/${containerId}/versions/${versionId}`)
+      .then((r) => r.data.data),
+
+  createVersion: (
+    containerId: number,
+    data: {
+      name: string;
+      image_ref: string;
+      command?: string;
+    }
+  ): Promise<ContainerVersionResp | undefined> =>
+    apiClient
+      .post(`/containers/${containerId}/versions`, data)
+      .then((r) => r.data.data),
+
   updateVersion: (
     containerId: number,
     versionId: number,
@@ -147,14 +96,32 @@ export const containerApi = {
       command?: string;
     }
   ) =>
-    apiClient.patch<{ data: ContainerVersionResp }>(
-      `/containers/${containerId}/versions/${versionId}`,
-      data
-    ),
+    apiClient
+      .patch<{
+        data: ContainerVersionResp;
+      }>(`/containers/${containerId}/versions/${versionId}`, data)
+      .then((r) => r.data.data),
 
-  /**
-   * Delete container version - Manual implementation (SDK missing)
-   */
   deleteVersion: (containerId: number, versionId: number) =>
-    apiClient.delete(`/containers/${containerId}/versions/${versionId}`),
+    apiClient
+      .delete(`/containers/${containerId}/versions/${versionId}`)
+      .then((r) => r.data),
+
+  uploadHelmChart: (containerId: number, versionId: number, data: FormData) =>
+    apiClient
+      .post(
+        `/containers/${containerId}/versions/${versionId}/helm-chart`,
+        data,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      )
+      .then((r) => r.data),
+
+  uploadHelmValues: (containerId: number, versionId: number, data: FormData) =>
+    apiClient
+      .post(
+        `/containers/${containerId}/versions/${versionId}/helm-values`,
+        data,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      )
+      .then((r) => r.data),
 };

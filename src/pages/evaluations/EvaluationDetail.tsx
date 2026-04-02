@@ -1,3 +1,4 @@
+import { useNavigate, useParams } from 'react-router-dom';
 
 import {
   ArrowLeftOutlined,
@@ -6,8 +7,9 @@ import {
   DatabaseOutlined,
   DownloadOutlined,
   FunctionOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons';
-import type { EvaluateDatapackItem } from '@rcabench/client';
+import { useQuery } from '@tanstack/react-query';
 import {
   Button,
   Card,
@@ -17,24 +19,30 @@ import {
   Progress,
   Row,
   Space,
+  Spin,
   Statistic,
   Table,
   Typography,
 } from 'antd';
 import dayjs from 'dayjs';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+
+import { evaluationApi } from '@/api/evaluations';
 
 const { Title, Text } = Typography;
 
 const EvaluationDetail = () => {
-  const { id: _id } = useParams<{ id: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
 
-  // Get evaluation data from location state (passed from EvaluationList)
-  const evaluation = location.state?.evaluation as
-    | EvaluateDatapackItem
-    | undefined;
+  const {
+    data: evaluation,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ['evaluation', id],
+    queryFn: () => evaluationApi.getEvaluation(Number(id)),
+    enabled: !!id,
+  });
 
   const getMetricColor = (value: number) => {
     if (value >= 0.9) return '#10b981';
@@ -66,7 +74,15 @@ const EvaluationDetail = () => {
     URL.revokeObjectURL(url);
   };
 
-  if (!evaluation) {
+  if (isLoading) {
+    return (
+      <div style={{ padding: 24, textAlign: 'center' }}>
+        <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
+      </div>
+    );
+  }
+
+  if (isError || !evaluation) {
     return (
       <div style={{ padding: 24 }}>
         <Card>
@@ -87,15 +103,27 @@ const EvaluationDetail = () => {
     );
   }
 
-  // Calculate metrics from execution refs
+  // Extract metrics from the API response
+  const evalRecord = evaluation as typeof evaluation & {
+    metrics?: {
+      precision?: number;
+      recall?: number;
+      f1_score?: number;
+      accuracy?: number;
+    };
+  };
   const executionRef = evaluation.execution_refs?.[0];
   const predictions = executionRef?.predictions || [];
   const groundtruths = evaluation.groundtruths || [];
 
-  // Simple metric calculation (placeholder - actual calculation depends on data structure)
-  const precision = predictions.length > 0 ? 0.85 : 0;
-  const recall = groundtruths.length > 0 ? 0.82 : 0;
-  const f1Score = precision > 0 && recall > 0 ? (2 * precision * recall) / (precision + recall) : 0;
+  const precision = evalRecord.metrics?.precision ?? 0;
+  const recall = evalRecord.metrics?.recall ?? 0;
+  const f1Score =
+    evalRecord.metrics?.f1_score ??
+    (precision > 0 && recall > 0
+      ? (2 * precision * recall) / (precision + recall)
+      : 0);
+  const accuracy = evalRecord.metrics?.accuracy ?? 0;
 
   const predictionColumns = [
     {
@@ -179,10 +207,7 @@ const EvaluationDetail = () => {
           </Col>
           <Col xs={24} md={12}>
             <Space size='large'>
-              <Button
-                icon={<DownloadOutlined />}
-                onClick={handleExportResults}
-              >
+              <Button icon={<DownloadOutlined />} onClick={handleExportResults}>
                 Export Results
               </Button>
             </Space>
@@ -231,10 +256,12 @@ const EvaluationDetail = () => {
         <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
-              title='Ground Truths'
-              value={groundtruths.length}
-              valueStyle={{ color: '#3b82f6' }}
-              prefix={<DatabaseOutlined />}
+              title='Accuracy'
+              value={accuracy * 100}
+              precision={1}
+              suffix='%'
+              valueStyle={{ color: getMetricColor(accuracy) }}
+              prefix={<CheckCircleOutlined />}
             />
           </Card>
         </Col>

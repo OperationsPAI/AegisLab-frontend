@@ -7,12 +7,14 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import { PageSize, type TeamMemberResp } from '@rcabench/client';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Avatar,
   Button,
   Dropdown,
   Input,
+  message,
+  Modal,
   Select,
   Table,
   Tag,
@@ -32,9 +34,15 @@ interface UsersTabProps {
   onInvite?: () => void;
 }
 
+const ROLE_NAME_TO_ID: Record<string, number> = {
+  'Team Admin': 1,
+  'Team Member': 2,
+};
+
 const UsersTab: React.FC<UsersTabProps> = ({ team, onInvite }) => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const queryClient = useQueryClient();
 
   const { user: currentUser } = useAuthStore();
 
@@ -56,17 +64,50 @@ const UsersTab: React.FC<UsersTabProps> = ({ team, onInvite }) => {
   );
   const isAdmin = currentMember?.role_name === 'Team Admin';
 
-  const handleRoleChange = async (userId: number, roleName: string) => {
-    // TODO: Update API to accept role_name
-    // await teamApi.updateMemberRole(team.id, userId, roleName);
-    void userId;
-    void roleName;
+  // Update member role mutation
+  const updateRoleMutation = useMutation({
+    mutationFn: ({ userId, roleId }: { userId: number; roleId: number }) =>
+      teamApi.updateMemberRole(team.id, userId, roleId),
+    onSuccess: () => {
+      message.success('Member role updated');
+      queryClient.invalidateQueries({
+        queryKey: ['team', 'members', team.id],
+      });
+    },
+    onError: () => {
+      message.error('Failed to update member role');
+    },
+  });
+
+  // Remove member mutation
+  const removeMemberMutation = useMutation({
+    mutationFn: (userId: number) => teamApi.removeMember(team.id, userId),
+    onSuccess: () => {
+      message.success('Member removed from team');
+      queryClient.invalidateQueries({
+        queryKey: ['team', 'members', team.id],
+      });
+    },
+    onError: () => {
+      message.error('Failed to remove member');
+    },
+  });
+
+  const handleRoleChange = (userId: number, roleName: string) => {
+    const roleId = ROLE_NAME_TO_ID[roleName];
+    if (roleId) {
+      updateRoleMutation.mutate({ userId, roleId });
+    }
   };
 
-  const handleRemoveMember = async (userId: number) => {
-    // TODO: Update API to accept user_id
-    // await teamApi.removeMember(team.id, userId);
-    void userId;
+  const handleRemoveMember = (userId: number) => {
+    Modal.confirm({
+      title: 'Remove Member',
+      content: 'Are you sure you want to remove this member from the team?',
+      okText: 'Remove',
+      okButtonProps: { danger: true },
+      onOk: () => removeMemberMutation.mutate(userId),
+    });
   };
 
   const columns: ColumnsType<TeamMemberResp> = [

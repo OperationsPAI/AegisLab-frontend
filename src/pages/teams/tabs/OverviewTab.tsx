@@ -1,18 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import {
-  FileTextOutlined,
-  FolderOutlined,
-  LinkOutlined,
-  PlusOutlined,
-} from '@ant-design/icons';
+import { FileTextOutlined, FolderOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Card, Empty, Input, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 
 import { teamApi } from '@/api/teams';
-import type { ExecutionResp, Team } from '@/types/api';
+import type { ProjectResp, Team } from '@/types/api';
 
 const { Text, Title, Paragraph } = Typography;
 const { Search } = Input;
@@ -23,61 +18,48 @@ interface OverviewTabProps {
 
 const OverviewTab: React.FC<OverviewTabProps> = ({ team }) => {
   const navigate = useNavigate();
-  const [runsSearch, setRunsSearch] = useState('');
-  const [runsPage, setRunsPage] = useState(1);
+  const [projectsSearch, setProjectsSearch] = useState('');
+  const [projectsPage, setProjectsPage] = useState(1);
   const pageSize = 10;
 
-  // Fetch team runs
-  const { data: runsData, isLoading: runsLoading } = useQuery({
-    queryKey: ['team', 'runs', team.id, runsPage, runsSearch],
+  // Fetch team projects
+  const { data: projectsData, isLoading: projectsLoading } = useQuery({
+    queryKey: ['team', 'projects', team.id, projectsPage],
     queryFn: () =>
-      teamApi.getTeamRuns(team.id, {
-        page: runsPage,
+      teamApi.listTeamProjects(team.id, {
+        page: projectsPage,
         size: pageSize,
-        search: runsSearch,
       }),
   });
 
-  // Fetch team links
-  const { data: links = [] } = useQuery({
-    queryKey: ['team', 'links', team.id],
-    queryFn: () => [],
+  // Fetch team members
+  const { data: membersData } = useQuery({
+    queryKey: ['team', 'members', team.id, 1],
+    queryFn: () => teamApi.getTeamMembers(team.id, { page: 1, size: 5 }),
   });
 
-  const runsColumns: ColumnsType<ExecutionResp> = [
+  const projectColumns: ColumnsType<ProjectResp> = [
     {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
-      render: (name: string) => <Text strong>{name}</Text>,
-    },
-    {
-      title: 'Project',
-      dataIndex: 'project_name',
-      key: 'project_name',
-      render: (projectName: string) => (
+      render: (name: string) => (
         <Text
+          strong
           style={{ cursor: 'pointer', color: 'var(--color-primary)' }}
-          onClick={() => navigate(`/${team.name}/${projectName}`)}
+          onClick={() => navigate(`/${team.name}/${name}`)}
         >
-          {projectName}
+          {name}
         </Text>
       ),
     },
     {
-      title: 'State',
-      dataIndex: 'state',
-      key: 'state',
-      render: (state: string) => {
-        const stateConfig: Record<string, { color: string; label: string }> = {
-          completed: { color: '#52c41a', label: 'Finished' },
-          running: { color: '#1890ff', label: 'Running' },
-          failed: { color: '#ff4d4f', label: 'Failed' },
-          pending: { color: '#faad14', label: 'Pending' },
-        };
-        const config = stateConfig[state] || { color: '#999', label: state };
-        return <span style={{ color: config.color }}>{config.label}</span>;
-      },
+      title: 'Visibility',
+      dataIndex: 'is_public',
+      key: 'is_public',
+      render: (isPublic: boolean) => (
+        <span>{isPublic ? 'Public' : 'Private'}</span>
+      ),
     },
     {
       title: 'Created',
@@ -94,12 +76,13 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ team }) => {
         return 'Today';
       },
     },
-    {
-      title: 'User',
-      dataIndex: 'user_name',
-      key: 'user_name',
-    },
   ];
+
+  const filteredProjects = (projectsData?.items || []).filter(
+    (p) =>
+      !projectsSearch ||
+      p.name?.toLowerCase().includes(projectsSearch.toLowerCase())
+  );
 
   return (
     <div className='overview-tab'>
@@ -153,98 +136,78 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ team }) => {
         </Card>
       </Card>
 
+      {/* Members Preview */}
+      {membersData && membersData.items.length > 0 && (
+        <Card style={{ marginBottom: 24 }}>
+          <Title level={5} style={{ marginBottom: 16 }}>
+            Members ({membersData.total})
+          </Title>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+            {membersData.items.map((member) => (
+              <div key={member.user_id} style={{ textAlign: 'center' }}>
+                <Text style={{ fontSize: 13 }}>
+                  {member.full_name || member.username}
+                </Text>
+                <br />
+                <Text type='secondary' style={{ fontSize: 12 }}>
+                  {member.role_name}
+                </Text>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {/* Projects Section */}
-      <Card style={{ marginBottom: 24 }}>
+      <Card>
         <Title level={5} style={{ marginBottom: 16 }}>
           <FolderOutlined style={{ marginRight: 8 }} />
           Projects
         </Title>
-        <Empty
-          image={<FolderOutlined style={{ fontSize: 48, color: '#ccc' }} />}
-          description={
-            <span>
-              <Text strong>Highlight your latest projects</Text>
-              <br />
-              <Text type='secondary'>
-                Make a project public to showcase here!
-              </Text>
-            </span>
-          }
-        >
-          <Button
-            type='link'
-            onClick={() => navigate(`/${team.name}/projects`)}
-          >
-            View my projects
-          </Button>
-        </Empty>
-      </Card>
-
-      {/* Links Section */}
-      <Card style={{ marginBottom: 24 }}>
-        <Title level={5} style={{ marginBottom: 16 }}>
-          <LinkOutlined style={{ marginRight: 8 }} />
-          Links
-        </Title>
-        {links.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {links.map((link) => (
-              <a
-                key={link.id}
-                href={link.url}
-                target='_blank'
-                rel='noopener noreferrer'
-              >
-                {link.title}
-              </a>
-            ))}
-          </div>
-        ) : (
-          <Empty
-            image={<LinkOutlined style={{ fontSize: 48, color: '#ccc' }} />}
-            description={
-              <span>
-                <Text strong>Add links to your profile</Text>
-                <br />
-                <Text type='secondary'>Share a little bit about yourself</Text>
-              </span>
-            }
-          >
-            <Button type='link' icon={<PlusOutlined />}>
-              Add a link
-            </Button>
-          </Empty>
-        )}
-      </Card>
-
-      {/* Runs Section */}
-      <Card>
-        <Title level={5} style={{ marginBottom: 16 }}>
-          Runs
-        </Title>
         <div style={{ marginBottom: 16 }}>
           <Search
-            placeholder='Search'
-            value={runsSearch}
-            onChange={(e) => setRunsSearch(e.target.value)}
+            placeholder='Search projects'
+            value={projectsSearch}
+            onChange={(e) => setProjectsSearch(e.target.value)}
             style={{ width: 300 }}
             allowClear
           />
         </div>
-        <Table
-          columns={runsColumns}
-          dataSource={runsData?.items || []}
-          rowKey='id'
-          loading={runsLoading}
-          pagination={{
-            current: runsPage,
-            pageSize,
-            total: runsData?.total || 0,
-            onChange: setRunsPage,
-            showSizeChanger: false,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,
-          }}
-        />
+        {filteredProjects.length > 0 || projectsLoading ? (
+          <Table
+            columns={projectColumns}
+            dataSource={filteredProjects}
+            rowKey='id'
+            loading={projectsLoading}
+            pagination={{
+              current: projectsPage,
+              pageSize,
+              total: projectsData?.total || 0,
+              onChange: setProjectsPage,
+              showSizeChanger: false,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total}`,
+            }}
+          />
+        ) : (
+          <Empty
+            image={<FolderOutlined style={{ fontSize: 48, color: '#ccc' }} />}
+            description={
+              <span>
+                <Text strong>No projects yet</Text>
+                <br />
+                <Text type='secondary'>Create a project to get started.</Text>
+              </span>
+            }
+          >
+            <Button
+              type='link'
+              onClick={() => navigate(`/${team.name}/projects`)}
+            >
+              View all projects
+            </Button>
+          </Empty>
+        )}
       </Card>
     </div>
   );

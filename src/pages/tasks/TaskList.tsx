@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
@@ -5,20 +8,14 @@ import {
   DashboardOutlined,
   DatabaseOutlined,
   DeleteOutlined,
-  ExportOutlined,
   EyeOutlined,
-  FilterOutlined,
   FunctionOutlined,
   PauseCircleOutlined,
   ReloadOutlined,
   SearchOutlined,
   SyncOutlined,
 } from '@ant-design/icons';
-import {
-  TaskState,
-  ListTasksTaskType,
-  type TaskResp,
-} from '@rcabench/client';
+import { ListTasksTaskType, type TaskResp, TaskState } from '@rcabench/client';
 import { useQuery } from '@tanstack/react-query';
 import {
   Avatar,
@@ -43,10 +40,9 @@ import {
 } from 'antd';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import { taskApi } from '@/api/tasks';
+import { createTraceStream } from '@/api/traces';
 
 dayjs.extend(relativeTime);
 
@@ -56,7 +52,6 @@ const { Option } = Select;
 
 const TaskList = () => {
   const navigate = useNavigate();
-  const [searchText, setSearchText] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [typeFilter, setTypeFilter] = useState<ListTasksTaskType | undefined>();
   const [stateFilter, setStateFilter] = useState<TaskState | undefined>();
@@ -78,7 +73,6 @@ const TaskList = () => {
       'tasks',
       pagination.current,
       pagination.pageSize,
-      searchText,
       typeFilter,
       stateFilter,
     ],
@@ -108,9 +102,8 @@ const TaskList = () => {
     const eventSources: EventSource[] = [];
 
     runningTasks.forEach((task) => {
-      const eventSource = new EventSource(
-        `/api/v2/traces/${task.trace_id}/stream`
-      );
+      if (!task.trace_id) return;
+      const eventSource = createTraceStream(task.trace_id);
 
       eventSource.onmessage = (event) => {
         try {
@@ -171,8 +164,7 @@ const TaskList = () => {
     });
   };
 
-  const handleSearch = (value: string) => {
-    setSearchText(value);
+  const handleSearch = (_value: string) => {
     setPagination({ ...pagination, current: 1 });
   };
 
@@ -208,14 +200,8 @@ const TaskList = () => {
       okText: 'Yes, cancel it',
       okButtonProps: { danger: true },
       cancelText: 'No',
-      onOk: async () => {
-        try {
-          // TODO: Implement task cancellation when API is ready
-          message.success('Task cancellation requested');
-          refetch();
-        } catch (error) {
-          message.error('Failed to cancel task');
-        }
+      onOk: () => {
+        message.info('Task cancellation is not yet supported by the backend');
       },
     });
   };
@@ -279,7 +265,9 @@ const TaskList = () => {
 
     const taskType =
       typeof type === 'string'
-        ? (Object.values(ListTasksTaskType).find((v) => v === type || String(v) === type) as ListTasksTaskType)
+        ? (Object.values(ListTasksTaskType).find(
+            (v) => v === type || String(v) === type
+          ) as ListTasksTaskType)
         : type;
 
     switch (taskType) {
@@ -302,12 +290,16 @@ const TaskList = () => {
     }
   };
 
-  const getTaskTypeColor = (type: ListTasksTaskType | string | undefined): string => {
+  const getTaskTypeColor = (
+    type: ListTasksTaskType | string | undefined
+  ): string => {
     if (type === undefined || type === null) return '#6b7280';
 
     const taskType =
       typeof type === 'string'
-        ? (Object.values(ListTasksTaskType).find((v) => v === type || String(v) === type) as ListTasksTaskType)
+        ? (Object.values(ListTasksTaskType).find(
+            (v) => v === type || String(v) === type
+          ) as ListTasksTaskType)
         : type;
 
     switch (taskType) {
@@ -364,14 +356,14 @@ const TaskList = () => {
     }
   };
 
-  const getTaskProgress = (task: TaskResp) => {
+  const getTaskProgress = (task: TaskResp): number | undefined => {
     if (String(task.state) === String(TaskState.Completed)) return 100; // COMPLETED
     if (
       String(task.state) === String(TaskState.Error) ||
       String(task.state) === String(TaskState.Cancelled)
     )
       return 0; // ERROR or CANCELLED
-    if (String(task.state) === String(TaskState.Running)) return 50; // RUNNING
+    if (String(task.state) === String(TaskState.Running)) return undefined; // indeterminate
     return 0;
   };
 
@@ -496,20 +488,34 @@ const TaskList = () => {
       title: 'Progress',
       key: 'progress',
       width: '10%',
-      render: (_: unknown, record: TaskResp) => (
-        <Progress
-          percent={getTaskProgress(record)}
-          status={
-            String(record.state) === String(TaskState.Error)
-              ? 'exception' // ERROR
-              : String(record.state) === String(TaskState.Completed)
-                ? 'success' // COMPLETED
-                : 'active'
-          }
-          size='small'
-          format={(percent) => `${percent}%`}
-        />
-      ),
+      render: (_: unknown, record: TaskResp) => {
+        const isRunning = String(record.state) === String(TaskState.Running);
+        if (isRunning) {
+          return (
+            <Space size='small'>
+              <SyncOutlined spin style={{ color: '#3b82f6' }} />
+              <Text type='secondary' style={{ fontSize: '0.75rem' }}>
+                Running
+              </Text>
+            </Space>
+          );
+        }
+        const progress = getTaskProgress(record);
+        return (
+          <Progress
+            percent={progress ?? 0}
+            status={
+              String(record.state) === String(TaskState.Error)
+                ? 'exception' // ERROR
+                : String(record.state) === String(TaskState.Completed)
+                  ? 'success' // COMPLETED
+                  : 'active'
+            }
+            size='small'
+            format={(percent) => `${percent}%`}
+          />
+        );
+      },
     },
     {
       title: 'Retries',
@@ -517,7 +523,6 @@ const TaskList = () => {
       width: '8%',
       render: () => (
         <Text code style={{ fontSize: '0.75rem' }}>
-          {/* TaskResp doesn't have retry_count/max_retry, display N/A */}
           N/A
         </Text>
       ),
@@ -601,7 +606,13 @@ const TaskList = () => {
       </div>
 
       {/* Statistics Cards */}
-      <Row gutter={[{ xs: 8, sm: 16, lg: 24 }, { xs: 8, sm: 16, lg: 24 }]} className='stats-row'>
+      <Row
+        gutter={[
+          { xs: 8, sm: 16, lg: 24 },
+          { xs: 8, sm: 16, lg: 24 },
+        ]}
+        className='stats-row'
+      >
         <Col xs={12} sm={12} lg={4}>
           <Card>
             <Statistic
@@ -684,9 +695,15 @@ const TaskList = () => {
               onChange={handleTypeFilter}
               value={typeFilter}
             >
-              <Option value={ListTasksTaskType.NUMBER_0}>Build Container</Option>
-              <Option value={ListTasksTaskType.NUMBER_1}>Restart Pedestal</Option>
-              <Option value={ListTasksTaskType.NUMBER_2}>Fault Injection</Option>
+              <Option value={ListTasksTaskType.NUMBER_0}>
+                Build Container
+              </Option>
+              <Option value={ListTasksTaskType.NUMBER_1}>
+                Restart Pedestal
+              </Option>
+              <Option value={ListTasksTaskType.NUMBER_2}>
+                Fault Injection
+              </Option>
               <Option value={ListTasksTaskType.NUMBER_3}>Run Algorithm</Option>
               <Option value={ListTasksTaskType.NUMBER_4}>Build Datapack</Option>
               <Option value={ListTasksTaskType.NUMBER_5}>Collect Result</Option>
@@ -720,8 +737,6 @@ const TaskList = () => {
                   Delete Selected ({selectedRowKeys.length})
                 </Button>
               )}
-              <Button icon={<FilterOutlined />}>Advanced Filter</Button>
-              <Button icon={<ExportOutlined />}>Export</Button>
             </Space>
           </Col>
         </Row>

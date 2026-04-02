@@ -17,8 +17,7 @@ import type {
   InjectionResp,
   LabelItem,
   ListContainerResp,
-  ListInjectionResp,
-  type SubmitExecutionResp,
+  SubmitExecutionResp,
 } from '@rcabench/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -41,8 +40,8 @@ import {
 } from 'antd';
 
 import { containerApi } from '@/api/containers';
-import { executionApi } from '@/api/executions';
-import { injectionApi } from '@/api/injections';
+import { projectApi } from '@/api/projects';
+import { useProjectContext } from '@/hooks/useProjectContext';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -56,6 +55,7 @@ interface ExecutionFormData {
 
 const ExecutionForm = () => {
   const navigate = useNavigate();
+  const { teamName, projectName, projectId } = useProjectContext();
   const queryClient = useQueryClient();
   const [form] = Form.useForm<ExecutionFormData>();
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<
@@ -71,23 +71,25 @@ const ExecutionForm = () => {
     queryFn: () => containerApi.getContainers({ type: 2 }), // 2 corresponds to ContainerType.ALGORITHM
   });
 
-  // Fetch datapacks (injections with build_success state = 4)
-  const { data: datapacksData, isLoading: datapacksLoading } = useQuery<
-    ListInjectionResp | undefined
-  >({
-    queryKey: ['datapacks'],
-    queryFn: () =>
-      injectionApi.listInjections({
+  // Fetch datapacks (project-scoped injections)
+  const { data: datapacksData, isLoading: datapacksLoading } = useQuery({
+    queryKey: ['project-datapacks', projectId],
+    queryFn: () => {
+      if (!projectId) return Promise.resolve({ items: [], total: 0 });
+      return projectApi.listProjectInjections(projectId, {
         page: 1,
         size: 50,
-        state: 4, // DatapackBuildSuccess
-      }),
+      });
+    },
+    enabled: !!projectId,
   });
 
   // Create execution mutation
   const createMutation = useMutation({
-    mutationFn: (data: ExecutionFormData) =>
-      executionApi.executeAlgorithm({
+    mutationFn: (data: ExecutionFormData) => {
+      if (!projectId)
+        return Promise.reject(new Error('Project context not available'));
+      return projectApi.executeAlgorithm(projectId, {
         algorithmName: data.algorithm_name,
         algorithmVersion: data.algorithm_version,
         datapackId: data.datapack_id,
@@ -96,13 +98,18 @@ const ExecutionForm = () => {
             (l): l is { key: string; value?: string } => l.key !== undefined
           )
           .map((l) => ({ key: l.key, value: l.value || '' })),
-      }),
+      });
+    },
     onSuccess: (response: SubmitExecutionResp | undefined) => {
       message.success('Execution started successfully');
       queryClient.invalidateQueries({ queryKey: ['executions'] });
-      const executionId =
-        response?.items?.[0]?.task_id || response?.group_id || '1';
-      navigate(`/executions/${executionId}`);
+      const executionId = response?.items?.[0]?.task_id || response?.group_id;
+      if (executionId) {
+        navigate(`/${teamName}/${projectName}/executions/${executionId}`);
+      } else {
+        message.error('Failed to get execution ID');
+        navigate(`/${teamName}/${projectName}/executions`);
+      }
     },
     onError: (error) => {
       message.error('Failed to start execution');
@@ -151,7 +158,7 @@ const ExecutionForm = () => {
   };
 
   const handleCancel = () => {
-    navigate('/executions');
+    navigate(`/${teamName}/${projectName}/executions`);
   };
 
   const addLabel = () => {
@@ -184,7 +191,10 @@ const ExecutionForm = () => {
             description='No algorithms available. Please create an algorithm container first.'
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           >
-            <Button type='primary' onClick={() => navigate('/containers/new')}>
+            <Button
+              type='primary'
+              onClick={() => navigate('/admin/containers/new')}
+            >
               Create Algorithm
             </Button>
           </Empty>

@@ -13,7 +13,6 @@ import { Button, Input, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 
 import { teamApi } from '@/api/teams';
-import { useProfileStore } from '@/store/profile';
 import type { ProjectResp, Team } from '@/types/api';
 
 const { Text, Title } = Typography;
@@ -28,7 +27,11 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({ team }) => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
-  const { toggleStar, isStarred } = useProfileStore();
+  // Star functionality stub (profile store removed)
+  const toggleStar = async (_id: number) => {
+    /* TODO: implement star toggle */
+  };
+  const isStarred = (_id: number) => false;
 
   // Fetch team projects
   const { data: projectsData, isLoading } = useQuery({

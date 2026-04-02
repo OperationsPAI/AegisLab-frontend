@@ -1,24 +1,19 @@
-import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { FolderOutlined, StarOutlined, UserOutlined } from '@ant-design/icons';
+import { FolderOutlined, UserOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Modal, Tabs } from 'antd';
+import { Tabs } from 'antd';
 
 import { authApi } from '@/api/auth';
 import ProfileSidebar from '@/components/profile/ProfileSidebar';
-import { useProfileStore } from '@/store/profile';
 
 import ProfileTab from './tabs/ProfileTab';
 import ProjectsTab from './tabs/ProjectsTab';
-import StarsTab from './tabs/StarsTab';
 
 import './ProfilePage.css';
 
 const ProfilePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const { loadStarredProjects } = useProfileStore();
 
   // Get active tab from URL or default to 'profile'
   const activeTab = searchParams.get('tab') || 'profile';
@@ -29,17 +24,8 @@ const ProfilePage = () => {
     queryFn: () => authApi.getProfile(),
   });
 
-  // Load starred projects on mount
-  useEffect(() => {
-    loadStarredProjects();
-  }, [loadStarredProjects]);
-
   const handleTabChange = (key: string) => {
     setSearchParams({ tab: key });
-  };
-
-  const handleEditProfile = () => {
-    setEditModalVisible(true);
   };
 
   const tabItems = [
@@ -63,16 +49,6 @@ const ProfilePage = () => {
       ),
       children: <ProjectsTab />,
     },
-    {
-      key: 'stars',
-      label: (
-        <span>
-          <StarOutlined />
-          Stars
-        </span>
-      ),
-      children: <StarsTab />,
-    },
   ];
 
   return (
@@ -81,7 +57,9 @@ const ProfilePage = () => {
       <ProfileSidebar
         user={userData || null}
         isLoading={userLoading}
-        onEditProfile={handleEditProfile}
+        onEditProfile={() => {
+          // Profile editing is read-only; managed by admin
+        }}
       />
 
       {/* Main Content */}
@@ -93,16 +71,6 @@ const ProfilePage = () => {
           className='profile-tabs'
         />
       </div>
-
-      {/* Edit Profile Modal */}
-      <Modal
-        title='Edit Profile'
-        open={editModalVisible}
-        onCancel={() => setEditModalVisible(false)}
-        footer={null}
-      >
-        <p>Profile editing coming soon...</p>
-      </Modal>
     </div>
   );
 };

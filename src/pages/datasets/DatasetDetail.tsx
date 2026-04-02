@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+
 import {
   ArrowLeftOutlined,
   ClockCircleOutlined,
@@ -8,7 +11,7 @@ import {
   TagsOutlined,
 } from '@ant-design/icons';
 import type { DatasetVersionResp } from '@rcabench/client';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Badge,
   Button,
@@ -16,6 +19,8 @@ import {
   Col,
   Descriptions,
   Divider,
+  Form,
+  Input,
   message,
   Modal,
   Row,
@@ -27,21 +32,19 @@ import {
   Typography,
 } from 'antd';
 import dayjs from 'dayjs';
-import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-
 
 import { datasetApi } from '@/api/datasets';
 
-
 const { Title, Text } = Typography;
-// Removed deprecated TabPane destructuring - using items prop instead
 
 const DatasetDetail = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { id } = useParams<{ id: string }>();
   const datasetId = Number(id);
   const [activeTab, setActiveTab] = useState('overview');
+  const [versionModalVisible, setVersionModalVisible] = useState(false);
+  const [versionForm] = Form.useForm();
 
   // Fetch dataset details
   const { data: dataset, isLoading } = useQuery({
@@ -95,6 +98,36 @@ const DatasetDetail = () => {
       message.success('Download started');
     } catch (error) {
       message.error('Failed to download version');
+    }
+  };
+
+  // Create version mutation
+  const createVersionMutation = useMutation({
+    mutationFn: (data: { name: string; datapacks?: string[] }) =>
+      datasetApi.createVersion(datasetId, data),
+    onSuccess: () => {
+      message.success('Version created successfully');
+      queryClient.invalidateQueries({
+        queryKey: ['dataset-versions', datasetId],
+      });
+      setVersionModalVisible(false);
+      versionForm.resetFields();
+    },
+    onError: () => {
+      message.error('Failed to create version');
+    },
+  });
+
+  const handleCreateVersion = () => {
+    setVersionModalVisible(true);
+  };
+
+  const handleVersionModalOk = async () => {
+    try {
+      const values = await versionForm.validateFields();
+      createVersionMutation.mutate({ name: values.name });
+    } catch {
+      // validation error
     }
   };
 
@@ -225,13 +258,7 @@ const DatasetDetail = () => {
               >
                 Edit Dataset
               </Button>
-              <Button
-                icon={<PlusOutlined />}
-                onClick={() => {
-                  // TODO: Navigate to version creation
-                  message.info('Version creation will be implemented soon');
-                }}
-              >
+              <Button icon={<PlusOutlined />} onClick={handleCreateVersion}>
                 Add Version
               </Button>
             </Space>
@@ -363,10 +390,7 @@ const DatasetDetail = () => {
                   <Button
                     type='primary'
                     icon={<PlusOutlined />}
-                    onClick={() => {
-                      // TODO: Navigate to version creation page
-                      message.info('Version creation will be implemented soon');
-                    }}
+                    onClick={handleCreateVersion}
                   >
                     Add Version
                   </Button>
@@ -408,6 +432,35 @@ const DatasetDetail = () => {
           },
         ]}
       />
+
+      {/* Create Version Modal */}
+      <Modal
+        title='Create New Version'
+        open={versionModalVisible}
+        onOk={handleVersionModalOk}
+        onCancel={() => {
+          setVersionModalVisible(false);
+          versionForm.resetFields();
+        }}
+        confirmLoading={createVersionMutation.isPending}
+        okText='Create Version'
+      >
+        <Form form={versionForm} layout='vertical'>
+          <Form.Item
+            label='Version Name'
+            name='name'
+            rules={[
+              { required: true, message: 'Please enter a version name' },
+              {
+                max: 50,
+                message: 'Version name must be less than 50 characters',
+              },
+            ]}
+          >
+            <Input placeholder='e.g. v1.0.0' />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };

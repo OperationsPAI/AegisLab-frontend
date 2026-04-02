@@ -10,7 +10,6 @@ import {
   StarOutlined,
   SyncOutlined,
 } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
 import {
   Button,
   Col,
@@ -26,9 +25,7 @@ import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
-import { profileApi } from '@/api/profile';
 import ProjectCard from '@/components/profile/ProjectCard';
-import { useProfileStore } from '@/store/profile';
 import type { ProjectWithStats } from '@/types/api';
 
 import './ProjectsTab.css';
@@ -40,35 +37,24 @@ const { Search } = Input;
 
 const ProjectsTab = () => {
   const navigate = useNavigate();
-  const { toggleStar, isStarred } = useProfileStore();
-  const [searchText, setSearchText] = useState('');
+  // Star functionality stub (profile store/API removed)
+  const toggleStar = async (_id: number) => {
+    /* TODO: implement star toggle */
+  };
+  const isStarred = (_id: number) => false;
+  const [_searchText, setSearchText] = useState('');
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
   });
 
-  // Fetch starred projects
-  const { data: starredProjects, isLoading: starredLoading } = useQuery({
-    queryKey: ['profile', 'starred-projects'],
-    queryFn: () => profileApi.getStarredProjects(),
-  });
+  // Starred projects stub (profile API removed)
+  const starredProjects: never[] = [];
+  const starredLoading = false;
 
-  // Fetch user projects
-  const { data: projectsData, isLoading: projectsLoading } = useQuery({
-    queryKey: [
-      'profile',
-      'projects',
-      pagination.current,
-      pagination.pageSize,
-      searchText,
-    ],
-    queryFn: () =>
-      profileApi.getUserProjects({
-        page: pagination.current,
-        size: pagination.pageSize,
-        search: searchText,
-      }),
-  });
+  // User projects stub (profile API removed)
+  const projectsData = { items: [] as ProjectWithStats[], total: 0 };
+  const projectsLoading = false;
 
   const handleTableChange = (newPagination: TablePaginationConfig) => {
     setPagination({

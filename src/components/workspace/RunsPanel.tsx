@@ -12,7 +12,6 @@ import {
 import { Badge, Button, Input, Space, Tooltip, Typography } from 'antd';
 
 import { useRunListSettings } from '@/hooks/useRunListSettings';
-import { useWorkspaceStore } from '@/store/workspace';
 import type {
   ColumnConfig,
   Run,
@@ -80,13 +79,24 @@ const RunsPanel: React.FC<RunsPanelProps> = ({
 }) => {
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
 
-  // Get shared table settings from workspace store
-  const {
-    injectionsTableSettings,
-    executionsTableSettings,
-    setInjectionsTableSettings,
-    setExecutionsTableSettings,
-  } = useWorkspaceStore();
+  // Table settings stub (workspace store removed)
+  const defaultTableSettings = {
+    searchText: '',
+    columns: [] as ColumnConfig[],
+    sortFields: [] as SortField[],
+    groupBy: null as string | null,
+    filters: {} as Record<string, unknown>,
+  };
+  const [injectionsTableSettings, setInjectionsTableSettingsState] =
+    useState(defaultTableSettings);
+  const [executionsTableSettings, setExecutionsTableSettingsState] =
+    useState(defaultTableSettings);
+  const setInjectionsTableSettings = (
+    update: Partial<typeof defaultTableSettings>
+  ) => setInjectionsTableSettingsState((prev) => ({ ...prev, ...update }));
+  const setExecutionsTableSettings = (
+    update: Partial<typeof defaultTableSettings>
+  ) => setExecutionsTableSettingsState((prev) => ({ ...prev, ...update }));
 
   // Get shared display settings from hook
   const { cropMode, sortOrder, setCropMode, setSortOrder, randomizeColors } =

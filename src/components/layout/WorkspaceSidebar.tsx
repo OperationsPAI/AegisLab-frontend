@@ -4,11 +4,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AppstoreOutlined,
   BulbOutlined,
-  CodeOutlined,
-  FileOutlined,
-  FileTextOutlined,
+  NodeIndexOutlined,
   PlayCircleOutlined,
   SafetyCertificateOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { Menu, type MenuProps } from 'antd';
 
@@ -41,11 +40,6 @@ const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
       label: 'Project',
     },
     {
-      key: 'workspace',
-      icon: <CodeOutlined />,
-      label: 'Workspace',
-    },
-    {
       key: 'injections',
       icon: <BulbOutlined />,
       label: 'Injections',
@@ -61,14 +55,14 @@ const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
       label: 'Evaluations',
     },
     {
-      key: 'reports',
-      icon: <FileTextOutlined />,
-      label: 'Reports',
+      key: 'traces',
+      icon: <NodeIndexOutlined />,
+      label: 'Traces',
     },
     {
-      key: 'artifacts',
-      icon: <FileOutlined />,
-      label: 'Artifacts',
+      key: 'settings',
+      icon: <SettingOutlined />,
+      label: 'Settings',
     },
   ];
 

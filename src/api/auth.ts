@@ -1,47 +1,32 @@
-import {
-  AuthenticationApi,
-  type LoginReq,
-  type LoginResp,
-  type RegisterReq,
-  type UserDetailResp,
-  type UserInfo,
+import type {
+  LoginReq,
+  LoginResp,
+  RegisterReq,
+  UserDetailResp,
+  UserInfo,
 } from '@rcabench/client';
 
-import { apiClient, createApiConfig } from './config';
+import apiClient from './client';
 
 export const authApi = {
-  login: async (data: LoginReq): Promise<LoginResp | undefined> => {
-    const api = new AuthenticationApi(createApiConfig());
-    const response = await api.login({ request: data });
-    return response.data.data;
-  },
+  login: (data: LoginReq): Promise<LoginResp | undefined> =>
+    apiClient.post('/auth/login', data).then((r) => r.data.data),
 
-  register: async (data: RegisterReq): Promise<UserInfo | undefined> => {
-    const api = new AuthenticationApi(createApiConfig());
-    const response = await api.registerUser({ request: data });
-    return response.data.data;
-  },
+  register: (data: RegisterReq): Promise<UserInfo | undefined> =>
+    apiClient.post('/auth/register', data).then((r) => r.data.data),
 
-  logout: () => apiClient.post('/auth/logout'),
+  logout: () => apiClient.post('/auth/logout').then((r) => r.data),
 
-  /**
-   * Get current user details
-   * Backend returns UserDetailResp (includes UserResp basic info + roles and permissions)
-   */
-  getProfile: async (): Promise<UserDetailResp> => {
-    const response = await apiClient.get<{ data: UserDetailResp }>(
-      '/auth/profile'
-    );
-    return response.data.data;
-  },
+  getProfile: (): Promise<UserDetailResp> =>
+    apiClient
+      .get<{ data: UserDetailResp }>('/auth/profile')
+      .then((r) => r.data.data),
 
   changePassword: (data: { old_password: string; new_password: string }) =>
-    apiClient.post('/auth/change-password', data),
+    apiClient.post('/auth/change-password', data).then((r) => r.data),
 
-  refreshToken: async (token: string): Promise<{ token: string }> => {
-    const response = await apiClient.post<{ token: string }>('/auth/refresh', {
-      token,
-    });
-    return response.data;
-  },
+  refreshToken: (token: string): Promise<{ token: string }> =>
+    apiClient
+      .post<{ token: string }>('/auth/refresh', { token })
+      .then((r) => r.data),
 };

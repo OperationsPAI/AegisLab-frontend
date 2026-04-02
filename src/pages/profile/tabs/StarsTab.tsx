@@ -1,21 +1,17 @@
 import { StarFilled } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
 import { Col, Empty, Row, Typography } from 'antd';
 
-import { profileApi } from '@/api/profile';
 import ProjectCard from '@/components/profile/ProjectCard';
-import { useProfileStore } from '@/store/profile';
 
 const { Title, Text } = Typography;
 
 const StarsTab = () => {
-  const { toggleStar } = useProfileStore();
-
-  // Fetch starred projects
-  const { data: starredProjects, isLoading } = useQuery({
-    queryKey: ['profile', 'starred-projects'],
-    queryFn: () => profileApi.getStarredProjects(),
-  });
+  // Star functionality stub (profile store/API removed)
+  const toggleStar = async (_id: number) => {
+    /* TODO: implement star toggle */
+  };
+  const starredProjects: never[] = [];
+  const isLoading = false;
 
   if (isLoading) {
     return (

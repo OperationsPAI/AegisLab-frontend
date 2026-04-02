@@ -5,9 +5,8 @@
  * - Row visibility toggles
  * - Status color dots
  * - Column management
- * - Search and filtering
+ * - Search and filtering (client-side)
  * - Shared filter/group/sort/columns state with workspace sidebar
- * - Mock data fallback when API returns no data
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
@@ -15,16 +14,16 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { DatabaseOutlined, TagOutlined } from '@ant-design/icons';
 import type { ExecutionResp } from '@rcabench/client';
 import { useQuery } from '@tanstack/react-query';
-import { message, Modal, Space, Tag, Typography } from 'antd';
+import { Input, message, Modal, Space, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 
 import { executionApi } from '@/api/executions';
+import { projectApi } from '@/api/projects';
 import WorkspacePageHeader from '@/components/workspace/WorkspacePageHeader';
 import WorkspaceTable from '@/components/workspace/WorkspaceTable';
 import type { ProjectOutletContext } from '@/hooks/useProjectContext';
 import { useAuthStore } from '@/store/auth';
-import { useWorkspaceStore } from '@/store/workspace';
 import type { ColumnConfig, SortField } from '@/types/workspace';
 import { getVisibleIdsFromMap } from '@/utils/idUtils';
 
@@ -75,68 +74,10 @@ const formatDuration = (seconds?: number): string => {
   }
 };
 
-// Algorithm names for mock data
-const ALGORITHM_NAMES = [
-  'RCABench',
-  'MicroCause',
-  'CloudRanger',
-  'CIRCA',
-  'DiagNet',
-  'TraceAnomaly',
-];
-const EXECUTION_STATUSES = [
-  'running',
-  'finished',
-  'failed',
-  'crashed',
-  'initial',
-];
-const INJECTION_NAMES = [
-  'network_delay_001',
-  'cpu_stress_002',
-  'memory_leak_003',
-  'disk_full_004',
-  'process_kill_005',
-];
-
-// Generate mock executions data
-const generateMockExecutions = (count: number): ExecutionTableData[] => {
-  return Array.from({ length: count }, (_, i) => {
-    const algorithm =
-      ALGORITHM_NAMES[Math.floor(Math.random() * ALGORITHM_NAMES.length)];
-    const status =
-      EXECUTION_STATUSES[Math.floor(Math.random() * EXECUTION_STATUSES.length)];
-    const injection =
-      INJECTION_NAMES[Math.floor(Math.random() * INJECTION_NAMES.length)];
-    const execDuration = Math.floor(Math.random() * 3600) + 60;
-    return {
-      id: i + 1,
-      name: `exec_${String(i + 1).padStart(3, '0')}`,
-      notes: `RCA execution test #${i + 1}`,
-      algorithm_name: algorithm,
-      algorithm_version: `v${Math.floor(Math.random() * 3) + 1}.${Math.floor(Math.random() * 10)}`,
-      state: status,
-      datapack_id: `dp_${String(Math.floor(Math.random() * 1000)).padStart(4, '0')}`,
-      injection_name: injection,
-      runtime: formatDuration(execDuration),
-      execution_duration: execDuration,
-      created_at: new Date(
-        Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000
-      ).toISOString(),
-      updated_at: new Date(
-        Date.now() - Math.random() * 15 * 24 * 60 * 60 * 1000
-      ).toISOString(),
-      labels: [`algo:${algorithm.toLowerCase()}`],
-    };
-  });
-};
-
-// Pre-generated mock data
-const MOCK_EXECUTIONS = generateMockExecutions(28);
-
 const ProjectExecutionList: React.FC = () => {
   const navigate = useNavigate();
-  const { teamName, projectName } = useOutletContext<ProjectOutletContext>();
+  const { teamName, projectName, projectId } =
+    useOutletContext<ProjectOutletContext>();
   const { user } = useAuthStore();
 
   // Handle back to workspace
@@ -144,18 +85,50 @@ const ProjectExecutionList: React.FC = () => {
     navigate(`/${teamName}/${projectName}/workspace`);
   };
 
-  // Get shared table settings and visibility state from workspace store
-  const {
-    executionsTableSettings,
-    setExecutionsTableSettings,
-    runsPanelCollapsed,
-    setRunsPanelCollapsed,
-    // Visibility management
-    visibleRuns,
-    runColors,
-    setItemsVisible,
-    initializeVisibility,
-  } = useWorkspaceStore();
+  // Table settings local state (workspace store removed)
+  const [executionsTableSettings, setExecutionsTableSettingsRaw] = useState({
+    sortFields: [] as SortField[],
+    groupBy: null as string | null,
+    pageSize: 20,
+    currentPage: 1,
+    columns: [] as ColumnConfig[],
+    searchText: '',
+    filters: {} as Record<string, unknown>,
+  });
+  const setExecutionsTableSettings = useCallback(
+    (update: Partial<typeof executionsTableSettings>) =>
+      setExecutionsTableSettingsRaw((prev) => ({ ...prev, ...update })),
+    []
+  );
+  const [runsPanelCollapsed, setRunsPanelCollapsed] = useState(false);
+  const [visibleRuns, setVisibleRunsState] = useState<Record<string, boolean>>(
+    {}
+  );
+  const setItemsVisible = useCallback(
+    (_type: string, ids: number[], visible: boolean) => {
+      setVisibleRunsState((prev) => {
+        const next = { ...prev };
+        ids.forEach((id) => {
+          next[`exec_${id}`] = visible;
+        });
+        return next;
+      });
+    },
+    []
+  );
+  const initializeVisibility = useCallback(
+    (_type: string, ids: number[], defaultCount: number) => {
+      setVisibleRunsState((prev) => {
+        if (Object.keys(prev).length > 0) return prev;
+        const next: Record<string, boolean> = {};
+        ids.forEach((id, i) => {
+          next[`exec_${id}`] = i < defaultCount;
+        });
+        return next;
+      });
+    },
+    []
+  );
 
   // Workspace info
   const workspaceName = `${user?.username || 'User'}'s workspace`;
@@ -358,17 +331,10 @@ const ProjectExecutionList: React.FC = () => {
     return getVisibleIdsFromMap(visibleRuns, 'executions');
   }, [visibleRuns]);
 
-  // Build rowColors: map numeric ID -> color (from store, no recomputation)
+  // rowColors: empty since per-run coloring is not yet implemented
   const rowColors = useMemo(() => {
-    const result: Record<number, string> = {};
-    Object.entries(runColors).forEach(([key, color]) => {
-      if (key.startsWith('exec_')) {
-        const numId = Number(key.slice(5));
-        if (!isNaN(numId)) result[numId] = color;
-      }
-    });
-    return result;
-  }, [runColors]);
+    return {} as Record<number, string>;
+  }, []);
 
   // Handle visibility change from table - sync to store
   const handleVisualizeChange = useCallback(
@@ -392,74 +358,58 @@ const ProjectExecutionList: React.FC = () => {
   );
 
   // Fetch executions data
-  const { data: executionsData, isLoading } = useQuery({
-    queryKey: [
-      'executions',
-      projectName,
-      currentPage,
-      pageSize,
-      searchText,
-      sortFields,
-    ],
+  const {
+    data: executionsData,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ['executions', projectId, currentPage, pageSize],
     queryFn: () => {
-      // Use search API when sort fields are present
-      if (sortFields.length > 0) {
-        return executionApi.searchExecutions({
-          page: currentPage,
-          size: pageSize,
-          search: searchText || undefined,
-          sort_by: sortFields.map((sf) => ({
-            field: sf.field,
-            order: sf.order,
-          })),
-        });
-      }
-
-      return executionApi.getExecutions({
+      if (!projectId) throw new Error('Project ID is required');
+      return projectApi.getExecutions(projectId, {
         page: currentPage,
         size: pageSize,
       });
     },
+    enabled: !!projectId,
   });
 
-  // Transform API data to table format, with mock data fallback
+  // Transform API data to table format
+  const allTableData = useMemo(() => {
+    if (!executionsData?.items) return [];
+    return executionsData.items.map((item: ExecutionResp) => {
+      const execDuration = (
+        item as ExecutionResp & { execution_duration?: number }
+      ).execution_duration;
+      return {
+        id: item.id ?? 0,
+        // ExecutionResp has no name field; derive from algorithm_name or fall back to ID
+        name: item.algorithm_name ?? `exec_${String(item.id).padStart(3, '0')}`,
+        notes: '',
+        algorithm_name: item.algorithm_name ?? '-',
+        algorithm_version: item.algorithm_version ?? '-',
+        state: item.state ?? 'initial',
+        datapack_id: item.datapack_id
+          ? String(item.datapack_id).substring(0, 8)
+          : '-',
+        injection_name: '-',
+        runtime: formatDuration(execDuration),
+        execution_duration: execDuration ?? 0,
+        created_at: item.created_at ?? new Date().toISOString(),
+        updated_at: item.updated_at ?? item.created_at,
+        labels: item.labels?.map((l) => l.key) ?? [],
+      };
+    });
+  }, [executionsData]);
+
+  // Apply client-side search and sort
   const tableData = useMemo(() => {
-    // If API returns data, use it
-    if (executionsData?.items && executionsData.items.length > 0) {
-      return executionsData.items.map((item: ExecutionResp) => {
-        // Use type assertion for optional field
-        const execDuration = (
-          item as ExecutionResp & { execution_duration?: number }
-        ).execution_duration;
-        return {
-          id: item.id ?? 0,
-          name: `exec_${String(item.id).padStart(3, '0')}`,
-          notes: '',
-          algorithm_name: item.algorithm_name ?? '-',
-          algorithm_version: item.algorithm_version ?? '-',
-          state: item.state ?? 'initial',
-          datapack_id: item.datapack_id
-            ? String(item.datapack_id).substring(0, 8)
-            : '-',
-          injection_name: '-',
-          runtime: formatDuration(execDuration),
-          execution_duration: execDuration ?? 0,
-          created_at: item.created_at ?? new Date().toISOString(),
-          updated_at: item.updated_at ?? item.created_at,
-          labels: item.labels?.map((l) => l.key) ?? [],
-        };
-      });
-    }
+    let filtered = allTableData;
 
-    // Use mock data as fallback
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    let filtered = MOCK_EXECUTIONS;
-
-    // Apply search filter
+    // Client-side search filter
     if (searchText) {
       const lowerSearch = searchText.toLowerCase();
-      filtered = MOCK_EXECUTIONS.filter(
+      filtered = filtered.filter(
         (item) =>
           item.name.toLowerCase().includes(lowerSearch) ||
           item.algorithm_name.toLowerCase().includes(lowerSearch) ||
@@ -467,25 +417,30 @@ const ProjectExecutionList: React.FC = () => {
       );
     }
 
-    return filtered.slice(start, end);
-  }, [executionsData, currentPage, pageSize, searchText]);
+    // Client-side sort
+    if (sortFields.length > 0) {
+      filtered = [...filtered].sort((a, b) => {
+        for (const sf of sortFields) {
+          const aVal = a[sf.field as keyof ExecutionTableData];
+          const bVal = b[sf.field as keyof ExecutionTableData];
+          if (aVal == null || bVal == null) continue;
+          const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+          if (cmp !== 0) return sf.order === 'asc' ? cmp : -cmp;
+        }
+        return 0;
+      });
+    }
 
-  // Total count (API or mock)
+    return filtered;
+  }, [allTableData, searchText, sortFields]);
+
+  // Total count - use search-filtered length if searching client-side, otherwise API total
   const totalCount = useMemo(() => {
-    if (executionsData?.pagination?.total) {
-      return executionsData.pagination.total;
-    }
     if (searchText) {
-      const lowerSearch = searchText.toLowerCase();
-      return MOCK_EXECUTIONS.filter(
-        (item) =>
-          item.name.toLowerCase().includes(lowerSearch) ||
-          item.algorithm_name.toLowerCase().includes(lowerSearch) ||
-          item.injection_name.toLowerCase().includes(lowerSearch)
-      ).length;
+      return tableData.length;
     }
-    return MOCK_EXECUTIONS.length;
-  }, [executionsData, searchText]);
+    return executionsData?.pagination?.total ?? 0;
+  }, [executionsData, searchText, tableData.length]);
 
   // Initialize visibility for items when data loads
   useEffect(() => {
@@ -519,11 +474,6 @@ const ProjectExecutionList: React.FC = () => {
   // Handle new execution
   const handleNewClick = () => {
     navigate(`/${teamName}/${projectName}/executions/new`);
-  };
-
-  // Handle filter click (placeholder for now)
-  const handleFilterClick = () => {
-    // TODO: Implement filter modal/drawer
   };
 
   // Handle export to CSV
@@ -566,22 +516,72 @@ const ProjectExecutionList: React.FC = () => {
       okText: 'Delete',
       okButtonProps: { danger: true },
       onOk: async () => {
-        // TODO: Implement bulk delete API call
-        message.success(`Deleted ${selectedRowKeys.length} execution(s)`);
-        setSelectedRowKeys([]);
+        try {
+          await executionApi.batchDelete(selectedRowKeys.map(Number));
+          message.success(`Deleted ${selectedRowKeys.length} execution(s)`);
+          setSelectedRowKeys([]);
+          refetch();
+        } catch {
+          message.error('Failed to delete executions');
+        }
       },
     });
-  }, [selectedRowKeys]);
+  }, [selectedRowKeys, refetch]);
 
   const handleBulkAddTags = useCallback(() => {
-    // TODO: Implement tag modal
-    message.info('Add tags feature coming soon');
-  }, []);
-
-  const handleBulkMoveToProject = useCallback(() => {
-    // TODO: Implement move to project modal
-    message.info('Move to project feature coming soon');
-  }, []);
+    let tagKey = '';
+    let tagValue = '';
+    Modal.confirm({
+      title: `Add Labels to ${selectedRowKeys.length} Execution(s)`,
+      content: (
+        <div
+          style={{
+            marginTop: 12,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}
+        >
+          <Input
+            placeholder='Label key'
+            onChange={(e) => {
+              tagKey = e.target.value;
+            }}
+          />
+          <Input
+            placeholder='Label value'
+            onChange={(e) => {
+              tagValue = e.target.value;
+            }}
+          />
+        </div>
+      ),
+      okText: 'Add Label',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        if (!tagKey.trim()) {
+          message.warning('Label key is required');
+          return Promise.reject();
+        }
+        try {
+          await Promise.all(
+            selectedRowKeys.map((key) =>
+              executionApi.updateLabels(Number(key), [
+                { key: tagKey.trim(), value: tagValue.trim() },
+              ])
+            )
+          );
+          message.success(
+            `Label added to ${selectedRowKeys.length} execution(s)`
+          );
+          setSelectedRowKeys([]);
+          refetch();
+        } catch {
+          message.error('Failed to add labels');
+        }
+      },
+    });
+  }, [selectedRowKeys, refetch]);
 
   // Custom name renderer - simplified to show only name
   const renderName = (record: { name: string }) => (
@@ -642,7 +642,7 @@ const ProjectExecutionList: React.FC = () => {
       <WorkspacePageHeader
         workspaceName={workspaceName}
         workspaceType='personal'
-        lastSaved={new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()}
+        lastSaved={undefined}
         runsPanelCollapsed={runsPanelCollapsed}
         onToggleRunsPanel={handleToggleRunsPanel}
       />
@@ -673,7 +673,6 @@ const ProjectExecutionList: React.FC = () => {
         onGroupByChange={setGroupBy}
         onRowClick={handleRowClick}
         onNewClick={handleNewClick}
-        onFilterClick={handleFilterClick}
         onExportClick={handleExportClick}
         newButtonText='New Execution'
         renderName={renderName}
@@ -685,7 +684,6 @@ const ProjectExecutionList: React.FC = () => {
         backTooltip='Back to Workspace'
         onBulkDelete={handleBulkDelete}
         onBulkAddTags={handleBulkAddTags}
-        onBulkMoveToProject={handleBulkMoveToProject}
       />
     </div>
   );

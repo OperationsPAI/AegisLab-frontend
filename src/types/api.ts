@@ -5,6 +5,7 @@ export type {
   ProjectDetailResp,
   UserDetailResp,
   UserResp,
+  ListTeamResp,
 } from '@rcabench/client';
 
 export { ExecutionState, FaultType } from '@rcabench/client';
@@ -18,32 +19,14 @@ export { ExecutionState, FaultType } from '@rcabench/client';
  * When backend API is updated, ensure these fields are included in the ProjectDetailResp type.
  */
 
-// Custom enums (not in generated API)
-export enum InjectionState {
-  PENDING = '0',
-  RUNNING = '1',
-  COMPLETED = '2',
-  ERROR = '3',
-  STOPPED = '4',
-}
+// ============================================================================
+// Frontend-only types (no backend equivalent)
+// ============================================================================
 
-export enum InjectionType {
-  NETWORK = 'network',
-  CPU = 'cpu',
-  MEMORY = 'memory',
-  DISK = 'disk',
-  PROCESS = 'process',
-  KUBERNETES = 'kubernetes',
-}
-
-export enum ProjectState {
-  ACTIVE = 0,
-  PAUSED = 1,
-  COMPLETED = 2,
-  ARCHIVED = 3,
-}
-
-// Custom interfaces (extensions of API types)
+/**
+ * Parameter definition for a fault type configuration.
+ * Used by the injection creation UI to render dynamic forms.
+ */
 export interface FaultParameter {
   name: string;
   type: 'string' | 'number' | 'boolean' | 'select' | 'range';
@@ -57,35 +40,28 @@ export interface FaultParameter {
   step?: number;
 }
 
-// Profile Activity Types
-export interface ActivityContribution {
-  date: string; // YYYY-MM-DD
-  count: number;
-}
-
-export interface ActivityResponse {
-  contributions: ActivityContribution[];
-  total_runs: number;
-  total_projects: number;
+/**
+ * Frontend representation of a fault type with its configuration parameters.
+ * Built from injection metadata API response for use in injection creation UI.
+ * NOT the same as the SDK's FaultType enum.
+ */
+export interface FaultTypeConfig {
+  id?: number;
+  name: string;
+  type: string;
+  category?: string;
+  description?: string;
+  parameters: FaultParameter[];
 }
 
 // Project Visibility
 export type ProjectVisibility = 'private' | 'team' | 'public';
 
-// Extended Project for Profile display
-export interface ProjectWithStats {
-  id: number;
-  name: string;
-  is_public?: boolean;
-  visibility?: ProjectVisibility;
-  updated_at?: string;
-  created_at?: string;
-  run_count?: number;
-  last_run_at?: string;
-  is_starred?: boolean;
-}
+// ============================================================================
+// Team types (frontend-specific shapes not matching SDK responses directly)
+// TODO: Migrate consumers to use SDK's TeamDetailResp / TeamMemberResp where possible
+// ============================================================================
 
-// Team Types
 export interface Team {
   id: number;
   name: string;
@@ -130,15 +106,24 @@ export interface TeamSecret {
   created_by: string;
 }
 
-export interface TeamLink {
-  id: number;
-  title: string;
-  url: string;
+// ============================================================================
+// Profile types (used by profile components)
+// TODO: Replace with SDK types when backend profile API is finalized
+// ============================================================================
+
+export interface ActivityContribution {
+  date: string; // YYYY-MM-DD
+  count: number;
 }
 
-export interface TeamRunsResponse {
-  items: ExecutionResp[];
-  total: number;
-  page: number;
-  size: number;
+export interface ProjectWithStats {
+  id: number;
+  name: string;
+  is_public?: boolean;
+  visibility?: ProjectVisibility;
+  updated_at?: string;
+  created_at?: string;
+  run_count?: number;
+  last_run_at?: string;
+  is_starred?: boolean;
 }

@@ -7,14 +7,12 @@ import {
   EllipsisOutlined,
   GlobalOutlined,
   LockOutlined,
-  StarFilled,
-  StarOutlined,
   TeamOutlined,
-  UndoOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Badge,
+  Avatar,
   Button,
   Card,
   Drawer,
@@ -28,14 +26,15 @@ import {
   Select,
   Space,
   Tabs,
+  Tag,
   Typography,
 } from 'antd';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
 import { projectApi } from '@/api/projects';
+import { teamApi } from '@/api/teams';
 import type { ProjectOutletContext } from '@/hooks/useProjectContext';
-import { useProfileStore } from '@/store/profile';
 
 import './ProjectOverview.css';
 
@@ -68,9 +67,21 @@ const ProjectOverview: React.FC = () => {
   // Form
   const [form] = Form.useForm();
 
-  // Star functionality
-  const { toggleStar, isStarred } = useProfileStore();
-  const starred = isStarred(projectId);
+  // Fetch teams to find team ID from teamName
+  const { data: teamsData } = useQuery({
+    queryKey: ['teams', 'list'],
+    queryFn: () => teamApi.getTeams(),
+    enabled: !!teamName,
+  });
+
+  const teamId = teamsData?.items?.find((t) => t.name === teamName)?.id;
+
+  // Fetch team members for the project's team
+  const { data: membersData } = useQuery({
+    queryKey: ['team', 'members', teamId],
+    queryFn: () => teamApi.getTeamMembers(teamId ?? 0, { page: 1, size: 50 }),
+    enabled: !!teamId,
+  });
 
   // Update project mutation
   const updateMutation = useMutation({
@@ -102,10 +113,6 @@ const ProjectOverview: React.FC = () => {
   });
 
   // Handlers
-  const handleToggleStar = () => {
-    toggleStar(projectId);
-  };
-
   const handleSaveProject = (values: {
     name: string;
     visibility: string;
@@ -171,17 +178,16 @@ const ProjectOverview: React.FC = () => {
       {
         key: 'contributors',
         label: 'Contributors',
-        value: <Text>{project.user_count ?? 1} user</Text>,
+        value: (
+          <Text>
+            {project.user_count != null ? `${project.user_count} user` : '-'}
+          </Text>
+        ),
       },
       {
         key: 'totalRuns',
         label: 'Total runs',
         value: <Text>{project.datapacks?.length ?? 0}</Text>,
-      },
-      {
-        key: 'totalCompute',
-        label: 'Total compute',
-        value: <Text>-</Text>,
       },
     ],
     [project]
@@ -195,12 +201,6 @@ const ProjectOverview: React.FC = () => {
       label: 'Delete project',
       danger: true,
       onClick: () => setDeleteModalOpen(true),
-    },
-    {
-      key: 'undelete',
-      icon: <UndoOutlined />,
-      label: 'Undelete recently deleted runs',
-      disabled: true,
     },
   ];
 
@@ -230,23 +230,40 @@ const ProjectOverview: React.FC = () => {
       ),
     },
     {
-      key: 'roles',
+      key: 'members',
       label: (
         <Space size={8}>
-          Project Roles
-          <Badge
-            count={1}
-            style={{ backgroundColor: '#52c41a' }}
-            size='small'
-          />
+          Team Members
+          <Tag>{membersData?.total ?? 0}</Tag>
         </Space>
       ),
       children: (
         <div className='project-overview-roles'>
-          <Empty
-            description='Project roles management coming soon'
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          />
+          {membersData?.items?.length ? (
+            <List
+              itemLayout='horizontal'
+              dataSource={membersData.items}
+              renderItem={(member) => (
+                <List.Item>
+                  <List.Item.Meta
+                    avatar={<Avatar icon={<UserOutlined />} />}
+                    title={member.full_name || member.username}
+                    description={
+                      <Space>
+                        <Text type='secondary'>@{member.username}</Text>
+                        <Tag>{member.role_name}</Tag>
+                      </Space>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          ) : (
+            <Empty
+              description='No team members found'
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          )}
         </div>
       ),
     },
@@ -293,17 +310,6 @@ const ProjectOverview: React.FC = () => {
             <Button icon={<EditOutlined />} onClick={handleOpenEditDrawer}>
               Edit
             </Button>
-            <Button
-              type='text'
-              icon={
-                starred ? (
-                  <StarFilled style={{ color: '#fadb14' }} />
-                ) : (
-                  <StarOutlined />
-                )
-              }
-              onClick={handleToggleStar}
-            />
             <Dropdown menu={{ items: moreMenuItems }} trigger={['click']}>
               <Button type='text' icon={<EllipsisOutlined />} />
             </Dropdown>

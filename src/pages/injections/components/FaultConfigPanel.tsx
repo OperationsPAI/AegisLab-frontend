@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 
 import {
   InfoCircleOutlined,
@@ -20,9 +21,8 @@ import {
   Tag,
   Tooltip,
 } from 'antd';
-import { useEffect, useState } from 'react';
 
-import type { FaultType } from '../../../types/api';
+import type { FaultTypeConfig } from '../../../types/api';
 
 import './FaultConfigPanel.css';
 
@@ -42,7 +42,7 @@ interface FaultParameter {
 }
 
 interface FaultConfigPanelProps {
-  fault: FaultType;
+  fault: FaultTypeConfig;
   onConfigChange: (config: Record<string, string | number | boolean>) => void;
 }
 

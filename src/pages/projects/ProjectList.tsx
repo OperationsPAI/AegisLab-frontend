@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -35,28 +35,33 @@ import StatusBadge, {
   type StatusBadgeProps,
 } from '@/components/ui/StatusBadge';
 import { useProjects } from '@/hooks/useProjects';
-import { useProfileStore } from '@/store/profile';
-import { ProjectState } from '@/types/api';
 
 import './ProjectList.css';
+
+// Project state enum (matches backend numeric values)
+enum ProjectState {
+  ACTIVE = 0,
+  PAUSED = 1,
+  COMPLETED = 2,
+  ARCHIVED = 3,
+}
 
 const { Title, Text } = Typography;
 const { Search } = Input;
 
 const ProjectList = () => {
   const navigate = useNavigate();
-  const { loadStarredProjects, toggleStar, isStarred } = useProfileStore();
+  // Star functionality stub (profile store removed)
+  const toggleStar = async (_id: number) => {
+    /* TODO: implement star toggle */
+  };
+  const isStarred = (_id: number) => false;
   const [searchText, setSearchText] = useState('');
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
     total: 0,
   });
-
-  // Load starred projects on mount
-  useEffect(() => {
-    loadStarredProjects();
-  }, [loadStarredProjects]);
 
   // Fetch projects
   const { data: projectsData, isLoading } = useProjects({

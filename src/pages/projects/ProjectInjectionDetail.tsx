@@ -7,8 +7,9 @@ import {
 } from 'react-router-dom';
 
 import {
-  AreaChartOutlined,
+  CopyOutlined,
   DeleteOutlined,
+  DownloadOutlined,
   EditOutlined,
   FileOutlined,
   FileTextOutlined,
@@ -16,13 +17,12 @@ import {
 } from '@ant-design/icons';
 import type { LabelItem } from '@rcabench/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { message, Tag } from 'antd';
+import { message, Modal, Tag } from 'antd';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
 import { injectionApi, type InjectionDetailResp } from '@/api/injections';
 import {
-  ChartsTab,
   DetailView,
   type DetailViewAction,
   type DetailViewTab,
@@ -37,26 +37,6 @@ import { useAuthStore } from '@/store/auth';
 import { getColor } from '@/utils/colors';
 
 dayjs.extend(relativeTime);
-
-// Mock ground truth data for testing
-const MOCK_GROUND_TRUTH_DATA: GroundTruthItem[] = [
-  {
-    service: ['ts-admin-basic-info-service'],
-    container: ['ts-admin-basic-info-service'],
-    pod: null,
-    metric: null,
-    function: null,
-    span: null,
-  },
-  {
-    service: ['ts-order-service', 'ts-travel-service'],
-    container: ['ts-order-service'],
-    pod: null,
-    metric: null,
-    function: null,
-    span: null,
-  },
-];
 
 /**
  * Project Injection Detail Page
@@ -109,20 +89,155 @@ const ProjectInjectionDetail: React.FC = () => {
   };
 
   // Action handlers
-  const handleExportData = () => {
-    message.info('Export data functionality coming soon');
+  const handleExportData = async () => {
+    try {
+      const blob = await injectionApi.downloadInjection(Number(id));
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `injection-${id}-datapack.tar.gz`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      message.success('Download started');
+    } catch {
+      message.error('Download failed');
+    }
+  };
+
+  const handleClone = () => {
+    Modal.confirm({
+      title: 'Clone Injection',
+      content: `Are you sure you want to clone injection "${injection?.name || id}"?`,
+      okText: 'Yes, clone it',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          const cloned = await injectionApi.cloneInjection(Number(id));
+          message.success('Injection cloned successfully');
+          queryClient.invalidateQueries({ queryKey: ['injections'] });
+          if (cloned?.id) {
+            navigate(`/${teamName}/${projectName}/injections/${cloned.id}`);
+          }
+        } catch {
+          message.error('Failed to clone injection');
+        }
+      },
+    });
   };
 
   const handleViewCode = () => {
-    message.info('View code functionality coming soon');
+    const configJson = (() => {
+      if (!injection) return '{}';
+      const data: Record<string, unknown> = {};
+      if (
+        injection.display_config &&
+        Object.keys(injection.display_config).length > 0
+      ) {
+        data.display_config = injection.display_config;
+      }
+      if (injection.engine_config && injection.engine_config.length > 0) {
+        data.engine_config = injection.engine_config;
+      }
+      data.fault_type = injection.fault_type;
+      data.category = injection.category;
+      data.pre_duration = injection.pre_duration;
+      data.benchmark_name = injection.benchmark_name;
+      data.pedestal_name = injection.pedestal_name;
+      if (injection.ground_truth && injection.ground_truth.length > 0) {
+        data.ground_truth = injection.ground_truth;
+      }
+      return JSON.stringify(data, null, 2);
+    })();
+
+    Modal.info({
+      title: 'Injection Configuration',
+      width: 640,
+      content: (
+        <pre
+          style={{
+            background: '#f5f5f5',
+            padding: 16,
+            borderRadius: 6,
+            maxHeight: 480,
+            overflow: 'auto',
+            fontSize: 12,
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-all',
+          }}
+        >
+          {configJson}
+        </pre>
+      ),
+      okText: 'Close',
+    });
   };
 
   const handleEditRunName = () => {
-    message.info('Edit run name functionality coming soon');
+    let newName = injection?.name || '';
+    Modal.confirm({
+      title: 'Edit Run Name',
+      content: (
+        <div style={{ marginTop: 12 }}>
+          <input
+            defaultValue={newName}
+            onChange={(e) => {
+              newName = e.target.value;
+            }}
+            placeholder='Enter new run name'
+            style={{
+              width: '100%',
+              padding: '6px 11px',
+              border: '1px solid #d9d9d9',
+              borderRadius: 6,
+              fontSize: 14,
+              outline: 'none',
+            }}
+          />
+        </div>
+      ),
+      okText: 'Save',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        if (!newName.trim()) {
+          message.warning('Name cannot be empty');
+          return Promise.reject();
+        }
+        try {
+          await injectionApi.manageLabels(
+            Number(id),
+            [{ key: 'name', value: newName.trim() }],
+            [{ key: 'name', value: injection?.name || '' }]
+          );
+          queryClient.invalidateQueries({
+            queryKey: ['injection', id, projectId],
+          });
+          message.success('Run name updated');
+        } catch {
+          message.error('Failed to update run name');
+        }
+      },
+    });
   };
 
   const handleDelete = () => {
-    message.warning('Delete run functionality coming soon');
+    Modal.confirm({
+      title: 'Delete Injection',
+      content: `Are you sure you want to delete injection "${injection?.name || id}"? This action cannot be undone.`,
+      okText: 'Yes, delete it',
+      okButtonProps: { danger: true },
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          await injectionApi.batchDelete([Number(id)]);
+          message.success('Injection deleted successfully');
+          navigate(`/${teamName}/${projectName}/injections`);
+        } catch {
+          message.error('Failed to delete injection');
+        }
+      },
+    });
   };
 
   // Label handlers
@@ -177,9 +292,15 @@ const ProjectInjectionDetail: React.FC = () => {
   const actions: DetailViewAction[] = [
     {
       key: 'export',
-      label: 'Export data',
-      icon: <AreaChartOutlined />,
+      label: 'Download datapack',
+      icon: <DownloadOutlined />,
       onClick: handleExportData,
+    },
+    {
+      key: 'clone',
+      label: 'Clone injection',
+      icon: <CopyOutlined />,
+      onClick: handleClone,
     },
     {
       key: 'viewCode',
@@ -245,10 +366,10 @@ const ProjectInjectionDetail: React.FC = () => {
     return undefined;
   }, [injection]);
 
-  // Transform ground_truth data for OverviewTab (use mock if no real data)
+  // Transform ground_truth data for OverviewTab
   const groundTruthData: GroundTruthItem[] = useMemo(() => {
     if (!injection?.ground_truth || injection.ground_truth.length === 0) {
-      return MOCK_GROUND_TRUTH_DATA;
+      return [];
     }
     // Return as-is since API format matches GroundTruthItem
     return injection.ground_truth.map((gt) => ({
@@ -264,12 +385,6 @@ const ProjectInjectionDetail: React.FC = () => {
   // Define tabs
   const tabs: DetailViewTab[] = [
     {
-      key: 'charts',
-      label: 'Charts',
-      icon: <AreaChartOutlined />,
-      content: <ChartsTab charts={[]} loading={isLoading} />,
-    },
-    {
       key: 'overview',
       label: 'Overview',
       icon: <ProfileOutlined />,
@@ -283,6 +398,14 @@ const ProjectInjectionDetail: React.FC = () => {
           runtime={runtime}
           taskID={injection?.task_id}
           traceID={injection?.trace_id}
+          taskLink={
+            injection?.task_id ? `/tasks/${injection.task_id}` : undefined
+          }
+          traceLink={
+            injection?.trace_id
+              ? `/${teamName}/${projectName}/traces/${injection.trace_id}`
+              : undefined
+          }
           createdAt={injection?.created_at || new Date().toISOString()}
           updatedAt={injection?.updated_at}
           additionalFields={additionalFields}

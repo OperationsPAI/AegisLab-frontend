@@ -1,6 +1,7 @@
 /**
  * Fetch teams with automatic name→id cache updates
  */
+import type { ListTeamResp } from '@rcabench/client';
 import {
   useQuery,
   useQueryClient,
@@ -8,7 +9,6 @@ import {
 } from '@tanstack/react-query';
 
 import { teamApi } from '@/api/teams';
-import type { ListTeamResp } from '@/types/api';
 import { updateTeamNameMap } from '@/utils/teamNameMap';
 
 interface UseTeamsOptions {

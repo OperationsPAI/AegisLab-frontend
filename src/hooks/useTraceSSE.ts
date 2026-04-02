@@ -151,7 +151,7 @@ export const useTraceSSE = (traceId?: string): UseTraceSSEResult => {
         const eventName = streamEvent.event_name;
         if (!eventName) return;
 
-        console.log(`[SSE] Received event: ${eventName}`, streamEvent);
+        // SSE event received: eventName
 
         if (eventName === EventType.AlgoRunStarted) {
           // Special case: filter non-detector algorithm runs

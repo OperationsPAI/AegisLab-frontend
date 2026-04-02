@@ -1,29 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import {
-  DeleteOutlined,
-  ExclamationCircleOutlined,
-  KeyOutlined,
-  PlusOutlined,
-} from '@ant-design/icons';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Button,
-  Card,
-  Empty,
-  Form,
-  Input,
-  message,
-  Modal,
-  Switch,
-  Table,
-  Typography,
-} from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import { ExclamationCircleOutlined } from '@ant-design/icons';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button, Card, Form, Input, message, Modal, Typography } from 'antd';
 
 import { teamApi } from '@/api/teams';
-import type { Team, TeamSecret } from '@/types/api';
+import type { Team } from '@/types/api';
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -34,45 +17,23 @@ interface SettingsTabProps {
 const SettingsTab: React.FC<SettingsTabProps> = ({ team }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [secretModalVisible, setSecretModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
-  const [secretForm] = Form.useForm();
+  const [teamForm] = Form.useForm();
 
-  // Fetch team secrets
-  const { data: secrets = [], isLoading: secretsLoading } = useQuery({
-    queryKey: ['team', 'secrets', team.id],
-    queryFn: () => [],
-  });
-
-  // Update settings mutation
-  const updateSettingsMutation = useMutation({
-    mutationFn: (settings: Partial<Team['settings']>) =>
-      teamApi.updateTeamSettings(team.id, settings),
+  // Update team mutation
+  const updateTeamMutation = useMutation({
+    mutationFn: (data: {
+      name?: string;
+      description?: string;
+      is_public?: boolean;
+    }) => teamApi.updateTeam(team.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team', 'byName'] });
-      message.success('Settings updated');
+      message.success('Team settings updated');
     },
-  });
-
-  // Add secret mutation
-  const addSecretMutation = useMutation({
-    mutationFn: (data: { name: string; value: string }) =>
-      teamApi.addSecret(team.id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team', 'secrets', team.id] });
-      setSecretModalVisible(false);
-      secretForm.resetFields();
-      message.success('Secret added');
-    },
-  });
-
-  // Delete secret mutation
-  const deleteSecretMutation = useMutation({
-    mutationFn: (secretId: number) => teamApi.deleteSecret(team.id, secretId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team', 'secrets', team.id] });
-      message.success('Secret deleted');
+    onError: () => {
+      message.error('Failed to update team settings');
     },
   });
 
@@ -83,14 +44,16 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ team }) => {
       message.success('Team deleted');
       navigate('/home');
     },
+    onError: () => {
+      message.error('Failed to delete team');
+    },
   });
 
-  const handleCustomizationToggle = (checked: boolean) => {
-    updateSettingsMutation.mutate({ customization_enabled: checked });
-  };
-
-  const handleAddSecret = (values: { name: string; value: string }) => {
-    addSecretMutation.mutate(values);
+  const handleUpdateTeam = (values: { name: string; description: string }) => {
+    updateTeamMutation.mutate({
+      name: values.name,
+      description: values.description,
+    });
   };
 
   const handleDeleteTeam = () => {
@@ -98,39 +61,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ team }) => {
       deleteTeamMutation.mutate();
     }
   };
-
-  const secretColumns: ColumnsType<TeamSecret> = [
-    {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name',
-      render: (name: string) => <Text strong>{name}</Text>,
-    },
-    {
-      title: 'Created',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      render: (date: string) => new Date(date).toLocaleDateString(),
-    },
-    {
-      title: 'Created By',
-      dataIndex: 'created_by',
-      key: 'created_by',
-    },
-    {
-      title: '',
-      key: 'actions',
-      width: 80,
-      render: (_, record) => (
-        <Button
-          type='text'
-          danger
-          icon={<DeleteOutlined />}
-          onClick={() => deleteSecretMutation.mutate(record.id)}
-        />
-      ),
-    },
-  ];
 
   return (
     <div className='settings-tab'>
@@ -147,70 +77,35 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ team }) => {
         <Title level={5} style={{ marginBottom: 16 }}>
           Team profile
         </Title>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+        <Form
+          form={teamForm}
+          layout='vertical'
+          onFinish={handleUpdateTeam}
+          initialValues={{
+            name: team.name,
+            description: team.description || '',
           }}
         >
-          <div>
-            <Text strong>CUSTOMIZATION</Text>
-            <br />
-            <Text type='secondary'>
-              Customize your user team page to showcase your ML portfolio
-            </Text>
-          </div>
-          <Switch
-            checked={team.settings?.customization_enabled ?? false}
-            onChange={handleCustomizationToggle}
-            loading={updateSettingsMutation.isPending}
-          />
-        </div>
-      </Card>
-
-      {/* Team Secrets Section */}
-      <Card style={{ marginBottom: 24 }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 16,
-          }}
-        >
-          <div>
-            <Title level={5} style={{ margin: 0 }}>
-              <KeyOutlined style={{ marginRight: 8 }} />
-              Team Secrets
-            </Title>
-            <Text type='secondary'>
-              Manage secrets for your team&apos;s projects
-            </Text>
-          </div>
-          <Button
-            type='primary'
-            icon={<PlusOutlined />}
-            onClick={() => setSecretModalVisible(true)}
+          <Form.Item
+            label='Team Name'
+            name='name'
+            rules={[{ required: true, message: 'Please enter team name' }]}
           >
-            Add Secret
-          </Button>
-        </div>
-
-        {secrets.length > 0 ? (
-          <Table
-            columns={secretColumns}
-            dataSource={secrets}
-            rowKey='id'
-            loading={secretsLoading}
-            pagination={false}
-          />
-        ) : (
-          <Empty
-            image={<KeyOutlined style={{ fontSize: 48, color: '#ccc' }} />}
-            description='No secrets configured yet.'
-          />
-        )}
+            <Input placeholder='Team name' />
+          </Form.Item>
+          <Form.Item label='Description' name='description'>
+            <Input.TextArea rows={4} placeholder='Describe your team' />
+          </Form.Item>
+          <Form.Item style={{ marginBottom: 0 }}>
+            <Button
+              type='primary'
+              htmlType='submit'
+              loading={updateTeamMutation.isPending}
+            >
+              Save Changes
+            </Button>
+          </Form.Item>
+        </Form>
       </Card>
 
       {/* Danger Zone */}
@@ -245,43 +140,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ team }) => {
           </Button>
         </div>
       </Card>
-
-      {/* Add Secret Modal */}
-      <Modal
-        title='Add Secret'
-        open={secretModalVisible}
-        onCancel={() => {
-          setSecretModalVisible(false);
-          secretForm.resetFields();
-        }}
-        footer={null}
-      >
-        <Form form={secretForm} layout='vertical' onFinish={handleAddSecret}>
-          <Form.Item
-            name='name'
-            label='Secret Name'
-            rules={[{ required: true, message: 'Please enter secret name' }]}
-          >
-            <Input placeholder='MY_SECRET_KEY' />
-          </Form.Item>
-          <Form.Item
-            name='value'
-            label='Secret Value'
-            rules={[{ required: true, message: 'Please enter secret value' }]}
-          >
-            <Input.Password placeholder='Enter secret value' />
-          </Form.Item>
-          <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
-            <Button
-              type='primary'
-              htmlType='submit'
-              loading={addSecretMutation.isPending}
-            >
-              Add Secret
-            </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
 
       {/* Delete Team Modal */}
       <Modal

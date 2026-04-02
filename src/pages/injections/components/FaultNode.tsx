@@ -1,3 +1,6 @@
+import { memo } from 'react';
+import { Handle, type NodeProps, Position } from 'reactflow';
+
 import {
   ClockCircleOutlined,
   CloudServerOutlined,
@@ -11,11 +14,8 @@ import {
   ThunderboltOutlined,
 } from '@ant-design/icons';
 import { Button, Tag, Tooltip } from 'antd';
-import { memo } from 'react';
-import { Handle, type NodeProps, Position } from 'reactflow';
 
-
-import type { FaultType } from '../../../types/api';
+import type { FaultTypeConfig } from '../../../types/api';
 
 const faultTypeIcons: Record<string, React.ReactNode> = {
   cpu: <ThunderboltOutlined />,
@@ -40,9 +40,9 @@ const faultTypeColors: Record<string, string> = {
 };
 
 interface FaultNodeData {
-  fault: FaultType;
+  fault: FaultTypeConfig;
   onDelete: (nodeId: string) => void;
-  onConfigure: (fault: FaultType) => void;
+  onConfigure: (fault: FaultTypeConfig) => void;
 }
 
 export const FaultNode = memo<NodeProps<FaultNodeData>>(
@@ -106,9 +106,7 @@ export const FaultNode = memo<NodeProps<FaultNodeData>>(
         )}
 
         <div className='fault-node-footer'>
-          <Tag color={getFaultColor()}>
-            {fault.type}
-          </Tag>
+          <Tag color={getFaultColor()}>{fault.type}</Tag>
           {fault.parameters && (
             <span className='fault-node-params'>
               {fault.parameters.length} params

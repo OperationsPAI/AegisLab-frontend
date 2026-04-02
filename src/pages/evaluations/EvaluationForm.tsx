@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import {
   BarChartOutlined,
   CheckCircleOutlined,
@@ -10,6 +13,7 @@ import {
 import {
   type DatasetResp,
   type EvaluateDatapackSpec,
+  type EvaluateDatasetSpec,
   type ExecutionResp,
 } from '@rcabench/client';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -33,9 +37,6 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-
 
 import { containerApi } from '@/api/containers';
 import { datasetApi } from '@/api/datasets';
@@ -90,8 +91,10 @@ const EvaluationForm = () => {
   const evaluateMutation = useMutation({
     mutationFn: (specs: EvaluateDatapackSpec[]) =>
       evaluationType === 'datapack'
-        ? evaluationApi.evaluateDatapacks(specs as any)
-        : evaluationApi.evaluateDatasets(specs as any),
+        ? evaluationApi.evaluateDatapacks(specs)
+        : evaluationApi.evaluateDatasets(
+            specs as unknown as EvaluateDatasetSpec[]
+          ),
     onSuccess: (_data) => {
       message.success('Evaluation completed successfully!');
       navigate('/evaluations');
@@ -389,31 +392,29 @@ const EvaluationForm = () => {
                     size='large'
                     onChange={handleDatapackChange}
                   >
-                    {executionsData?.items?.map(
-                      (execution: ExecutionResp) => (
-                        <Option
-                          key={execution.id}
-                          value={String(execution.datapack_id) || ''}
-                        >
-                          <Space>
-                            <DatabaseOutlined style={{ color: '#3b82f6' }} />
+                    {executionsData?.items?.map((execution: ExecutionResp) => (
+                      <Option
+                        key={execution.id}
+                        value={String(execution.datapack_id) || ''}
+                      >
+                        <Space>
+                          <DatabaseOutlined style={{ color: '#3b82f6' }} />
+                          <div>
                             <div>
-                              <div>
-                                Datapack{' '}
-                                {execution.datapack_name || execution.datapack_id}
-                              </div>
-                              <Text
-                                type='secondary'
-                                style={{ fontSize: '0.75rem' }}
-                              >
-                                From execution #{execution.id} -{' '}
-                                {execution.algorithm_name}
-                              </Text>
+                              Datapack{' '}
+                              {execution.datapack_name || execution.datapack_id}
                             </div>
-                          </Space>
-                        </Option>
-                      )
-                    )}
+                            <Text
+                              type='secondary'
+                              style={{ fontSize: '0.75rem' }}
+                            >
+                              From execution #{execution.id} -{' '}
+                              {execution.algorithm_name}
+                            </Text>
+                          </div>
+                        </Space>
+                      </Option>
+                    ))}
                   </Select>
                 </Form.Item>
               )}

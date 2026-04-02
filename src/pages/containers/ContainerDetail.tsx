@@ -1,13 +1,18 @@
+import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+
 import {
   ArrowLeftOutlined,
+  BuildOutlined,
   ClockCircleOutlined,
+  CloudUploadOutlined,
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
   TagsOutlined,
 } from '@ant-design/icons';
 import type { ContainerVersionResp, LabelItem } from '@rcabench/client';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Badge,
   Button,
@@ -24,11 +29,10 @@ import {
   Tag,
   Tooltip,
   Typography,
+  Upload,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 
 import { containerApi } from '@/api/containers';
 
@@ -36,9 +40,17 @@ const { Title, Text } = Typography;
 
 const ContainerDetail = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { id } = useParams<{ id: string }>();
   const containerId = Number(id);
   const [activeTab, setActiveTab] = useState('overview');
+  const [helmUploadVersionId, setHelmUploadVersionId] = useState<number | null>(
+    null
+  );
+  const [helmUploadType, setHelmUploadType] = useState<'chart' | 'values'>(
+    'chart'
+  );
+  const [helmModalVisible, setHelmModalVisible] = useState(false);
 
   // Fetch container details
   const { data: container, isLoading } = useQuery({
@@ -54,6 +66,89 @@ const ContainerDetail = () => {
     enabled: !!containerId,
   });
   const versions = versionsData?.items || [];
+
+  // Build container mutation
+  const buildMutation = useMutation({
+    mutationFn: () =>
+      containerApi.buildContainer({ container_id: containerId }),
+    onSuccess: () => {
+      message.success('Container build started');
+      queryClient.invalidateQueries({
+        queryKey: ['container', containerId],
+      });
+    },
+    onError: () => {
+      message.error('Failed to start container build');
+    },
+  });
+
+  // Helm chart upload mutation
+  const helmChartMutation = useMutation({
+    mutationFn: ({
+      versionId,
+      formData,
+    }: {
+      versionId: number;
+      formData: FormData;
+    }) => containerApi.uploadHelmChart(containerId, versionId, formData),
+    onSuccess: () => {
+      message.success('Helm chart uploaded successfully');
+      setHelmModalVisible(false);
+      queryClient.invalidateQueries({
+        queryKey: ['container-versions', containerId],
+      });
+    },
+    onError: () => {
+      message.error('Failed to upload Helm chart');
+    },
+  });
+
+  // Helm values upload mutation
+  const helmValuesMutation = useMutation({
+    mutationFn: ({
+      versionId,
+      formData,
+    }: {
+      versionId: number;
+      formData: FormData;
+    }) => containerApi.uploadHelmValues(containerId, versionId, formData),
+    onSuccess: () => {
+      message.success('Helm values uploaded successfully');
+      setHelmModalVisible(false);
+      queryClient.invalidateQueries({
+        queryKey: ['container-versions', containerId],
+      });
+    },
+    onError: () => {
+      message.error('Failed to upload Helm values');
+    },
+  });
+
+  const handleBuild = () => {
+    Modal.confirm({
+      title: 'Build Container',
+      content: `Are you sure you want to build container "${container?.name}"?`,
+      okText: 'Build',
+      onOk: () => buildMutation.mutate(),
+    });
+  };
+
+  const handleHelmUpload = (file: File) => {
+    if (!helmUploadVersionId) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    if (helmUploadType === 'chart') {
+      helmChartMutation.mutate({ versionId: helmUploadVersionId, formData });
+    } else {
+      helmValuesMutation.mutate({ versionId: helmUploadVersionId, formData });
+    }
+  };
+
+  const openHelmUpload = (versionId: number, type: 'chart' | 'values') => {
+    setHelmUploadVersionId(versionId);
+    setHelmUploadType(type);
+    setHelmModalVisible(true);
+  };
 
   const handleEdit = () => {
     navigate(`/containers/${containerId}/edit`);
@@ -145,6 +240,33 @@ const ContainerDetail = () => {
         </Space>
       ),
     },
+    {
+      title: 'Helm',
+      key: 'helm',
+      width: 200,
+      render: (_: unknown, record: ContainerVersionResp) => (
+        <Space>
+          <Button
+            size='small'
+            icon={<CloudUploadOutlined />}
+            onClick={() =>
+              record.id != null && openHelmUpload(record.id, 'chart')
+            }
+          >
+            Chart
+          </Button>
+          <Button
+            size='small'
+            icon={<CloudUploadOutlined />}
+            onClick={() =>
+              record.id != null && openHelmUpload(record.id, 'values')
+            }
+          >
+            Values
+          </Button>
+        </Space>
+      ),
+    },
   ];
 
   if (isLoading) {
@@ -193,6 +315,13 @@ const ContainerDetail = () => {
                 onClick={handleEdit}
               >
                 编辑容器
+              </Button>
+              <Button
+                icon={<BuildOutlined />}
+                onClick={handleBuild}
+                loading={buildMutation.isPending}
+              >
+                Build
               </Button>
               <Button
                 icon={<PlusOutlined />}
@@ -259,11 +388,13 @@ const ContainerDetail = () => {
                         <Descriptions.Item label='标签'>
                           {container.labels?.length ? (
                             <Space wrap>
-                              {container.labels.map((label: LabelItem, index: number) => (
-                                <Tag key={index} icon={<TagsOutlined />}>
-                                  {label.key}: {label.value}
-                                </Tag>
-                              ))}
+                              {container.labels.map(
+                                (label: LabelItem, index: number) => (
+                                  <Tag key={index} icon={<TagsOutlined />}>
+                                    {label.key}: {label.value}
+                                  </Tag>
+                                )
+                              )}
                             </Space>
                           ) : (
                             <Text type='secondary'>无标签</Text>
@@ -278,7 +409,10 @@ const ContainerDetail = () => {
                         <div>
                           <Text type='secondary'>版本总数</Text>
                           <br />
-                          <Title level={3} style={{ margin: 0, color: '#3b82f6' }}>
+                          <Title
+                            level={3}
+                            style={{ margin: 0, color: '#3b82f6' }}
+                          >
                             {versions.length}
                           </Title>
                         </div>
@@ -356,6 +490,32 @@ const ContainerDetail = () => {
           },
         ]}
       />
+
+      {/* Helm Upload Modal */}
+      <Modal
+        title={`Upload Helm ${helmUploadType === 'chart' ? 'Chart' : 'Values'}`}
+        open={helmModalVisible}
+        onCancel={() => setHelmModalVisible(false)}
+        footer={null}
+      >
+        <Upload.Dragger
+          accept={helmUploadType === 'chart' ? '.tgz,.tar.gz' : '.yaml,.yml'}
+          beforeUpload={(file) => {
+            handleHelmUpload(file);
+            return false; // Prevent auto upload
+          }}
+          showUploadList={false}
+        >
+          <p className='ant-upload-drag-icon'>
+            <CloudUploadOutlined />
+          </p>
+          <p className='ant-upload-text'>
+            Click or drag{' '}
+            {helmUploadType === 'chart' ? 'chart (.tgz)' : 'values (.yaml)'}{' '}
+            file to upload
+          </p>
+        </Upload.Dragger>
+      </Modal>
     </div>
   );
 };

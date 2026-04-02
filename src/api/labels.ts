@@ -1,72 +1,30 @@
-/**
- * Label API
- * Using @rcabench/client SDK
- */
-import {
-  type BatchDeleteLabelReq,
-  type CreateLabelReq,
-  type LabelDetailResp,
-  type LabelResp,
-  LabelsApi,
-  type LabelsApiListLabelsRequest as ListLabelReq,
-  type UpdateLabelReq,
-} from '@rcabench/client';
+import type { LabelDetailResp, LabelResp } from '@rcabench/client';
 
-import { createApiConfig } from './config';
+import apiClient from './client';
 
 export const labelApi = {
-  /**
-   * Get label list
-   */
-  getLabels: async (params?: ListLabelReq) => {
-    const api = new LabelsApi(createApiConfig());
-    const response = await api.listLabels(params);
-    return response.data.data;
-  },
+  getLabels: (params?: { page?: number; size?: number; key?: string }) =>
+    apiClient.get('/labels', { params }).then((r) => r.data.data),
 
-  /**
-   * Get label details
-   */
-  getLabel: async (labelId: number): Promise<LabelDetailResp | undefined> => {
-    const api = new LabelsApi(createApiConfig());
-    const response = await api.getLabelById({ labelId });
-    return response.data.data;
-  },
+  getLabel: (labelId: number): Promise<LabelDetailResp | undefined> =>
+    apiClient.get(`/labels/${labelId}`).then((r) => r.data.data),
 
-  /**
-   * Create label
-   */
-  createLabel: async (data: CreateLabelReq): Promise<LabelResp | undefined> => {
-    const api = new LabelsApi(createApiConfig());
-    const response = await api.createLabel({ request: data });
-    return response.data.data;
-  },
+  createLabel: (data: {
+    key: string;
+    value: string;
+    color?: string;
+  }): Promise<LabelResp | undefined> =>
+    apiClient.post('/labels', data).then((r) => r.data.data),
 
-  /**
-   * Update label
-   */
-  updateLabel: async (
+  updateLabel: (
     labelId: number,
-    data: UpdateLabelReq
-  ): Promise<LabelResp | undefined> => {
-    const api = new LabelsApi(createApiConfig());
-    const response = await api.updateLabel({ labelId, request: data });
-    return response.data.data;
-  },
+    data: { key?: string; value?: string; color?: string }
+  ): Promise<LabelResp | undefined> =>
+    apiClient.patch(`/labels/${labelId}`, data).then((r) => r.data.data),
 
-  /**
-   * Delete label
-   */
-  deleteLabel: async (labelId: number) => {
-    const api = new LabelsApi(createApiConfig());
-    await api.deleteLabel({ labelId });
-  },
+  deleteLabel: (labelId: number) =>
+    apiClient.delete(`/labels/${labelId}`).then((r) => r.data),
 
-  /**
-   * Batch delete labels
-   */
-  batchDeleteLabels: async (data: BatchDeleteLabelReq) => {
-    const api = new LabelsApi(createApiConfig());
-    await api.batchDeleteLabels({ request: data });
-  },
+  batchDeleteLabels: (data: { ids: number[] }) =>
+    apiClient.post('/labels/batch-delete', data).then((r) => r.data),
 };

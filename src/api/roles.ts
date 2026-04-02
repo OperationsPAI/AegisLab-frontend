@@ -1,81 +1,41 @@
-/**
- * Role API
- * Using @rcabench/client SDK
- */
-import {
-  type AssignRolePermissionReq,
-  type CreateRoleReq,
-  type ListRoleReq,
-  type RemoveRolePermissionReq,
-  type RoleDetailResp,
-  type RoleResp,
-  RolesApi,
-  type UpdateRoleReq,
+import type {
+  CreateRoleReq,
+  RoleDetailResp,
+  RoleResp,
+  UpdateRoleReq,
 } from '@rcabench/client';
 
-import { createApiConfig } from './config';
+import apiClient from './client';
 
 export const roleApi = {
-  /**
-   * Get role list
-   */
-  getRoles: async (params?: ListRoleReq) => {
-    const api = new RolesApi(createApiConfig());
-    const response = await api.listRoles(params);
-    return response.data.data;
-  },
+  getRoles: (params?: { page?: number; size?: number; scope?: string }) =>
+    apiClient.get('/roles', { params }).then((r) => r.data.data),
 
-  /**
-   * Get role details
-   */
-  getRole: async (id: number): Promise<RoleDetailResp | undefined> => {
-    const api = new RolesApi(createApiConfig());
-    const response = await api.getRoleById({ id });
-    return response.data.data;
-  },
+  getRole: (id: number): Promise<RoleDetailResp | undefined> =>
+    apiClient.get(`/roles/${id}`).then((r) => r.data.data),
 
-  /**
-   * Create role
-   */
-  createRole: async (data: CreateRoleReq): Promise<RoleResp | undefined> => {
-    const api = new RolesApi(createApiConfig());
-    const response = await api.createRole({ request: data });
-    return response.data.data;
-  },
+  createRole: (data: CreateRoleReq): Promise<RoleResp | undefined> =>
+    apiClient.post('/roles', data).then((r) => r.data.data),
 
-  /**
-   * Update role
-   */
-  updateRole: async (
+  updateRole: (
     id: number,
     data: UpdateRoleReq
-  ): Promise<RoleResp | undefined> => {
-    const api = new RolesApi(createApiConfig());
-    const response = await api.updateRole({ id, request: data });
-    return response.data.data;
-  },
+  ): Promise<RoleResp | undefined> =>
+    apiClient.patch(`/roles/${id}`, data).then((r) => r.data.data),
 
-  /**
-   * Delete role
-   */
-  deleteRole: async (id: number) => {
-    const api = new RolesApi(createApiConfig());
-    await api.deleteRole({ id });
-  },
+  deleteRole: (id: number) =>
+    apiClient.delete(`/roles/${id}`).then((r) => r.data),
 
-  /**
-   * Assign permissions to role
-   */
-  assignPermissions: async (roleId: number, data: AssignRolePermissionReq) => {
-    const api = new RolesApi(createApiConfig());
-    await api.grantPermissionsToRole({ roleId, request: data });
-  },
+  assignPermissions: (roleId: number, data: { permission_ids: number[] }) =>
+    apiClient
+      .post(`/roles/${roleId}/permissions/assign`, data)
+      .then((r) => r.data),
 
-  /**
-   * Remove permissions from role
-   */
-  removePermissions: async (roleId: number, data: RemoveRolePermissionReq) => {
-    const api = new RolesApi(createApiConfig());
-    await api.revokePermissionsFromRole({ roleId, request: data });
-  },
+  removePermissions: (roleId: number, data: { permission_ids: number[] }) =>
+    apiClient
+      .post(`/roles/${roleId}/permissions/remove`, data)
+      .then((r) => r.data),
+
+  getRoleUsers: (roleId: number) =>
+    apiClient.get(`/roles/${roleId}/users`).then((r) => r.data.data),
 };

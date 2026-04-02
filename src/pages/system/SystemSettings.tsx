@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import {
   ClockCircleOutlined,
   DeleteOutlined,
@@ -6,7 +8,7 @@ import {
   UserAddOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Avatar,
   Button,
@@ -26,13 +28,12 @@ import {
   Typography,
 } from 'antd';
 import dayjs from 'dayjs';
-import { useState } from 'react';
 
 import {
-  usersApi,
-  type UserResp,
   type CreateUserReq,
   type UpdateUserReq,
+  type UserResp,
+  usersApi,
 } from '../../api/users';
 
 const { Title, Text } = Typography;
@@ -217,7 +218,13 @@ const SystemSettings = () => {
         <Title level={4} style={{ marginBottom: 16 }}>
           System Overview
         </Title>
-        <Row gutter={[{ xs: 8, sm: 16, lg: 24 }, { xs: 8, sm: 16, lg: 24 }]} className='stats-row'>
+        <Row
+          gutter={[
+            { xs: 8, sm: 16, lg: 24 },
+            { xs: 8, sm: 16, lg: 24 },
+          ]}
+          className='stats-row'
+        >
           <Col xs={12} sm={12} lg={8}>
             <Card size='small'>
               <Statistic
@@ -278,9 +285,9 @@ const SystemSettings = () => {
                   size='small'
                   onClick={() =>
                     openEditModal({
-                      id: item.id!,
-                      username: item.username!,
-                      email: item.email!,
+                      id: item.id ?? 0,
+                      username: item.username ?? '',
+                      email: item.email ?? '',
                       full_name: item.full_name,
                       is_active: item.is_active,
                     })
@@ -295,9 +302,9 @@ const SystemSettings = () => {
                   size='small'
                   onClick={() =>
                     handleToggleUserStatus(
-                      item.id!,
-                      item.is_active!,
-                      item.username!
+                      item.id ?? 0,
+                      item.is_active ?? false,
+                      item.username ?? ''
                     )
                   }
                 >
@@ -309,7 +316,9 @@ const SystemSettings = () => {
                   danger
                   size='small'
                   icon={<DeleteOutlined />}
-                  onClick={() => handleDeleteUser(item.id!, item.username!)}
+                  onClick={() =>
+                    handleDeleteUser(item.id ?? 0, item.username ?? '')
+                  }
                 >
                   Delete
                 </Button>,
@@ -321,7 +330,7 @@ const SystemSettings = () => {
                   <Space>
                     <Text strong>{item.full_name || item.username}</Text>
                     <Text type='secondary'>@{item.username}</Text>
-                    <Tag color={getStatusColor(item.is_active!)}>
+                    <Tag color={getStatusColor(item.is_active ?? false)}>
                       {item.is_active ? 'Active' : 'Inactive'}
                     </Tag>
                   </Space>
@@ -337,9 +346,7 @@ const SystemSettings = () => {
                       <Text type='secondary'>
                         Last login:{' '}
                         {item.last_login_at
-                          ? dayjs(item.last_login_at).format(
-                              'YYYY-MM-DD HH:mm'
-                            )
+                          ? dayjs(item.last_login_at).format('YYYY-MM-DD HH:mm')
                           : 'Never'}
                       </Text>
                     </Space>

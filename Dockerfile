@@ -1,8 +1,7 @@
 FROM node:20-alpine AS builder
 
 # derive package manager name and version from package.json using jq
-RUN npm config set registry https://registry.npmmirror.com && \
-    pm=$(jq -r '.packageManager|split("@")[0]' package.json 2>/dev/null || echo pnpm) && \
+RUN pm=$(jq -r '.packageManager|split("@")[0]' package.json 2>/dev/null || echo pnpm) && \
     ver=$(jq -r '.packageManager|split("@")[1]' package.json 2>/dev/null || echo latest) && \
     npm install -g "$pm@$ver"
 

@@ -89,7 +89,7 @@ const derivePhaseSteps = (
 ): PhaseStep[] =>
   PHASES.map((phaseKey) => {
     const phase = ssePhases[phaseKey];
-    console.log('Deriving step for phase:', phaseKey, 'with data:', phase);
+    // Debug: deriving step for phase
     return {
       key: phaseKey,
       title: PHASE_LABELS[phaseKey],

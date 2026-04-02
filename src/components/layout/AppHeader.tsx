@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import {
+  BellOutlined,
   DashboardOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
@@ -12,6 +13,7 @@ import {
 } from '@ant-design/icons';
 import {
   Avatar,
+  Badge,
   Breadcrumb,
   Button,
   Drawer,
@@ -60,6 +62,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   const { user, logout } = useAuthStore();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // Check if user has admin privileges
+  const isAdmin = !!(user as Record<string, unknown> | null)?.is_superuser;
+
   // User dropdown menu
   const userDropdownItems: MenuProps['items'] = [
     {
@@ -67,14 +72,19 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       icon: <UserOutlined />,
       label: 'Profile',
     },
-    {
-      type: 'divider',
-    },
-    {
-      key: 'admin',
-      icon: <DashboardOutlined />,
-      label: 'Admin Panel',
-    },
+    // Admin Panel - only visible to superusers
+    ...(isAdmin
+      ? [
+          {
+            type: 'divider' as const,
+          },
+          {
+            key: 'admin',
+            icon: <DashboardOutlined />,
+            label: 'Admin Panel',
+          },
+        ]
+      : []),
     {
       type: 'divider',
     },
@@ -93,7 +103,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     } else if (key === 'profile') {
       navigate('/profile');
     } else if (key === 'admin') {
-      navigate('/admin/dashboard');
+      navigate('/admin/system');
     }
   };
 
@@ -147,7 +157,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       'projects',
       'profile',
       'admin',
-      'utility-test',
+      'settings',
+      'tasks',
+      'notifications',
     ];
     if (
       pathParts.length >= 1 &&
@@ -162,7 +174,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       ];
     }
 
-    const items = [];
+    const items: Array<{ title: React.ReactNode }> = [];
 
     let currentPath = '';
     pathParts.forEach((part, index) => {
@@ -247,6 +259,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
         <div className='app-header-right'>
           <ThemeToggle />
+          <Badge count={0} size='small'>
+            <BellOutlined
+              style={{ fontSize: 18, cursor: 'pointer' }}
+              onClick={() => navigate('/notifications')}
+            />
+          </Badge>
           <Dropdown
             menu={{ items: userDropdownItems, onClick: handleUserMenuClick }}
             placement='bottomRight'

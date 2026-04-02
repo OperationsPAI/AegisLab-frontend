@@ -7,7 +7,6 @@ import {
 } from 'react-router-dom';
 
 import {
-  AreaChartOutlined,
   DatabaseOutlined,
   DeleteOutlined,
   EditOutlined,
@@ -16,22 +15,19 @@ import {
   FileTextOutlined,
   FunctionOutlined,
   ProfileOutlined,
-  StopOutlined,
 } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { message, Space, Tag, Typography } from 'antd';
+import { message, Modal, Space, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
 import { executionApi } from '@/api/executions';
 import {
   ArtifactsTab,
-  ChartsTab,
   DetailView,
   type DetailViewAction,
   type DetailViewTab,
   type DetectorResult,
-  type FileItem,
   FilesTab,
   type GranularityResult,
   LogsTab,
@@ -114,15 +110,61 @@ const ProjectExecutionDetail: React.FC = () => {
 
   // Action handlers
   const handleEdit = () => {
-    message.info('Edit functionality coming soon');
+    const configJson = (() => {
+      if (!execution) return '{}';
+      const data: Record<string, unknown> = {
+        id: execution.id,
+        algorithm_name: execution.algorithm_name,
+        algorithm_version: execution.algorithm_version,
+        datapack_id: execution.datapack_id,
+        state: execution.state,
+        duration: execution.duration,
+        labels: execution.labels,
+      };
+      return JSON.stringify(data, null, 2);
+    })();
+
+    Modal.info({
+      title: 'Execution Configuration',
+      width: 640,
+      content: (
+        <pre
+          style={{
+            background: '#f5f5f5',
+            padding: 16,
+            borderRadius: 6,
+            maxHeight: 480,
+            overflow: 'auto',
+            fontSize: 12,
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-all',
+          }}
+        >
+          {configJson}
+        </pre>
+      ),
+      okText: 'Close',
+    });
   };
 
   const handleDelete = () => {
-    message.warning('Delete functionality coming soon');
-  };
-
-  const handleStop = () => {
-    message.info('Stop functionality coming soon');
+    if (!id) return;
+    Modal.confirm({
+      title: 'Delete Execution',
+      content:
+        'Are you sure you want to delete this execution? This action cannot be undone.',
+      okText: 'Delete',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          await executionApi.batchDelete([Number(id)]);
+          message.success('Execution deleted successfully');
+          navigate(`/${teamName}/${projectName}/executions`);
+        } catch {
+          message.error('Failed to delete execution');
+        }
+      },
+    });
   };
 
   const handleDownloadResults = () => {
@@ -162,17 +204,10 @@ const ProjectExecutionDetail: React.FC = () => {
   // Define actions
   const actions: DetailViewAction[] = [
     {
-      key: 'edit',
-      label: 'Edit',
+      key: 'viewConfig',
+      label: 'View config',
       icon: <EditOutlined />,
       onClick: handleEdit,
-    },
-    {
-      key: 'stop',
-      label: 'Stop',
-      icon: <StopOutlined />,
-      onClick: handleStop,
-      disabled: execution?.state !== 'running',
     },
     {
       key: 'delete',
@@ -220,32 +255,8 @@ const ProjectExecutionDetail: React.FC = () => {
     ];
   }, [execution, runtime]);
 
-  // Mock files for demo
-  const mockFiles: FileItem[] = [
-    {
-      name: 'requirements.txt',
-      path: '/requirements.txt',
-      type: 'file',
-      size: 5800,
-      modifiedAt: dayjs().subtract(3, 'month').toISOString(),
-    },
-    {
-      name: 'wandb-metadata.json',
-      path: '/wandb-metadata.json',
-      type: 'file',
-      size: 3600,
-      modifiedAt: dayjs().subtract(3, 'month').toISOString(),
-    },
-  ];
-
   // Define tabs (including Artifacts for executions)
   const tabs: DetailViewTab[] = [
-    {
-      key: 'charts',
-      label: 'Charts',
-      icon: <AreaChartOutlined />,
-      content: <ChartsTab charts={[]} loading={isLoading} />,
-    },
     {
       key: 'overview',
       label: 'Overview',
@@ -258,7 +269,7 @@ const ProjectExecutionDetail: React.FC = () => {
               (l: { key?: string; value?: string }) => `${l.key}: ${l.value}`
             ) || []
           }
-          author='admin'
+          author={user?.username || 'Unknown'}
           state={execution?.state || 'unknown'}
           startTime={execution?.created_at}
           runtime={runtime}
@@ -272,13 +283,25 @@ const ProjectExecutionDetail: React.FC = () => {
       key: 'logs',
       label: 'Logs',
       icon: <FileTextOutlined />,
-      content: <LogsTab mode='execution' traceId='' />,
+      content: (
+        <LogsTab
+          mode='execution'
+          traceId={execution?.task_id ?? ''}
+          taskId={execution?.task_id}
+        />
+      ),
     },
     {
       key: 'files',
       label: 'Files',
       icon: <FileOutlined />,
-      content: <FilesTab files={mockFiles} />,
+      content: execution?.datapack_id ? (
+        <FilesTab injectionId={execution.datapack_id} />
+      ) : (
+        <div style={{ padding: 24, textAlign: 'center', color: '#8c8c8c' }}>
+          No files available for this execution.
+        </div>
+      ),
     },
     {
       key: 'artifacts',

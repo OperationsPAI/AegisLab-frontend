@@ -22,9 +22,6 @@ const pageNameMap: Record<string, string> = {
   injections: 'Injections',
   executions: 'Executions',
   evaluations: 'Evaluations',
-  reports: 'Reports',
-  artifacts: 'Artifacts',
-  charts: 'Charts',
   settings: 'Settings',
 };
 

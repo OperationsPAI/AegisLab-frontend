@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import {
   BarChartOutlined,
   CheckCircleOutlined,
@@ -6,7 +9,6 @@ import {
   DeleteOutlined,
   DownloadOutlined,
   EyeOutlined,
-  FilterOutlined,
   FunctionOutlined,
   PlayCircleOutlined,
   SearchOutlined,
@@ -15,8 +17,9 @@ import {
 import {
   type EvaluateDatapackItem,
   type EvaluateDatapackSpec,
+  type EvaluateDatasetSpec,
 } from '@rcabench/client';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Avatar,
   Badge,
@@ -37,12 +40,8 @@ import {
   Typography,
 } from 'antd';
 import dayjs from 'dayjs';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-
 
 import { containerApi } from '@/api/containers';
-import { datasetApi } from '@/api/datasets';
 import { evaluationApi } from '@/api/evaluations';
 import StatCard from '@/components/ui/StatCard';
 
@@ -50,31 +49,9 @@ const { Title, Text } = Typography;
 const { Search } = Input;
 const { Option } = Select;
 
-// localStorage key for persisting evaluations
-const EVALUATIONS_STORAGE_KEY = 'rcabench_evaluations';
-
-// Helper to load evaluations from localStorage
-const loadEvaluationsFromStorage = (): EvaluateDatapackItem[] => {
-  try {
-    const stored = localStorage.getItem(EVALUATIONS_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-};
-
-// Helper to save evaluations to localStorage
-const saveEvaluationsToStorage = (evaluations: EvaluateDatapackItem[]) => {
-  try {
-    localStorage.setItem(EVALUATIONS_STORAGE_KEY, JSON.stringify(evaluations));
-  } catch (error) {
-    console.error('Failed to save evaluations to localStorage:', error);
-  }
-};
-
 const EvaluationList = () => {
   const navigate = useNavigate();
-  const [_searchText, setSearchText] = useState('');
+  const queryClient = useQueryClient();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [algorithmFilter, setAlgorithmFilter] = useState<string | undefined>();
   const [typeFilter, setTypeFilter] = useState<
@@ -83,38 +60,37 @@ const EvaluationList = () => {
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
-    total: 0,
   });
-  // Load evaluations from localStorage on initial render
-  const [evaluations, setEvaluations] = useState<EvaluateDatapackItem[]>(() =>
-    loadEvaluationsFromStorage()
-  );
-  const isLoading = false;
 
-  // Fetch available algorithms and datasets for filters
+  // Fetch evaluations from the API
+  const { data: evaluationsData, isLoading } = useQuery({
+    queryKey: [
+      'evaluations',
+      { page: pagination.current, size: pagination.pageSize },
+    ],
+    queryFn: () =>
+      evaluationApi.getEvaluations({
+        page: pagination.current,
+        size: pagination.pageSize,
+      }),
+  });
+
+  const evaluations = evaluationsData?.items ?? [];
+  const total = evaluationsData?.total ?? 0;
+
+  // Fetch available algorithms for filters
   const { data: algorithmsData } = useQuery({
     queryKey: ['algorithms'],
     queryFn: () => containerApi.getContainers({ type: 2 }), // Algorithm = 2
   });
 
-  const { data: _datasetsData } = useQuery({
-    queryKey: ['datasets'],
-    queryFn: () => datasetApi.getDatasets(),
-  });
-
   // Evaluate datapack mutation
   const evaluateDatapackMutation = useMutation({
     mutationFn: (specs: EvaluateDatapackSpec[]) =>
-      evaluationApi.evaluateDatapacks(specs as any),
-    onSuccess: (data: any) => {
+      evaluationApi.evaluateDatapacks(specs),
+    onSuccess: () => {
       message.success('Evaluation completed successfully');
-      // Add new evaluations to the list and persist
-      const newItems = data?.data?.items || [];
-      setEvaluations((prev) => {
-        const updated = [...prev, ...newItems];
-        saveEvaluationsToStorage(updated);
-        return updated;
-      });
+      queryClient.invalidateQueries({ queryKey: ['evaluations'] });
     },
     onError: (error) => {
       message.error('Failed to evaluate datapack');
@@ -125,16 +101,10 @@ const EvaluationList = () => {
   // Evaluate dataset mutation
   const evaluateDatasetMutation = useMutation({
     mutationFn: (specs: EvaluateDatapackSpec[]) =>
-      evaluationApi.evaluateDatasets(specs as any),
-    onSuccess: (data: any) => {
+      evaluationApi.evaluateDatasets(specs as unknown as EvaluateDatasetSpec[]),
+    onSuccess: () => {
       message.success('Evaluation completed successfully');
-      // Add new evaluations to the list and persist
-      const newItems = data?.data?.items || [];
-      setEvaluations((prev) => {
-        const updated = [...prev, ...newItems];
-        saveEvaluationsToStorage(updated);
-        return updated;
-      });
+      queryClient.invalidateQueries({ queryKey: ['evaluations'] });
     },
     onError: (error) => {
       message.error('Failed to evaluate dataset');
@@ -142,16 +112,27 @@ const EvaluationList = () => {
     },
   });
 
+  // Delete evaluation mutation
+  const deleteEvaluationMutation = useMutation({
+    mutationFn: (id: number) => evaluationApi.deleteEvaluation(id),
+    onSuccess: () => {
+      message.success('Evaluation deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['evaluations'] });
+    },
+    onError: (error) => {
+      message.error('Failed to delete evaluation');
+      console.error('Delete error:', error);
+    },
+  });
+
   const handleTableChange = (newPagination: TablePaginationConfig) => {
     setPagination({
-      ...pagination,
       current: newPagination.current || 1,
       pageSize: newPagination.pageSize || 10,
     });
   };
 
-  const handleSearch = (value: string) => {
-    setSearchText(value);
+  const handleSearch = (_value: string) => {
     setPagination({ ...pagination, current: 1 });
   };
 
@@ -165,12 +146,17 @@ const EvaluationList = () => {
     setPagination({ ...pagination, current: 1 });
   };
 
-  const handleViewEvaluation = (_evaluation: EvaluateDatapackItem) => {
-    // TODO: Navigate to detailed evaluation view when implemented
-    message.info('Detailed evaluation view will be implemented soon');
+  const handleViewEvaluation = (evaluation: EvaluateDatapackItem) => {
+    const evalRecord = evaluation as EvaluateDatapackItem & { id?: number };
+    if (evalRecord.id != null) {
+      navigate(`evaluations/${evalRecord.id}`);
+    }
   };
 
-  const handleDeleteEvaluation = (index: number) => {
+  const handleDeleteEvaluation = (evaluation: EvaluateDatapackItem) => {
+    const evalRecord = evaluation as EvaluateDatapackItem & { id?: number };
+    if (evalRecord.id == null) return;
+    const id = evalRecord.id;
     Modal.confirm({
       title: 'Delete Evaluation',
       content: 'Are you sure you want to delete this evaluation result?',
@@ -178,12 +164,7 @@ const EvaluationList = () => {
       okButtonProps: { danger: true },
       cancelText: 'Cancel',
       onOk: () => {
-        setEvaluations((prev) => {
-          const updated = prev.filter((_, i) => i !== index);
-          saveEvaluationsToStorage(updated);
-          return updated;
-        });
-        message.success('Evaluation deleted successfully');
+        deleteEvaluationMutation.mutate(id);
       },
     });
   };
@@ -200,13 +181,14 @@ const EvaluationList = () => {
       okText: 'Yes, delete them',
       okButtonProps: { danger: true },
       cancelText: 'Cancel',
-      onOk: () => {
-        setEvaluations((prev) => {
-          const updated = prev.filter((_, i) => !selectedRowKeys.includes(i));
-          saveEvaluationsToStorage(updated);
-          return updated;
-        });
+      onOk: async () => {
+        await Promise.all(
+          selectedRowKeys.map((key) =>
+            evaluationApi.deleteEvaluation(Number(key))
+          )
+        );
         setSelectedRowKeys([]);
+        queryClient.invalidateQueries({ queryKey: ['evaluations'] });
         message.success(
           `${selectedRowKeys.length} evaluations deleted successfully`
         );
@@ -219,7 +201,6 @@ const EvaluationList = () => {
   };
 
   const handleExportResults = () => {
-    // Export evaluation results as CSV
     const csvContent = [
       'Algorithm,Version,Datapack,Dataset,Execution Count,Created',
       ...evaluations.map(
@@ -387,7 +368,7 @@ const EvaluationList = () => {
       title: 'Actions',
       key: 'actions',
       width: '8%',
-      render: (_: string, record: EvaluateDatapackItem, index: number) => (
+      render: (_: string, record: EvaluateDatapackItem) => (
         <Space size='small'>
           <Tooltip title='View Details'>
             <Button
@@ -401,7 +382,7 @@ const EvaluationList = () => {
               type='text'
               danger
               icon={<DeleteOutlined />}
-              onClick={() => handleDeleteEvaluation(index)}
+              onClick={() => handleDeleteEvaluation(record)}
             />
           </Tooltip>
         </Space>
@@ -439,11 +420,17 @@ const EvaluationList = () => {
       </div>
 
       {/* Statistics Cards */}
-      <Row gutter={[{ xs: 8, sm: 16, lg: 24 }, { xs: 8, sm: 16, lg: 24 }]} className='stats-row'>
+      <Row
+        gutter={[
+          { xs: 8, sm: 16, lg: 24 },
+          { xs: 8, sm: 16, lg: 24 },
+        ]}
+        className='stats-row'
+      >
         <Col xs={12} sm={12} lg={6}>
           <StatCard
             title='Total Evaluations'
-            value={evaluations.length}
+            value={total}
             prefix={<BarChartOutlined />}
             color='primary'
           />
@@ -458,20 +445,20 @@ const EvaluationList = () => {
         </Col>
         <Col xs={12} sm={12} lg={6}>
           <StatCard
-            title='Avg F1-Score'
-            value={
-              evaluations.length > 0
-                ? `${(evaluations.length * 85).toFixed(1)}%`
-                : '0%'
-            }
-            prefix={<CheckCircleOutlined />}
+            title='Datasets Used'
+            value={new Set(evaluations.map((e) => e.datapack)).size}
+            prefix={<DatabaseOutlined />}
             color='warning'
           />
         </Col>
         <Col xs={12} sm={12} lg={6}>
           <StatCard
-            title='Best Accuracy'
-            value={evaluations.length > 0 ? `${(95).toFixed(1)}%` : '0%'}
+            title='Completed'
+            value={
+              evaluations.filter(
+                (e) => e.execution_refs && e.execution_refs.length > 0
+              ).length
+            }
             prefix={<CheckCircleOutlined />}
             color='error'
           />
@@ -528,7 +515,6 @@ const EvaluationList = () => {
                   Delete Selected ({selectedRowKeys.length})
                 </Button>
               )}
-              <Button icon={<FilterOutlined />}>Advanced Filter</Button>
             </Space>
           </Col>
         </Row>
@@ -537,9 +523,10 @@ const EvaluationList = () => {
       {/* Evaluation Table */}
       <Card className='table-card'>
         <Table
-          rowKey={(record, index) =>
-            `${record.algorithm}-${record.datapack}-${index}`
-          }
+          rowKey={(record) => {
+            const r = record as EvaluateDatapackItem & { id?: number };
+            return r.id ?? `${record.algorithm}-${record.datapack}`;
+          }}
           rowSelection={rowSelection}
           columns={columns}
           dataSource={evaluations}
@@ -550,12 +537,13 @@ const EvaluationList = () => {
           }
           className='evaluations-table'
           pagination={{
-            ...pagination,
-            total: evaluations.length,
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total,
             showSizeChanger: true,
             showQuickJumper: true,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} evaluations`,
+            showTotal: (t, range) =>
+              `${range[0]}-${range[1]} of ${t} evaluations`,
           }}
           onChange={handleTableChange}
           locale={{
