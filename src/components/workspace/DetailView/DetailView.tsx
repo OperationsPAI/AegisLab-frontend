@@ -91,7 +91,9 @@ const DetailView: React.FC<DetailViewProps> = ({
     : false;
 
   const [activeTab, setActiveTab] = useState(
-    isValidTab ? tabFromPath : defaultActiveTab || tabs[0]?.key || 'overview'
+    isValidTab
+      ? (tabFromPath ?? undefined)
+      : defaultActiveTab || tabs[0]?.key || 'overview'
   );
 
   // Sync activeTab with path and redirect to tab if missing

@@ -120,7 +120,7 @@ const GroundTruthTable: React.FC<GroundTruthTableProps> = ({
     // Build row data - each row is a property
     const rows: VerticalRowData[] = PROPERTY_LABELS.map(({ key, label }) => {
       const row: VerticalRowData = {
-        key,
+        key: key as string,
         property: label,
       };
 

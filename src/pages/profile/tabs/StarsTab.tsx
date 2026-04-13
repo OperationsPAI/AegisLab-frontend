@@ -2,6 +2,7 @@ import { StarFilled } from '@ant-design/icons';
 import { Col, Empty, Row, Typography } from 'antd';
 
 import ProjectCard from '@/components/profile/ProjectCard';
+import type { ProjectWithStats } from '@/types/api';
 
 const { Title, Text } = Typography;
 
@@ -10,7 +11,7 @@ const StarsTab = () => {
   const toggleStar = async (_id: number) => {
     /* TODO: implement star toggle */
   };
-  const starredProjects: never[] = [];
+  const starredProjects: ProjectWithStats[] = [];
   const isLoading = false;
 
   if (isLoading) {

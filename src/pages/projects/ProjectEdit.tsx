@@ -7,6 +7,7 @@ import {
   ProjectOutlined,
   SaveOutlined,
 } from '@ant-design/icons';
+import type { ProjectDetailResp } from '@rcabench/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
@@ -86,7 +87,8 @@ const ProjectEdit = () => {
     if (project) {
       form.setFieldsValue({
         name: project.name,
-        description: project.description,
+        description: (project as ProjectDetailResp & { description?: string })
+          .description,
         is_public: project.is_public ?? false,
       });
     }

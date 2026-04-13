@@ -10,7 +10,7 @@ import {
   StopOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
-import { GetInjectionMetadataSystem } from '@rcabench/client';
+import { type ChaosNode, GetInjectionMetadataSystem } from '@rcabench/client';
 import { useQuery } from '@tanstack/react-query';
 import { Card, Empty, List, Spin, Tag, Tooltip } from 'antd';
 
@@ -108,18 +108,15 @@ export const FaultTypePanel: React.FC<FaultTypePanelProps> = ({
 
     // Helper to determine parameter type from ChaosNode
     const getParameterType = (
-      node: Record<string, unknown>
+      node: ChaosNode
     ): 'string' | 'number' | 'boolean' | 'select' | 'range' => {
-      if (node.range && Array.isArray(node.range) && node.range.length === 2) {
+      if (node.range && node.range.length === 2) {
         return 'range';
       }
       if (typeof node.value === 'number') {
         return 'number';
       }
-      if (typeof node.value === 'boolean') {
-        return 'boolean';
-      }
-      if (node.children && typeof node.children === 'object') {
+      if (node.children) {
         // If it has children, it might be a select with options
         const childKeys = Object.keys(node.children);
         if (childKeys.length > 0) {
@@ -129,41 +126,41 @@ export const FaultTypePanel: React.FC<FaultTypePanelProps> = ({
       return 'string';
     };
 
-    return Object.entries(metadata.fault_type_map).map(
-      ([key, description], index) => {
-        const faultConfig = configChildren[key];
-        const parameters = faultConfig?.children
-          ? Object.entries(faultConfig.children).map(
-              ([paramName, paramNode]) => {
-                const paramType = getParameterType(paramNode);
-                return {
-                  name: paramName,
-                  type: paramType,
-                  label: paramNode.description || paramName,
-                  description: paramNode.description,
-                  required: false,
-                  default: paramNode.value,
-                  min: paramNode.range?.[0],
-                  max: paramNode.range?.[1],
-                  options:
-                    paramType === 'select' && paramNode.children
-                      ? Object.keys(paramNode.children)
-                      : undefined,
-                };
-              }
-            )
-          : [];
+    return Object.entries(
+      metadata.fault_type_map as Record<string, string>
+    ).map(([key, description], index) => {
+      const faultConfig = configChildren[key];
+      const parameters = faultConfig?.children
+        ? (
+            Object.entries(faultConfig.children) as Array<[string, ChaosNode]>
+          ).map(([paramName, paramNode]) => {
+            const paramType = getParameterType(paramNode);
+            return {
+              name: paramName,
+              type: paramType,
+              label: paramNode.description || paramName,
+              description: paramNode.description,
+              required: false,
+              default: paramNode.value,
+              min: paramNode.range?.[0],
+              max: paramNode.range?.[1],
+              options:
+                paramType === 'select' && paramNode.children
+                  ? Object.keys(paramNode.children)
+                  : undefined,
+            };
+          })
+        : [];
 
-        return {
-          id: index,
-          name: key,
-          type: key,
-          category: categoryMap[key] || 'Other',
-          description: description || key,
-          parameters,
-        };
-      }
-    );
+      return {
+        id: index,
+        name: key,
+        type: key,
+        category: categoryMap[key] || 'Other',
+        description: description || key,
+        parameters,
+      };
+    });
   }, [metadata]);
 
   const handleFaultClick = (fault: FaultTypeConfig) => {

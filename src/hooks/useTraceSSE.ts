@@ -20,8 +20,11 @@ import {
   EventType,
   type ExecutionInfo,
   type ExecutionResult,
-  type StreamEvent,
+  type TraceStreamEvent,
 } from '@rcabench/client';
+
+/** Alias for the SDK's TraceStreamEvent (previously exported as StreamEvent) */
+type StreamEvent = TraceStreamEvent;
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

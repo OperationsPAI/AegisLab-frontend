@@ -159,9 +159,15 @@ const ArrowViewer: React.FC<ArrowViewerProps> = ({
         );
         if (cancelled) return;
 
-        const totalRows = parseInt(response.headers.get('X-Total-Rows') || '0');
+        const axiosResponse = response as unknown as {
+          headers: { get(name: string): string | null };
+          body: ReadableStream;
+        };
+        const totalRows = parseInt(
+          axiosResponse.headers.get('X-Total-Rows') || '0'
+        );
 
-        const body = response.body;
+        const body = axiosResponse.body;
         if (!body) throw new Error('Response body is null');
 
         const worker = await getWorker();
@@ -172,7 +178,7 @@ const ArrowViewer: React.FC<ArrowViewerProps> = ({
 
         let receivedRows = 0;
 
-        const reader = await RecordBatchReader.from(response.body);
+        const reader = await RecordBatchReader.from(axiosResponse.body);
         for await (const batch of reader) {
           if (cancelled) break;
 

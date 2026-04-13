@@ -49,7 +49,7 @@ const ProjectsTab = () => {
   });
 
   // Starred projects stub (profile API removed)
-  const starredProjects: never[] = [];
+  const starredProjects: ProjectWithStats[] = [];
   const starredLoading = false;
 
   // User projects stub (profile API removed)

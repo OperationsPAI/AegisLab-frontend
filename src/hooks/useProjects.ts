@@ -2,11 +2,7 @@
  * Fetch projects with automatic name→id cache updates
  */
 import type { ListProjectResp, StatusType } from '@rcabench/client';
-import {
-  useQuery,
-  useQueryClient,
-  type UseQueryResult,
-} from '@tanstack/react-query';
+import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 
 import { projectApi } from '@/api/projects';
 import { updateProjectNameMap } from '@/utils/projectNameMap';
@@ -25,7 +21,6 @@ interface UseProjectsOptions {
 export function useProjects(
   options: UseProjectsOptions = {}
 ): UseQueryResult<ListProjectResp | undefined> {
-  const queryClient = useQueryClient();
   const { page, size, isPublic, status, queryKey } = options;
 
   // Build query key based on provided options
@@ -48,9 +43,7 @@ export function useProjects(
 
       // Update name→id cache
       if (data?.items) {
-        updateProjectNameMap(data.items, (key, value) => {
-          queryClient.setQueryData(key, value);
-        });
+        updateProjectNameMap(data.items);
       }
 
       return data;

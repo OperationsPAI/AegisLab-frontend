@@ -1,7 +1,7 @@
 /**
  * Fetch teams with automatic name→id cache updates
  */
-import type { ListTeamResp } from '@rcabench/client';
+import type { ListTeamResp, TeamResp } from '@rcabench/client';
 import {
   useQuery,
   useQueryClient,
@@ -37,7 +37,21 @@ export function useTeams(
 
       // Update name→id cache
       if (data?.items) {
-        updateTeamNameMap(data.items, (key, value) => {
+        const teams = data.items
+          .filter(
+            (t: TeamResp): t is TeamResp & { id: number; name: string } =>
+              t.id != null && t.name != null
+          )
+          .map((t) => ({
+            ...t,
+            id: t.id,
+            name: t.name,
+            member_count: 0,
+            project_count: 0,
+            created_at: t.created_at ?? '',
+            updated_at: t.updated_at ?? '',
+          }));
+        updateTeamNameMap(teams, (key, value) => {
           queryClient.setQueryData(key, value);
         });
       }

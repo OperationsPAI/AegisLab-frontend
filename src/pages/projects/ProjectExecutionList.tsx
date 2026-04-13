@@ -679,7 +679,6 @@ const ProjectExecutionList: React.FC = () => {
         renderStatus={renderStatus}
         renderCell={renderCell}
         rowColors={rowColors}
-        statusField='state'
         onBackClick={handleBackToWorkspace}
         backTooltip='Back to Workspace'
         onBulkDelete={handleBulkDelete}

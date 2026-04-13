@@ -6,6 +6,7 @@ import {
   SaveOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
+import type { ProjectDetailResp } from '@rcabench/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Button,
@@ -114,7 +115,9 @@ const ProjectSettings: React.FC = () => {
           layout='vertical'
           initialValues={{
             name: project.name,
-            description: project.description || '',
+            description:
+              (project as ProjectDetailResp & { description?: string })
+                .description || '',
             is_public: project.is_public || false,
           }}
           onFinish={handleSubmit}

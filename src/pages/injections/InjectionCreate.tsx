@@ -32,7 +32,7 @@ import { TagManager } from './components/TagManager';
 import { containerApi } from '../../api/containers';
 import { injectionApi } from '../../api/injections';
 import { projectApi } from '../../api/projects';
-import type { FaultTypeConfig } from '../../types/api';
+import type { FaultParameter, FaultTypeConfig } from '../../types/api';
 
 import './InjectionCreate.css';
 
@@ -103,43 +103,43 @@ const InjectionCreate: React.FC = () => {
     if (!faultMetadata?.fault_type_map) return [];
     const configChildren = faultMetadata.config?.children || {};
 
-    return Object.entries(faultMetadata.fault_type_map).map(
-      ([key, description], index) => {
-        const faultConfig = configChildren[key];
-        const parameters = faultConfig?.children
-          ? Object.entries(faultConfig.children).map(
-              ([paramName, paramNode]: [string, ChaosNode]) => {
-                // Filter out sentinel values like -999999 which indicate "no default"
-                const defaultValue =
-                  paramNode.value === -999999 ? undefined : paramNode.value;
+    return Object.entries(
+      faultMetadata.fault_type_map as Record<string, string>
+    ).map(([key, description], index) => {
+      const faultConfig = configChildren[key];
+      const parameters = faultConfig?.children
+        ? (
+            Object.entries(faultConfig.children) as Array<[string, ChaosNode]>
+          ).map(([paramName, paramNode]) => {
+            // Filter out sentinel values like -999999 which indicate "no default"
+            const defaultValue =
+              paramNode.value === -999999 ? undefined : paramNode.value;
 
-                return {
-                  name: paramName,
-                  type: paramNode.range
-                    ? 'range'
-                    : typeof paramNode.value === 'number'
-                      ? 'number'
-                      : 'string',
-                  label: paramNode.description || paramName,
-                  description: paramNode.description,
-                  required: false,
-                  default: defaultValue,
-                  min: paramNode.range?.[0],
-                  max: paramNode.range?.[1],
-                };
-              }
-            )
-          : [];
+            return {
+              name: paramName,
+              type: (paramNode.range
+                ? 'range'
+                : typeof paramNode.value === 'number'
+                  ? 'number'
+                  : 'string') as FaultParameter['type'],
+              label: paramNode.description || paramName,
+              description: paramNode.description,
+              required: false,
+              default: defaultValue,
+              min: paramNode.range?.[0],
+              max: paramNode.range?.[1],
+            };
+          })
+        : [];
 
-        return {
-          id: index,
-          name: key,
-          type: key,
-          description: description || key,
-          parameters,
-        };
-      }
-    );
+      return {
+        id: index,
+        name: key,
+        type: key,
+        description: description || key,
+        parameters,
+      };
+    });
   }, [faultMetadata]);
 
   // Group containers by type (API returns type as string: "algorithm", "benchmark", "pedestal")
@@ -252,7 +252,10 @@ const InjectionCreate: React.FC = () => {
           Object.keys(faultConfig).length > 0
             ? Object.entries(faultConfig).reduce(
                 (acc, [key, value]) => {
-                  acc[key] = { name: key, value };
+                  acc[key] = {
+                    name: key,
+                    value: typeof value === 'number' ? value : undefined,
+                  };
                   return acc;
                 },
                 {} as { [key: string]: ChaosNode }
@@ -411,8 +414,8 @@ const InjectionCreate: React.FC = () => {
                   size='small'
                   showSearch
                   filterOption={(input, option) =>
-                    (option?.children as string)
-                      ?.toLowerCase()
+                    String(option?.label || '')
+                      .toLowerCase()
                       .includes(input.toLowerCase())
                   }
                 >

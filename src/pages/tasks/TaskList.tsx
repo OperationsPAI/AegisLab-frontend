@@ -80,7 +80,7 @@ const TaskList = () => {
       taskApi.getTasks({
         page: pagination.current,
         size: pagination.pageSize,
-        taskType: typeFilter,
+        taskType: typeFilter as string | undefined,
         state: stateFilter,
       }),
     refetchInterval: autoRefresh ? refreshInterval : false,

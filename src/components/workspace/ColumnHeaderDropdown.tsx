@@ -145,7 +145,7 @@ const ColumnHeaderDropdown: FC<ColumnHeaderDropdownProps> = ({
         placement='bottomLeft'
         open={open}
         onOpenChange={setOpen}
-        classNames={{ root: 'column-header-dropdown-menu' }}
+        className='column-header-dropdown-menu'
       >
         <EllipsisOutlined
           className='column-menu-icon'

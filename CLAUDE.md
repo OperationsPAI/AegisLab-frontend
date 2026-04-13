@@ -203,3 +203,45 @@ Vite dev server proxies `/api` to `http://10.10.10.220:32080` (change in `vite.c
 4. **Performance**: Use React.memo, useMemo, useCallback where appropriate
 5. **Accessibility**: Follow Ant Design accessibility guidelines
 6. **Mobile Support**: Ensure responsive design for all screen sizes
+
+<!-- auto-harness:begin -->
+
+## Unified Spec (source of truth: AegisLab 后端仓库)
+
+- `project-index.yaml` → symlink 到 `../AegisLab/project-index.yaml`
+- Skills → symlink 到 `../AegisLab/.claude/skills/`
+- **所有 requirement 变更在后端仓库的 `project-index.yaml` 中修改**
+
+## North-Star Targets
+
+1. **Full-Stack Spec Alignment** — 每条 requirement 在后端+前端+文档三处都有实现
+2. **Zero Mock Code** — 不使用 mock 数据替代真实 API 调用
+3. **End-to-End Acceptance** — UI requirement 必须经用户浏览器验收
+
+Secondary: 合约优先于实现细节
+
+## Active Skills
+
+- dev-loop, north-star, long-horizon, existing-project — 均 symlink 自后端仓库
+- aegislab-dev-loop-profile — 全栈 dev-loop (项目具体命令和门禁)
+- aegislab-north-star — 全栈 north-star (3 个核心目标和观测优先级)
+
+## Frontend-Specific Gates
+
+```bash
+pnpm type-check    # 类型安全 (catches SDK misalignment)
+pnpm lint          # ESLint
+pnpm build         # 生产构建
+
+# Zero mock audit
+grep -rn "mock\|Mock\|MOCK\|hardcoded\|TODO.*api\|fake.*data\|stub\|Stub" \
+  src/ --include="*.ts" --include="*.tsx" | grep -v node_modules
+```
+
+## Cross-Repo Rules
+
+- **零 Mock**: 必须调用真实后端 API，不允许 hardcoded data
+- **SDK 同步**: 后端 API 变更后，更新 `@rcabench/client` 并 `pnpm install`
+- **Type 对齐**: `src/types/api.ts` 手写类型不能与 SDK 生成类型矛盾
+- **用户验收**: UI 变更标记 tested 前请求用户在浏览器验证
+<!-- auto-harness:end -->

@@ -364,7 +364,7 @@ const ExecutionForm = () => {
                   }
                 >
                   {datapacksData?.items?.map((injection: InjectionResp) => (
-                    <Option key={injection.task_id} value={injection.task_id}>
+                    <Option key={injection.id} value={injection.id}>
                       <Space>
                         <DatabaseOutlined style={{ color: '#3b82f6' }} />
                         <div>
@@ -374,7 +374,7 @@ const ExecutionForm = () => {
                             style={{ fontSize: '0.75rem' }}
                           >
                             {injection.fault_type} | {injection.benchmark_name}{' '}
-                            | Task: {injection.task_id}
+                            | ID: {injection.id}
                           </Text>
                         </div>
                       </Space>

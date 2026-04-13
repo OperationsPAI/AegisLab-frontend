@@ -78,7 +78,7 @@ const EvaluationForm = () => {
   // Fetch executions for datapacks
   const { data: executionsData } = useQuery({
     queryKey: ['executions'],
-    queryFn: () => executionApi.getExecutions({ state: 2 }), // Only completed executions
+    queryFn: () => executionApi.getExecutions({ state: String(2) }), // Only completed executions
   });
 
   // Fetch datasets

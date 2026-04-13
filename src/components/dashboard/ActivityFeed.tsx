@@ -6,10 +6,11 @@ import {
   PlayCircleOutlined,
   ProjectOutlined,
 } from '@ant-design/icons';
-import type {
-  ExecutionDetailResp as Execution,
-  InjectionDetailResp as Injection,
-  ProjectResp as Project,
+import {
+  type ExecutionDetailResp as Execution,
+  ExecutionDetailRespState,
+  type InjectionDetailResp as Injection,
+  type ProjectResp as Project,
 } from '@rcabench/client';
 import { Typography } from 'antd';
 import dayjs from 'dayjs';
@@ -64,9 +65,9 @@ const ActivityFeed = ({
       description: `Algorithm execution ${execution.state}`,
       time: execution.created_at,
       status:
-        execution.state === 'COMPLETED'
+        execution.state === ExecutionDetailRespState.Success
           ? 'completed'
-          : execution.state === 'ERROR'
+          : execution.state === ExecutionDetailRespState.Failed
             ? 'error'
             : 'running',
       icon: <PlayCircleOutlined />,

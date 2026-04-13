@@ -195,7 +195,8 @@ const FilesTab: React.FC<FilesTabProps> = ({ injectionId, onNavigate }) => {
     let current = files;
     for (const segment of currentPath) {
       const folder = current.find(
-        (item) => item.name === segment && (item.children?.length ?? 0) > 0
+        (item: DatapackFileItem) =>
+          item.name === segment && (item.children?.length ?? 0) > 0
       );
       if (folder?.children) {
         current = folder.children;

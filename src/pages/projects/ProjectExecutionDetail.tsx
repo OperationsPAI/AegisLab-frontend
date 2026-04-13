@@ -85,15 +85,6 @@ const ProjectExecutionDetail: React.FC = () => {
     return '#8c8c8c';
   };
 
-  // Format status display
-  const formatStatus = (state?: string): string => {
-    if (!state) return 'Unknown';
-    return state
-      .split('_')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
-
   // Calculate runtime
   const runtime = useMemo(() => {
     if (!execution?.duration) return undefined;
@@ -264,11 +255,7 @@ const ProjectExecutionDetail: React.FC = () => {
       content: (
         <OverviewTab
           notes={(execution as { description?: string })?.description}
-          tags={
-            execution?.labels?.map(
-              (l: { key?: string; value?: string }) => `${l.key}: ${l.value}`
-            ) || []
-          }
+          labels={execution?.labels}
           author={user?.username || 'Unknown'}
           state={execution?.state || 'unknown'}
           startTime={execution?.created_at}
@@ -333,8 +320,7 @@ const ProjectExecutionDetail: React.FC = () => {
               ? `exec_${String(executionFromState.id).padStart(3, '0')}`
               : 'Loading...')
       }
-      status={formatStatus(execution?.state || executionFromState?.state)}
-      statusColor={getStatusColor(
+      titleDotColor={getStatusColor(
         execution?.state || executionFromState?.state
       )}
       loading={isLoading}
