@@ -90,6 +90,31 @@ export const injectionApi = {
     return response.data;
   },
 
+  uploadDatapack: async (params: {
+    file: File;
+    name: string;
+    project_id: number;
+    fault_type?: string;
+    category?: string;
+    benchmark_name?: string;
+    pedestal_name?: string;
+  }) => {
+    const formData = new FormData();
+    formData.append('file', params.file);
+    formData.append('name', params.name);
+    formData.append('project_id', String(params.project_id));
+    if (params.fault_type) formData.append('fault_type', params.fault_type);
+    if (params.category) formData.append('category', params.category);
+    if (params.benchmark_name)
+      formData.append('benchmark_name', params.benchmark_name);
+    if (params.pedestal_name)
+      formData.append('pedestal_name', params.pedestal_name);
+    const response = await apiClient.post('/injections/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.data;
+  },
+
   queryDatapackFileContent: async (
     id: number,
     path: string

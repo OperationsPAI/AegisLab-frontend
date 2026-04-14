@@ -61,7 +61,7 @@ export const teamApi = {
     };
   },
 
-  addMember: (teamId: number, data: { email: string; role_id: number }) =>
+  addMember: (teamId: number, data: { username: string; role_id: number }) =>
     apiClient.post(`/teams/${teamId}/members`, data).then((r) => r.data.data),
 
   removeMember: (teamId: number, userId: number) =>

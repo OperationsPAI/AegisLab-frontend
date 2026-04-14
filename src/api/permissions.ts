@@ -1,9 +1,14 @@
-import type { PermissionDetailResp } from '@rcabench/client';
+import type { PermissionDetailResp, PermissionResp } from '@rcabench/client';
 
 import apiClient from './client';
 
 export const permissionApi = {
-  getPermissions: (params?: { page?: number; size?: number }) =>
+  getPermissions: (params?: {
+    page?: number;
+    size?: number;
+    action?: string;
+    status?: string;
+  }): Promise<PermissionResp[] | undefined> =>
     apiClient.get('/permissions', { params }).then((r) => r.data.data),
 
   getPermission: (id: number): Promise<PermissionDetailResp | undefined> =>
