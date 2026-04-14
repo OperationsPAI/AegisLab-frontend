@@ -20,6 +20,8 @@ import {
 
 import { projectApi } from '@/api/projects';
 
+import ProjectSubNav from './ProjectSubNav';
+
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
@@ -113,9 +115,11 @@ const ProjectSettings: React.FC = () => {
           { title: 'Settings' },
         ]}
       />
-      <Title level={3} style={{ marginBottom: 24 }}>
+      <Title level={3} style={{ marginBottom: 0 }}>
         Settings
       </Title>
+
+      <ProjectSubNav projectId={projectId} activeKey='settings' />
 
       {/* General Settings */}
       <Card title='General' style={{ marginBottom: 24 }}>

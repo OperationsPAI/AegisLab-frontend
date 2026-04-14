@@ -11,14 +11,9 @@ import dayjs from 'dayjs';
 import { projectApi } from '@/api/projects';
 
 import ProjectSubNav from './ProjectSubNav';
+import { executionStateMap } from './stateLabels';
 
 const { Title } = Typography;
-
-const executionStateMap: Record<number, { label: string; color: string }> = {
-  0: { label: 'Initial', color: 'default' },
-  1: { label: 'Failed', color: 'red' },
-  2: { label: 'Success', color: 'green' },
-};
 
 /**
  * Full executions listing page for a project.

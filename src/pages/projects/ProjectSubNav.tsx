@@ -22,6 +22,7 @@ const ProjectSubNav: React.FC<ProjectSubNavProps> = ({
     { key: 'datapacks', label: 'Datapacks' },
     { key: 'executions', label: 'Executions' },
     { key: 'evaluations', label: 'Evaluations' },
+    { key: 'settings', label: 'Settings' },
   ];
 
   const handleClick = ({ key }: { key: string }) => {

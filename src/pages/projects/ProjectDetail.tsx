@@ -8,7 +8,11 @@ import {
   SettingOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
-import type { ExecutionResp, InjectionResp } from '@rcabench/client';
+import type {
+  ExecutionResp,
+  InjectionResp,
+  ProjectDetailResp,
+} from '@rcabench/client';
 import { useQuery } from '@tanstack/react-query';
 import {
   Breadcrumb,
@@ -28,23 +32,12 @@ import dayjs from 'dayjs';
 import { projectApi } from '@/api/projects';
 
 import ProjectSubNav from './ProjectSubNav';
+import { executionStateMap, injectionStateMap } from './stateLabels';
 
 const { Title, Text } = Typography;
 
-const injectionStateMap: Record<number, { label: string; color: string }> = {
-  0: { label: 'Initial', color: 'default' },
-  1: { label: 'Inject Failed', color: 'red' },
-  2: { label: 'Inject Success', color: 'blue' },
-  3: { label: 'Build Failed', color: 'red' },
-  4: { label: 'Build Success', color: 'green' },
-  5: { label: 'Detector Failed', color: 'red' },
-  6: { label: 'Detector Success', color: 'green' },
-};
-
-const executionStateMap: Record<number, { label: string; color: string }> = {
-  0: { label: 'Initial', color: 'default' },
-  1: { label: 'Failed', color: 'red' },
-  2: { label: 'Success', color: 'green' },
+type ProjectWithExtras = ProjectDetailResp & {
+  description?: string;
 };
 
 /**
@@ -70,13 +63,13 @@ const ProjectDetail: React.FC = () => {
     queryKey: ['project', projectId, 'injections', 'recent'],
     queryFn: () =>
       projectApi.listProjectInjections(projectId, { page: 1, size: 5 }),
-    enabled: !!projectId && !Number.isNaN(projectId),
+    enabled: !!projectId && !Number.isNaN(projectId) && !!project,
   });
 
   const { data: executionsData } = useQuery({
     queryKey: ['project', projectId, 'executions', 'recent'],
     queryFn: () => projectApi.getExecutions(projectId, { page: 1, size: 5 }),
-    enabled: !!projectId && !Number.isNaN(projectId),
+    enabled: !!projectId && !Number.isNaN(projectId) && !!project,
   });
 
   if (isLoading) {
@@ -244,14 +237,11 @@ const ProjectDetail: React.FC = () => {
           <Title level={3} style={{ margin: 0 }}>
             {project.name}
           </Title>
-          {(() => {
-            const desc = (project as Record<string, unknown>).description;
-            return desc ? (
-              <Text type='secondary' style={{ marginTop: 4, display: 'block' }}>
-                {String(desc)}
-              </Text>
-            ) : null;
-          })()}
+          {(project as ProjectWithExtras).description ? (
+            <Text type='secondary' style={{ marginTop: 4, display: 'block' }}>
+              {(project as ProjectWithExtras).description}
+            </Text>
+          ) : null}
         </div>
         <Button
           icon={<SettingOutlined />}

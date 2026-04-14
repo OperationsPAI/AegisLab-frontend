@@ -35,8 +35,9 @@ const ProjectEvaluations: React.FC = () => {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['evaluations'],
+    queryKey: ['evaluations', projectId],
     queryFn: () => evaluationApi.getEvaluations({ page: 1, size: 20 }),
+    enabled: !!projectId && !Number.isNaN(projectId),
   });
 
   if (projectLoading) {
