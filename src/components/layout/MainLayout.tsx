@@ -1,7 +1,8 @@
-import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 
 import { Layout } from 'antd';
+
+import { useThemeStore } from '@/store/theme';
 
 import AppHeader from './AppHeader';
 import MainSidebarContent from './MainSidebarContent';
@@ -11,11 +12,7 @@ import './MainLayout.css';
 const { Sider, Content } = Layout;
 
 const MainLayout: React.FC = () => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  const toggleSidebar = () => {
-    setSidebarCollapsed((prev) => !prev);
-  };
+  const { sidebarCollapsed, toggleSidebar } = useThemeStore();
 
   return (
     <Layout className='main-layout'>

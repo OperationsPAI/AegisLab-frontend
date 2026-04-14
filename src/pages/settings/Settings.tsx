@@ -39,7 +39,7 @@ const Settings = () => {
   const [securityForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
-  // 使用 TanStack Query 获取用户数据
+  // Fetch user data with TanStack Query
   const {
     data: userData,
     isLoading,
@@ -62,7 +62,7 @@ const Settings = () => {
       message.success('Password changed successfully');
       securityForm.resetFields();
     } catch {
-      // 错误已在 apiClient 拦截器中处理
+      // Error handled by apiClient interceptor
     } finally {
       setLoading(false);
     }

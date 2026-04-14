@@ -4,9 +4,10 @@ import { BrowserRouter } from 'react-router-dom';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App as AntdApp, ConfigProvider } from 'antd';
-import zhCN from 'antd/locale/zh_CN';
+import enUS from 'antd/locale/en_US';
 import dayjs from 'dayjs';
-import 'dayjs/locale/zh-cn';
+import 'dayjs/locale/en';
+import relativeTime from 'dayjs/plugin/relativeTime';
 
 import { initializeTheme } from './store/theme';
 
@@ -16,7 +17,8 @@ import './index.css';
 import './styles/responsive.css';
 import './styles/theme.css';
 
-dayjs.locale('zh-cn');
+dayjs.locale('en');
+dayjs.extend(relativeTime);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,7 +48,7 @@ ReactDOM.createRoot(rootElement).render(
     >
       <QueryClientProvider client={queryClient}>
         <ConfigProvider
-          locale={zhCN}
+          locale={enUS}
           theme={{
             token: {
               colorPrimary: '#0ea5e9',
@@ -86,8 +88,6 @@ ReactDOM.createRoot(rootElement).render(
               },
               Table: {
                 borderRadius: 12,
-                headerBg: '#f8fafc',
-                headerColor: '#334155',
               },
             },
           }}

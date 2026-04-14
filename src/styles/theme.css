@@ -44,6 +44,12 @@
   --color-surface-elevated: var(--color-secondary-0);
   --color-surface-hover: var(--color-secondary-100);
 
+  /* Background tokens used by components */
+  --color-bg-container: var(--color-secondary-0);
+  --color-bg-hover: var(--color-secondary-100);
+  --color-bg-layout: var(--color-secondary-50);
+  --color-bg-secondary: var(--color-secondary-100);
+
   /* Sidebar Widths - for layout consistency */
   --sidebar-width-expanded: 280px;
   --sidebar-width-collapsed: 64px;

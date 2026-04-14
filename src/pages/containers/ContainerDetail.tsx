@@ -156,18 +156,18 @@ const ContainerDetail = () => {
 
   const handleDelete = () => {
     Modal.confirm({
-      title: '删除容器',
-      content: `确定要删除容器 "${container?.name}" 吗？此操作不可撤销。`,
-      okText: '确认删除',
+      title: 'Delete Container',
+      content: `Are you sure you want to delete container "${container?.name}"? This action cannot be undone.`,
+      okText: 'Delete',
       okButtonProps: { danger: true },
-      cancelText: '取消',
+      cancelText: 'Cancel',
       onOk: async () => {
         try {
           await containerApi.deleteContainer(containerId);
-          message.success('容器删除成功');
+          message.success('Container deleted successfully');
           navigate('/containers');
         } catch (error) {
-          message.error('容器删除失败');
+          message.error('Failed to delete container');
         }
       },
     });
@@ -188,7 +188,7 @@ const ContainerDetail = () => {
 
   const versionColumns: ColumnsType<ContainerVersionResp> = [
     {
-      title: '版本',
+      title: 'Version',
       dataIndex: 'version',
       key: 'version',
       width: 120,
@@ -203,7 +203,7 @@ const ContainerDetail = () => {
       ),
     },
     {
-      title: '镜像仓库',
+      title: 'Registry',
       dataIndex: 'registry',
       key: 'registry',
       render: (registry: string) => (
@@ -213,7 +213,7 @@ const ContainerDetail = () => {
       ),
     },
     {
-      title: '仓库名',
+      title: 'Repository',
       dataIndex: 'repository',
       key: 'repository',
       render: (repository: string) => (
@@ -225,14 +225,14 @@ const ContainerDetail = () => {
       ),
     },
     {
-      title: '标签',
+      title: 'Tag',
       dataIndex: 'tag',
       key: 'tag',
       width: 120,
       render: (tag: string) => <Tag color='blue'>{tag}</Tag>,
     },
     {
-      title: '创建时间',
+      title: 'Created',
       dataIndex: 'created_at',
       key: 'created_at',
       width: 180,
@@ -285,7 +285,7 @@ const ContainerDetail = () => {
   if (!container) {
     return (
       <div style={{ padding: 24, textAlign: 'center' }}>
-        <Text type='secondary'>容器未找到</Text>
+        <Text type='secondary'>Container not found</Text>
       </div>
     );
   }
@@ -299,7 +299,7 @@ const ContainerDetail = () => {
             icon={<ArrowLeftOutlined />}
             onClick={() => navigate('/containers')}
           >
-            返回列表
+            Back to List
           </Button>
           <Title level={4} style={{ margin: 0 }}>
             {container.name}
@@ -317,7 +317,7 @@ const ContainerDetail = () => {
                 icon={<EditOutlined />}
                 onClick={handleEdit}
               >
-                编辑容器
+                Edit Container
               </Button>
               <Button
                 icon={<BuildOutlined />}
@@ -330,13 +330,13 @@ const ContainerDetail = () => {
                 icon={<PlusOutlined />}
                 onClick={() => navigate(`/containers/${containerId}/versions`)}
               >
-                管理版本
+                Manage Versions
               </Button>
             </Space>
           </Col>
           <Col>
             <Button danger icon={<DeleteOutlined />} onClick={handleDelete}>
-              删除容器
+              Delete Container
             </Button>
           </Col>
         </Row>
@@ -349,17 +349,17 @@ const ContainerDetail = () => {
         items={[
           {
             key: 'overview',
-            label: '概览',
+            label: 'Overview',
             children: (
               <>
                 <Row gutter={[16, 16]}>
                   <Col xs={24} lg={16}>
-                    <Card title='容器信息'>
+                    <Card title='Container Info'>
                       <Descriptions column={2} bordered>
                         <Descriptions.Item label='ID'>
                           {container.id}
                         </Descriptions.Item>
-                        <Descriptions.Item label='类型'>
+                        <Descriptions.Item label='Type'>
                           <Tag
                             color={getTypeColor(container.type)}
                             style={{ fontWeight: 500, fontSize: '1rem' }}
@@ -367,12 +367,12 @@ const ContainerDetail = () => {
                             {container.type}
                           </Tag>
                         </Descriptions.Item>
-                        <Descriptions.Item label='可见性'>
+                        <Descriptions.Item label='Visibility'>
                           <Tag color={container.is_public ? 'green' : 'orange'}>
-                            {container.is_public ? '公开' : '私有'}
+                            {container.is_public ? 'Public' : 'Private'}
                           </Tag>
                         </Descriptions.Item>
-                        <Descriptions.Item label='创建时间'>
+                        <Descriptions.Item label='Created'>
                           <Space>
                             <ClockCircleOutlined />
                             {dayjs(container.created_at).format(
@@ -380,7 +380,7 @@ const ContainerDetail = () => {
                             )}
                           </Space>
                         </Descriptions.Item>
-                        <Descriptions.Item label='更新时间'>
+                        <Descriptions.Item label='Updated'>
                           <Space>
                             <ClockCircleOutlined />
                             {dayjs(container.updated_at).format(
@@ -388,7 +388,7 @@ const ContainerDetail = () => {
                             )}
                           </Space>
                         </Descriptions.Item>
-                        <Descriptions.Item label='标签'>
+                        <Descriptions.Item label='Labels'>
                           {container.labels?.length ? (
                             <Space wrap>
                               {container.labels.map(
@@ -400,17 +400,17 @@ const ContainerDetail = () => {
                               )}
                             </Space>
                           ) : (
-                            <Text type='secondary'>无标签</Text>
+                            <Text type='secondary'>No labels</Text>
                           )}
                         </Descriptions.Item>
                       </Descriptions>
                     </Card>
                   </Col>
                   <Col xs={24} lg={8}>
-                    <Card title='快速统计'>
+                    <Card title='Quick Stats'>
                       <Space direction='vertical' style={{ width: '100%' }}>
                         <div>
-                          <Text type='secondary'>版本总数</Text>
+                          <Text type='secondary'>Total Versions</Text>
                           <br />
                           <Title
                             level={5}
@@ -424,7 +424,7 @@ const ContainerDetail = () => {
                         </div>
                         <Divider />
                         <div>
-                          <Text type='secondary'>最新版本</Text>
+                          <Text type='secondary'>Latest Version</Text>
                           <br />
                           <Text strong style={{ fontSize: '1.25rem' }}>
                             {versions[0]?.name || 'N/A'}
@@ -445,10 +445,10 @@ const ContainerDetail = () => {
           },
           {
             key: 'versions',
-            label: '版本列表',
+            label: 'Versions',
             children: (
               <Card
-                title='容器版本'
+                title='Container Versions'
                 extra={
                   <Button
                     type='primary'
@@ -457,7 +457,7 @@ const ContainerDetail = () => {
                       navigate(`/containers/${containerId}/versions`)
                     }
                   >
-                    管理版本
+                    Manage Versions
                   </Button>
                 }
               >
@@ -471,7 +471,7 @@ const ContainerDetail = () => {
                     showSizeChanger: true,
                     showQuickJumper: true,
                     showTotal: (total, range) =>
-                      `${range[0]}-${range[1]} / ${total} 个版本`,
+                      `${range[0]}-${range[1]} of ${total} versions`,
                   }}
                 />
               </Card>
@@ -479,17 +479,21 @@ const ContainerDetail = () => {
           },
           {
             key: 'usage',
-            label: '使用说明',
+            label: 'Usage Guide',
             children: (
-              <Card title='容器使用说明'>
-                <Text>此容器可用于实验和评估。</Text>
+              <Card title='Container Usage Guide'>
+                <Text>
+                  This container can be used for experiments and evaluations.
+                </Text>
                 <Divider />
-                <Text strong>如何使用此容器：</Text>
+                <Text strong>How to use this container:</Text>
                 <ul style={{ marginTop: 8 }}>
-                  <li>在创建实验时选择此容器</li>
-                  <li>选择适当的版本进行部署</li>
-                  <li>容器将在执行期间自动加载</li>
-                  <li>可以与其他容器和数据集组合使用</li>
+                  <li>Select this container when creating an experiment</li>
+                  <li>Choose the appropriate version for deployment</li>
+                  <li>
+                    The container will be loaded automatically during execution
+                  </li>
+                  <li>Can be combined with other containers and datasets</li>
                 </ul>
               </Card>
             ),

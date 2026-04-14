@@ -37,7 +37,6 @@ import WorkspacePageHeader from '@/components/workspace/WorkspacePageHeader';
 import WorkspaceTable from '@/components/workspace/WorkspaceTable';
 import { COLORS } from '@/consts/consts';
 import type { ProjectOutletContext } from '@/hooks/useProjectContext';
-import { useAuthStore } from '@/store/auth';
 import type { ColumnConfig, SortField } from '@/types/workspace';
 import { getVisibleIdsFromMap } from '@/utils/idUtils';
 
@@ -115,7 +114,6 @@ const ProjectInjectionList: React.FC = () => {
   const navigate = useNavigate();
   const { teamName, projectName, projectId } =
     useOutletContext<ProjectOutletContext>();
-  const { user } = useAuthStore();
   const queryClient = useQueryClient();
 
   // Handle back to workspace
@@ -170,7 +168,7 @@ const ProjectInjectionList: React.FC = () => {
   );
 
   // Workspace info
-  const workspaceName = `${user?.username || 'User'}'s workspace`;
+  const workspaceName = `${teamName} / ${projectName}`;
 
   // Handle workspace panel toggle
   const handleToggleRunsPanel = useCallback(() => {
@@ -668,7 +666,7 @@ const ProjectInjectionList: React.FC = () => {
       {/* Workspace header */}
       <WorkspacePageHeader
         workspaceName={workspaceName}
-        workspaceType='personal'
+        workspaceType='team'
         lastSaved={undefined}
         runsPanelCollapsed={runsPanelCollapsed}
         onToggleRunsPanel={handleToggleRunsPanel}

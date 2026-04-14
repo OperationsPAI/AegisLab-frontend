@@ -76,10 +76,10 @@ const AddLabelDropdown: React.FC<AddLabelDropdownProps> = ({
   // Reset form when dropdown closes
   useEffect(() => {
     if (!open) {
-      // 立即关闭 Select 的下拉框
+      // Immediately close the Select dropdown
       setKeySelectOpen(false);
       setValueSelectOpen(false);
-      // 稍后清理表单状态
+      // Clean up form state later
       const timer = setTimeout(() => {
         setSelectedKey('');
         setSelectedValue('');

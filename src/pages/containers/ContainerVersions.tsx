@@ -69,7 +69,7 @@ const ContainerVersions = () => {
     mutationFn: (data: VersionFormData) =>
       containerApi.createVersion(containerId, data),
     onSuccess: () => {
-      message.success('版本创建成功');
+      message.success('Version created successfully');
       queryClient.invalidateQueries({
         queryKey: ['container-versions', containerId],
       });
@@ -77,7 +77,7 @@ const ContainerVersions = () => {
       form.resetFields();
     },
     onError: () => {
-      message.error('版本创建失败');
+      message.error('Failed to create version');
     },
   });
 
@@ -91,7 +91,7 @@ const ContainerVersions = () => {
       data: Partial<VersionFormData>;
     }) => containerApi.updateVersion(containerId, versionId, data),
     onSuccess: () => {
-      message.success('版本更新成功');
+      message.success('Version updated successfully');
       queryClient.invalidateQueries({
         queryKey: ['container-versions', containerId],
       });
@@ -100,7 +100,7 @@ const ContainerVersions = () => {
       form.resetFields();
     },
     onError: () => {
-      message.error('版本更新失败');
+      message.error('Failed to update version');
     },
   });
 
@@ -109,13 +109,13 @@ const ContainerVersions = () => {
     mutationFn: (versionId: number) =>
       containerApi.deleteVersion(containerId, versionId),
     onSuccess: () => {
-      message.success('版本删除成功');
+      message.success('Version deleted successfully');
       queryClient.invalidateQueries({
         queryKey: ['container-versions', containerId],
       });
     },
     onError: () => {
-      message.error('版本删除失败');
+      message.error('Failed to delete version');
     },
   });
 
@@ -161,7 +161,7 @@ const ContainerVersions = () => {
 
   const columns: ColumnsType<ContainerVersionResp> = [
     {
-      title: '版本',
+      title: 'Version',
       dataIndex: 'name',
       key: 'name',
       width: 120,
@@ -176,7 +176,7 @@ const ContainerVersions = () => {
       ),
     },
     {
-      title: '镜像引用',
+      title: 'Image Reference',
       dataIndex: 'image_ref',
       key: 'image_ref',
       render: (imageRef: string) => (
@@ -188,14 +188,14 @@ const ContainerVersions = () => {
       ),
     },
     {
-      title: '使用次数',
+      title: 'Usage Count',
       dataIndex: 'usage',
       key: 'usage',
       width: 100,
       render: (usage?: number) => <Tag color='blue'>{usage ?? 0}</Tag>,
     },
     {
-      title: '更新时间',
+      title: 'Updated',
       dataIndex: 'updated_at',
       key: 'updated_at',
       width: 180,
@@ -207,7 +207,7 @@ const ContainerVersions = () => {
       ),
     },
     {
-      title: '操作',
+      title: 'Actions',
       key: 'actions',
       width: 150,
       fixed: 'right' as const,
@@ -219,14 +219,14 @@ const ContainerVersions = () => {
             icon={<EditOutlined />}
             onClick={() => handleEditVersion(record)}
           >
-            编辑
+            Edit
           </Button>
           <Popconfirm
-            title='确认删除'
-            description='确定要删除这个版本吗？'
+            title='Confirm Delete'
+            description='Are you sure you want to delete this version?'
             onConfirm={() => handleDeleteVersion(record.id)}
-            okText='确认'
-            cancelText='取消'
+            okText='Confirm'
+            cancelText='Cancel'
           >
             <Button
               type='link'
@@ -250,24 +250,24 @@ const ContainerVersions = () => {
             icon={<ArrowLeftOutlined />}
             onClick={() => navigate(`/containers/${containerId}`)}
           >
-            返回容器详情
+            Back to Container
           </Button>
           <Title level={4} style={{ margin: 0 }}>
-            {container?.name} - 版本管理
+            {container?.name} - Version Management
           </Title>
         </Space>
       </div>
 
       {/* Versions Table */}
       <Card
-        title='容器版本列表'
+        title='Container Versions'
         extra={
           <Button
             type='primary'
             icon={<PlusOutlined />}
             onClick={handleCreateVersion}
           >
-            添加版本
+            Add Version
           </Button>
         }
       >
@@ -281,14 +281,14 @@ const ContainerVersions = () => {
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total, range) =>
-              `${range[0]}-${range[1]} / ${total} 个版本`,
+              `${range[0]}-${range[1]} of ${total} versions`,
           }}
         />
       </Card>
 
       {/* Create/Edit Version Modal */}
       <Modal
-        title={editingVersion ? '编辑版本' : '添加版本'}
+        title={editingVersion ? 'Edit Version' : 'Add Version'}
         open={isModalVisible}
         onOk={handleModalOk}
         onCancel={handleModalCancel}
@@ -299,29 +299,38 @@ const ContainerVersions = () => {
       >
         <Form form={form} layout='vertical' style={{ marginTop: 24 }}>
           <Form.Item
-            label='版本名称'
+            label='Version Name'
             name='name'
             rules={[
-              { required: true, message: '请输入版本名称' },
+              { required: true, message: 'Please enter version name' },
               {
                 pattern: /^[a-zA-Z0-9._-]+$/,
-                message: '版本名称只能包含字母、数字、点、下划线和连字符',
+                message:
+                  'Version name can only contain letters, numbers, dots, underscores and hyphens',
               },
             ]}
           >
-            <Input placeholder='v1.0.0 或 latest' />
+            <Input placeholder='v1.0.0 or latest' />
           </Form.Item>
 
           <Form.Item
-            label='镜像引用'
+            label='Image Reference'
             name='image_ref'
-            rules={[{ required: true, message: '请输入完整的镜像引用' }]}
+            rules={[
+              {
+                required: true,
+                message: 'Please enter the full image reference',
+              },
+            ]}
           >
             <Input placeholder='docker.io/username/image:tag' />
           </Form.Item>
 
-          <Form.Item label='启动命令（可选）' name='command'>
-            <TextArea rows={3} placeholder='容器启动命令或参数' />
+          <Form.Item label='Start Command (optional)' name='command'>
+            <TextArea
+              rows={3}
+              placeholder='Container start command or arguments'
+            />
           </Form.Item>
 
           <div
@@ -333,11 +342,11 @@ const ContainerVersions = () => {
             }}
           >
             <Text type='secondary' style={{ fontSize: '0.875rem' }}>
-              <strong>提示：</strong> 镜像引用格式为：
+              <strong>Tip:</strong> Image reference format:
               <br />
               <code>registry/repository:tag</code>
               <br />
-              例如：<code>docker.io/library/nginx:latest</code>
+              Example: <code>docker.io/library/nginx:latest</code>
             </Text>
           </div>
         </Form>

@@ -51,7 +51,7 @@ const SystemSettings = () => {
   const [createForm] = Form.useForm();
   const [editForm] = Form.useForm();
 
-  // 获取用户列表
+  // Fetch user list
   const {
     data: usersData,
     isLoading,
@@ -61,7 +61,7 @@ const SystemSettings = () => {
     queryFn: () => usersApi.getUsers({ page: 1, size: 50 }),
   });
 
-  // 创建用户
+  // Create user
   const createUserMutation = useMutation({
     mutationFn: (data: CreateUserReq) => usersApi.createUser(data),
     onSuccess: () => {
@@ -71,11 +71,11 @@ const SystemSettings = () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
     onError: () => {
-      // 错误已在 apiClient 拦截器中处理
+      // Error handled by apiClient interceptor
     },
   });
 
-  // 更新用户
+  // Update user
   const updateUserMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: UpdateUserReq }) =>
       usersApi.updateUser(id, data),
@@ -87,11 +87,11 @@ const SystemSettings = () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
     onError: () => {
-      // 错误已在 apiClient 拦截器中处理
+      // Error handled by apiClient interceptor
     },
   });
 
-  // 删除用户
+  // Delete user
   const deleteUserMutation = useMutation({
     mutationFn: (id: number) => usersApi.deleteUser(id),
     onSuccess: () => {
@@ -99,7 +99,7 @@ const SystemSettings = () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
     onError: () => {
-      // 错误已在 apiClient 拦截器中处理
+      // Error handled by apiClient interceptor
     },
   });
 

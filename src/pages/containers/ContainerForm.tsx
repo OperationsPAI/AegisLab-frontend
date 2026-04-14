@@ -96,12 +96,12 @@ const ContainerForm = () => {
   const createMutation = useMutation({
     mutationFn: (data: ContainerFormData) => containerApi.createContainer(data),
     onSuccess: () => {
-      message.success('容器创建成功');
+      message.success('Container created successfully');
       queryClient.invalidateQueries({ queryKey: ['containers'] });
       navigate('/containers');
     },
     onError: (error) => {
-      message.error('容器创建失败');
+      message.error('Failed to create container');
       console.error('Create container error:', error);
     },
   });
@@ -110,13 +110,13 @@ const ContainerForm = () => {
     mutationFn: (data: Partial<ContainerFormData>) =>
       containerApi.updateContainer(containerId as number, data),
     onSuccess: () => {
-      message.success('容器更新成功');
+      message.success('Container updated successfully');
       queryClient.invalidateQueries({ queryKey: ['containers'] });
       queryClient.invalidateQueries({ queryKey: ['container', containerId] });
       navigate('/containers');
     },
     onError: (error) => {
-      message.error('容器更新失败');
+      message.error('Failed to update container');
       console.error('Update container error:', error);
     },
   });
@@ -143,12 +143,12 @@ const ContainerForm = () => {
 
     const [key, value] = labelInput.split(':').map((s) => s.trim());
     if (!key || !value) {
-      message.warning('请按格式输入标签: key:value');
+      message.warning('Please enter label in format: key:value');
       return;
     }
 
     if (labels.some((l) => l.key === key)) {
-      message.warning('标签键已存在');
+      message.warning('Label key already exists');
       return;
     }
 
@@ -176,10 +176,10 @@ const ContainerForm = () => {
       <div style={{ marginBottom: 24 }}>
         <Space>
           <Button icon={<CloseOutlined />} onClick={handleCancel}>
-            返回列表
+            Back to List
           </Button>
           <Title level={4} style={{ margin: 0 }}>
-            {containerId ? '编辑容器' : '创建容器'}
+            {containerId ? 'Edit Container' : 'Create Container'}
           </Title>
         </Space>
       </div>
@@ -190,7 +190,7 @@ const ContainerForm = () => {
             title={
               <Space>
                 <FormOutlined />
-                <span>容器信息</span>
+                <span>Container Info</span>
               </Space>
             }
           >
@@ -203,32 +203,35 @@ const ContainerForm = () => {
               }}
             >
               <Form.Item
-                label='容器名称'
+                label='Container Name'
                 name='name'
                 rules={[
-                  { required: true, message: '请输入容器名称' },
-                  { min: 3, message: '名称至少3个字符' },
-                  { max: 50, message: '名称不能超过50个字符' },
+                  { required: true, message: 'Please enter container name' },
+                  { min: 3, message: 'Name must be at least 3 characters' },
+                  { max: 50, message: 'Name cannot exceed 50 characters' },
                   {
                     pattern: /^[a-zA-Z0-9-_]+$/,
-                    message: '名称只能包含字母、数字、连字符和下划线',
+                    message:
+                      'Name can only contain letters, numbers, hyphens and underscores',
                   },
                 ]}
               >
                 <Input
-                  placeholder='输入容器名称'
+                  placeholder='Enter container name'
                   size='large'
                   disabled={!!containerId}
                 />
               </Form.Item>
 
               <Form.Item
-                label='容器类型'
+                label='Container Type'
                 name='type'
-                rules={[{ required: true, message: '请选择容器类型' }]}
+                rules={[
+                  { required: true, message: 'Please select container type' },
+                ]}
               >
                 <Select
-                  placeholder='选择容器类型'
+                  placeholder='Select container type'
                   size='large'
                   onChange={() => {
                     form.validateFields(['type']);
@@ -242,7 +245,8 @@ const ContainerForm = () => {
                       <div>
                         <div>Pedestal</div>
                         <Text type='secondary' style={{ fontSize: '0.75rem' }}>
-                          基础微服务环境，用于故障注入和观测
+                          Base microservice environment for fault injection and
+                          observation
                         </Text>
                       </div>
                     </Space>
@@ -255,7 +259,7 @@ const ContainerForm = () => {
                       <div>
                         <div>Benchmark</div>
                         <Text type='secondary' style={{ fontSize: '0.75rem' }}>
-                          基准测试容器，用于生成负载和评估
+                          Benchmark container for load generation and evaluation
                         </Text>
                       </div>
                     </Space>
@@ -268,7 +272,8 @@ const ContainerForm = () => {
                       <div>
                         <div>Algorithm</div>
                         <Text type='secondary' style={{ fontSize: '0.75rem' }}>
-                          RCA算法容器，实现根因分析逻辑
+                          RCA algorithm container implementing root cause
+                          analysis logic
                         </Text>
                       </div>
                     </Space>
@@ -282,18 +287,21 @@ const ContainerForm = () => {
                 rules={[
                   {
                     max: 5000,
-                    message: 'README不能超过5000个字符',
+                    message: 'README cannot exceed 5000 characters',
                   },
                 ]}
               >
-                <TextArea rows={6} placeholder='输入容器的使用说明和文档...' />
+                <TextArea
+                  rows={6}
+                  placeholder='Enter container documentation and usage instructions...'
+                />
               </Form.Item>
 
               <Form.Item
-                label='可见性'
+                label='Visibility'
                 name='is_public'
                 valuePropName='checked'
-                help='公开容器可被其他用户在其项目中使用'
+                help='Public containers can be used by other users in their projects'
               >
                 <Switch
                   checkedChildren={<GlobalOutlined />}
@@ -303,11 +311,11 @@ const ContainerForm = () => {
 
               <Divider />
 
-              <Form.Item label='标签'>
+              <Form.Item label='Labels'>
                 <Space direction='vertical' style={{ width: '100%' }}>
                   <Space.Compact style={{ width: '100%' }}>
                     <Input
-                      placeholder='输入标签 (key:value)'
+                      placeholder='Enter label (key:value)'
                       value={labelInput}
                       onChange={(e) => setLabelInput(e.target.value)}
                       onPressEnter={addLabel}
@@ -317,7 +325,7 @@ const ContainerForm = () => {
                       onClick={addLabel}
                       icon={<TagsOutlined />}
                     >
-                      添加
+                      Add
                     </Button>
                   </Space.Compact>
                   <div>
@@ -346,10 +354,10 @@ const ContainerForm = () => {
                       createMutation.isPending || updateMutation.isPending
                     }
                   >
-                    {containerId ? '更新容器' : '创建容器'}
+                    {containerId ? 'Update Container' : 'Create Container'}
                   </Button>
                   <Button icon={<CloseOutlined />} onClick={handleCancel}>
-                    取消
+                    Cancel
                   </Button>
                 </Space>
               </Form.Item>
@@ -362,29 +370,30 @@ const ContainerForm = () => {
             title={
               <Space>
                 <ContainerOutlined />
-                <span>容器指南</span>
+                <span>Container Guide</span>
               </Space>
             }
           >
             <Space direction='vertical' style={{ width: '100%' }}>
               <div>
-                <Text strong>容器类型：</Text>
+                <Text strong>Container Types:</Text>
                 <ul style={{ marginTop: 8, marginBottom: 16 }}>
                   <li>
                     <Text>
-                      <strong>Pedestal:</strong>{' '}
-                      基础微服务环境，用于故障注入和观测
+                      <strong>Pedestal:</strong> Base microservice environment
+                      for fault injection and observation
                     </Text>
                   </li>
                   <li>
                     <Text>
-                      <strong>Benchmark:</strong>{' '}
-                      基准测试容器，用于生成负载和评估
+                      <strong>Benchmark:</strong> Benchmark container for load
+                      generation and evaluation
                     </Text>
                   </li>
                   <li>
                     <Text>
-                      <strong>Algorithm:</strong> RCA算法容器，实现根因分析逻辑
+                      <strong>Algorithm:</strong> RCA algorithm container
+                      implementing root cause analysis logic
                     </Text>
                   </li>
                 </ul>
@@ -393,22 +402,22 @@ const ContainerForm = () => {
               <Divider />
 
               <div>
-                <Text strong>最佳实践：</Text>
+                <Text strong>Best Practices:</Text>
                 <ul style={{ marginTop: 8 }}>
                   <li>
-                    <Text>使用描述性名称</Text>
+                    <Text>Use descriptive names</Text>
                   </li>
                   <li>
-                    <Text>编写清晰的README文档</Text>
+                    <Text>Write clear README documentation</Text>
                   </li>
                   <li>
-                    <Text>适当添加标签以便分类</Text>
+                    <Text>Add appropriate labels for categorization</Text>
                   </li>
                   <li>
-                    <Text>保持容器版本管理</Text>
+                    <Text>Maintain container version management</Text>
                   </li>
                   <li>
-                    <Text>测试容器镜像的可用性</Text>
+                    <Text>Test container image availability</Text>
                   </li>
                 </ul>
               </div>
@@ -416,24 +425,26 @@ const ContainerForm = () => {
               <Divider />
 
               <div>
-                <Text strong>标签：</Text>
+                <Text strong>Labels:</Text>
                 <Text
                   type='secondary'
                   style={{ display: 'block', marginTop: 4 }}
                 >
-                  使用标签来组织和分类您的容器。格式: key:value
+                  Use labels to organize and categorize your containers. Format:
+                  key:value
                 </Text>
               </div>
 
               <Divider />
 
               <div>
-                <Text strong>版本管理：</Text>
+                <Text strong>Version Management:</Text>
                 <Text
                   type='secondary'
                   style={{ display: 'block', marginTop: 4 }}
                 >
-                  创建容器后，您可以添加多个版本以跟踪容器镜像的不同迭代。
+                  After creating a container, you can add multiple versions to
+                  track different iterations of the container image.
                 </Text>
               </div>
             </Space>

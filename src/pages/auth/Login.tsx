@@ -17,13 +17,13 @@ const Login = () => {
     setLoading(true);
     try {
       await login(values.username, values.password);
-      message.success('登录成功');
+      message.success('Login successful');
       // Add a small delay to ensure state is updated
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/home');
       }, 100);
     } catch (error) {
-      message.error('登录失败，请检查用户名和密码');
+      message.error('Login failed. Please check your username and password.');
     } finally {
       setLoading(false);
     }
@@ -58,22 +58,24 @@ const Login = () => {
           <Title level={4} style={{ marginBottom: '8px' }}>
             RCABench
           </Title>
-          <Text type='secondary'>微服务根因分析基准测试平台</Text>
+          <Text type='secondary'>
+            Microservice Root Cause Analysis Benchmark Platform
+          </Text>
         </div>
 
         <Form name='login' size='large' onFinish={onFinish} autoComplete='off'>
           <Form.Item
             name='username'
-            rules={[{ required: true, message: '请输入用户名' }]}
+            rules={[{ required: true, message: 'Please enter your username' }]}
           >
-            <Input prefix={<UserOutlined />} placeholder='用户名' />
+            <Input prefix={<UserOutlined />} placeholder='Username' />
           </Form.Item>
 
           <Form.Item
             name='password'
-            rules={[{ required: true, message: '请输入密码' }]}
+            rules={[{ required: true, message: 'Please enter your password' }]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder='密码' />
+            <Input.Password prefix={<LockOutlined />} placeholder='Password' />
           </Form.Item>
 
           <Form.Item>
@@ -84,7 +86,7 @@ const Login = () => {
               loading={loading}
               size='large'
             >
-              登录
+              Sign In
             </Button>
           </Form.Item>
 

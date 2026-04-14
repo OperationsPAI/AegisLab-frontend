@@ -1,16 +1,16 @@
 /**
- * ID 转换工具
+ * ID Conversion Utilities
  *
- * 统一列表页（数字 ID）和 Workspace（字符串 ID）之间的转换
- * 采用带前缀的字符串格式：inj_1, exec_1
+ * Converts between numeric IDs (list pages) and prefixed string IDs (workspace).
+ * Uses prefixed string format: inj_1, exec_1
  */
 import type { RunsDataSource } from '@/types/workspace';
 
 /**
- * 将数字 ID 转换为带前缀的字符串 Run ID
- * @param dataSource - 数据源类型
- * @param id - 数字 ID
- * @returns 带前缀的字符串 ID (e.g., 'inj_1', 'exec_1')
+ * Convert a numeric ID to a prefixed string Run ID.
+ * @param dataSource - Data source type
+ * @param id - Numeric ID
+ * @returns Prefixed string ID (e.g., 'inj_1', 'exec_1')
  */
 export const toRunId = (
   dataSource: RunsDataSource,
@@ -21,9 +21,9 @@ export const toRunId = (
 };
 
 /**
- * 将带前缀的字符串 Run ID 解析为数据源和数字 ID
- * @param runId - 带前缀的字符串 ID
- * @returns 解析结果，包含 dataSource 和 id
+ * Parse a prefixed string Run ID into data source and numeric ID.
+ * @param runId - Prefixed string ID
+ * @returns Parsed result containing dataSource and id
  */
 export const fromRunId = (
   runId: string
@@ -39,10 +39,10 @@ export const fromRunId = (
 };
 
 /**
- * 批量将数字 ID 数组转换为带前缀的字符串 ID 数组
- * @param dataSource - 数据源类型
- * @param ids - 数字 ID 数组
- * @returns 带前缀的字符串 ID 数组
+ * Batch convert numeric ID array to prefixed string ID array.
+ * @param dataSource - Data source type
+ * @param ids - Numeric ID array
+ * @returns Prefixed string ID array
  */
 export const toRunIds = (
   dataSource: RunsDataSource,
@@ -52,10 +52,10 @@ export const toRunIds = (
 };
 
 /**
- * 批量将带前缀的字符串 ID 数组解析为数字 ID 数组（仅提取指定数据源的 ID）
- * @param dataSource - 数据源类型
- * @param runIds - 带前缀的字符串 ID 数组
- * @returns 数字 ID 数组
+ * Batch parse prefixed string ID array to numeric ID array (only extracts IDs of the specified data source).
+ * @param dataSource - Data source type
+ * @param runIds - Prefixed string ID array
+ * @returns Numeric ID array
  */
 export const fromRunIds = (
   dataSource: RunsDataSource,
@@ -68,10 +68,10 @@ export const fromRunIds = (
 };
 
 /**
- * 检查 Run ID 是否属于指定的数据源
- * @param runId - 带前缀的字符串 ID
- * @param dataSource - 数据源类型
- * @returns 是否属于该数据源
+ * Check if a Run ID belongs to the specified data source.
+ * @param runId - Prefixed string ID
+ * @param dataSource - Data source type
+ * @returns Whether the ID belongs to the data source
  */
 export const isRunIdOfDataSource = (
   runId: string,
@@ -82,10 +82,10 @@ export const isRunIdOfDataSource = (
 };
 
 /**
- * 从 visibleRuns 对象中获取指定数据源的可见 ID 数组
- * @param visibleRuns - 可见性映射 Record<string, boolean>
- * @param dataSource - 数据源类型
- * @returns 可见的数字 ID 数组
+ * Get visible numeric ID array for a specified data source from visibleRuns map.
+ * @param visibleRuns - Visibility map Record<string, boolean>
+ * @param dataSource - Data source type
+ * @returns Visible numeric ID array
  */
 export const getVisibleIdsFromMap = (
   visibleRuns: Record<string, boolean>,
@@ -98,10 +98,10 @@ export const getVisibleIdsFromMap = (
 };
 
 /**
- * 从 visibleRuns 对象中获取指定数据源的可见字符串 ID 数组
- * @param visibleRuns - 可见性映射 Record<string, boolean>
- * @param dataSource - 数据源类型
- * @returns 可见的字符串 ID 数组
+ * Get visible string ID array for a specified data source from visibleRuns map.
+ * @param visibleRuns - Visibility map Record<string, boolean>
+ * @param dataSource - Data source type
+ * @returns Visible string ID array
  */
 export const getVisibleRunIdsFromMap = (
   visibleRuns: Record<string, boolean>,

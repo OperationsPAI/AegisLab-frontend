@@ -23,6 +23,7 @@ const pageNameMap: Record<string, string> = {
   executions: 'Executions',
   evaluations: 'Evaluations',
   algorithms: 'Algorithms',
+  traces: 'Traces',
   settings: 'Settings',
 };
 
@@ -43,7 +44,10 @@ const WorkspaceLayout: React.FC = () => {
     const pathParts = location.pathname.split('/').filter(Boolean);
     // URL format: /:teamName/:projectName/:subPath
     const subPath = pathParts[2] || '';
-    return pageNameMap[subPath] || subPath || 'Project';
+    return (
+      pageNameMap[subPath] ||
+      (subPath ? subPath.charAt(0).toUpperCase() + subPath.slice(1) : 'Project')
+    );
   }, [location.pathname]);
 
   // Breadcrumbs for AppHeader - wandb style: teamName > Projects > projectName > currentPage
