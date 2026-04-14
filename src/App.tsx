@@ -1,6 +1,8 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
+import { Spin } from 'antd';
+
 import MainLayout from '@/components/layout/MainLayout';
 import WorkspaceLayout from '@/components/layout/WorkspaceLayout';
 import { useAuthStore } from '@/store/auth';
@@ -30,7 +32,12 @@ const ProjectExecutionDetail = lazy(
 const InjectionCreate = lazy(
   () => import('@/pages/injections/InjectionCreate')
 );
-const ExecutionForm = lazy(() => import('@/pages/executions/ExecutionForm'));
+const ExecutionCreatePage = lazy(
+  () => import('@/pages/executions/ExecutionCreatePage')
+);
+const AlgorithmListPage = lazy(
+  () => import('@/pages/projects/algorithms/AlgorithmListPage')
+);
 
 // Admin pages
 const ProjectEdit = lazy(() => import('@/pages/projects/ProjectEdit'));
@@ -62,11 +69,6 @@ const TeamDetailPage = lazy(() => import('@/pages/teams/TeamDetailPage'));
 const TracesPage = lazy(() => import('@/pages/traces/TracesPage'));
 const TraceDetailPage = lazy(() => import('@/pages/traces/TraceDetailPage'));
 
-// Notifications page
-const NotificationsPage = lazy(
-  () => import('@/pages/notifications/NotificationsPage')
-);
-
 // Admin pages (new)
 const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'));
 
@@ -81,7 +83,7 @@ const LoadingFallback = () => (
       minHeight: 200,
     }}
   >
-    Loading...
+    <Spin size='large' />
   </div>
 );
 
@@ -179,16 +181,6 @@ function App() {
           element={
             <Suspense fallback={<LoadingFallback />}>
               <TaskDetail />
-            </Suspense>
-          }
-        />
-
-        {/* Notifications */}
-        <Route
-          path='notifications'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <NotificationsPage />
             </Suspense>
           }
         />
@@ -402,7 +394,7 @@ function App() {
           path='executions/new'
           element={
             <Suspense fallback={<LoadingFallback />}>
-              <ExecutionForm />
+              <ExecutionCreatePage />
             </Suspense>
           }
         />
@@ -429,6 +421,16 @@ function App() {
           element={
             <Suspense fallback={<LoadingFallback />}>
               <EvaluationDetail />
+            </Suspense>
+          }
+        />
+
+        {/* Algorithms */}
+        <Route
+          path='algorithms'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <AlgorithmListPage />
             </Suspense>
           }
         />
