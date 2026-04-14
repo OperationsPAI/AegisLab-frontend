@@ -144,7 +144,7 @@ const CreateExecutionForm: React.FC = () => {
     },
     onSuccess: () => {
       message.success('Execution submitted successfully');
-      navigate(`/projects/${projectId}?tab=executions`);
+      navigate(`/projects/${projectId}/executions`);
     },
     onError: () => {
       message.error('Failed to submit execution');

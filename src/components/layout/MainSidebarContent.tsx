@@ -1,11 +1,15 @@
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import {
+  AppstoreOutlined,
+  BarChartOutlined,
   ContainerOutlined,
   DatabaseOutlined,
+  ExperimentOutlined,
   FolderOutlined,
   HomeOutlined,
   OrderedListOutlined,
+  PlayCircleOutlined,
   SettingOutlined,
   UserOutlined,
 } from '@ant-design/icons';
@@ -20,20 +24,23 @@ interface MainSidebarContentProps {
 }
 
 /**
- * Main sidebar content component
- * Reusable sidebar content for MainLayout
+ * Main sidebar content component.
+ * Shows project sub-navigation when inside a project context.
  */
 const MainSidebarContent: React.FC<MainSidebarContentProps> = ({
   onNavigate,
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
 
-  // Check if user has admin privileges
-  // TODO: Update this check once the UserInfo type exposes a role/is_superuser field
   const isAdmin = !!(user as Record<string, unknown>)?.is_superuser;
 
-  // Menu items
+  // Detect if we're inside a project context
+  const projectMatch = location.pathname.match(/^\/projects\/(\d+)/);
+  const projectId = projectMatch ? projectMatch[1] : null;
+
+  // Build menu items
   const menuItems: MenuProps['items'] = [
     {
       key: '/home',
@@ -44,6 +51,62 @@ const MainSidebarContent: React.FC<MainSidebarContentProps> = ({
       key: '/projects',
       icon: <FolderOutlined />,
       label: 'Projects',
+    },
+    // Project sub-nav (when inside a project)
+    ...(projectId
+      ? [
+          {
+            type: 'divider' as const,
+            style: { margin: '8px 0' },
+          },
+          {
+            key: 'project-header',
+            type: 'group' as const,
+            label: (
+              <span
+                style={{
+                  fontWeight: 500,
+                  color: 'var(--color-text-primary)',
+                  padding: '0 8px',
+                  fontSize: 12,
+                  textTransform: 'uppercase' as const,
+                  letterSpacing: '0.5px',
+                }}
+              >
+                Project
+              </span>
+            ),
+          },
+          {
+            key: `/projects/${projectId}`,
+            icon: <AppstoreOutlined />,
+            label: 'Overview',
+          },
+          {
+            key: `/projects/${projectId}/datapacks`,
+            icon: <ExperimentOutlined />,
+            label: 'Datapacks',
+          },
+          {
+            key: `/projects/${projectId}/executions`,
+            icon: <PlayCircleOutlined />,
+            label: 'Executions',
+          },
+          {
+            key: `/projects/${projectId}/evaluations`,
+            icon: <BarChartOutlined />,
+            label: 'Evaluations',
+          },
+          {
+            key: `/projects/${projectId}/settings`,
+            icon: <SettingOutlined />,
+            label: 'Settings',
+          },
+        ]
+      : []),
+    {
+      type: 'divider' as const,
+      style: { margin: '8px 0' },
     },
     {
       key: '/tasks',
@@ -96,6 +159,26 @@ const MainSidebarContent: React.FC<MainSidebarContentProps> = ({
       : []),
   ];
 
+  // Determine selected key based on current path
+  const getSelectedKey = () => {
+    const path = location.pathname;
+    if (projectId) {
+      // Exact match for project sub-pages
+      if (path === `/projects/${projectId}`) return `/projects/${projectId}`;
+      if (path.startsWith(`/projects/${projectId}/datapacks`))
+        return `/projects/${projectId}/datapacks`;
+      if (path.startsWith(`/projects/${projectId}/executions`))
+        return `/projects/${projectId}/executions`;
+      if (path.startsWith(`/projects/${projectId}/evaluations`))
+        return `/projects/${projectId}/evaluations`;
+      if (path.startsWith(`/projects/${projectId}/settings`))
+        return `/projects/${projectId}/settings`;
+      // inject/execute/upload are under the project but map to Overview
+      return `/projects/${projectId}`;
+    }
+    return path;
+  };
+
   const handleMenuClick = ({ key }: { key: string }) => {
     if (key.startsWith('/')) {
       navigate(key);
@@ -107,6 +190,7 @@ const MainSidebarContent: React.FC<MainSidebarContentProps> = ({
     <div className='main-sidebar-content'>
       <Menu
         mode='inline'
+        selectedKeys={[getSelectedKey()]}
         items={menuItems}
         onClick={handleMenuClick}
         className='main-sidebar-menu'
