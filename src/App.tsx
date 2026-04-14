@@ -13,6 +13,16 @@ const Login = lazy(() => import('@/pages/auth/Login'));
 const HomePage = lazy(() => import('@/pages/home/HomePage'));
 const ProjectList = lazy(() => import('@/pages/projects/ProjectList'));
 const ProjectDetail = lazy(() => import('@/pages/projects/ProjectDetail'));
+const ProjectDatapacks = lazy(
+  () => import('@/pages/projects/ProjectDatapacks')
+);
+const ProjectExecutions = lazy(
+  () => import('@/pages/projects/ProjectExecutions')
+);
+const ProjectEvaluations = lazy(
+  () => import('@/pages/projects/ProjectEvaluations')
+);
+const ProjectSettings = lazy(() => import('@/pages/projects/ProjectSettings'));
 
 // Project action pages
 const InjectionWizard = lazy(
@@ -122,6 +132,38 @@ function App() {
           element={
             <Suspense fallback={<LoadingFallback />}>
               <ProjectDetail />
+            </Suspense>
+          }
+        />
+        <Route
+          path='projects/:id/datapacks'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <ProjectDatapacks />
+            </Suspense>
+          }
+        />
+        <Route
+          path='projects/:id/executions'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <ProjectExecutions />
+            </Suspense>
+          }
+        />
+        <Route
+          path='projects/:id/evaluations'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <ProjectEvaluations />
+            </Suspense>
+          }
+        />
+        <Route
+          path='projects/:id/settings'
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <ProjectSettings />
             </Suspense>
           }
         />

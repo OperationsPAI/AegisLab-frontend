@@ -225,8 +225,7 @@ function ContainerVersionStep({
 
 const InjectionWizard: React.FC = () => {
   const navigate = useNavigate();
-  const { teamName, projectName, projectId, project, isLoading } =
-    useProjectContext();
+  const { projectName, projectId, project, isLoading } = useProjectContext();
 
   // Step state
   const [currentStep, setCurrentStep] = useState(0);
@@ -368,7 +367,7 @@ const InjectionWizard: React.FC = () => {
           : 'Injection submitted successfully'
       );
 
-      navigate(`/${teamName}/${projectName}?tab=datapacks`);
+      navigate(`/projects/${projectId}/datapacks`);
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : 'Failed to submit injection';
