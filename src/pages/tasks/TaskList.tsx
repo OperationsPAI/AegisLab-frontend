@@ -37,6 +37,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 
 import { taskApi } from '@/api/tasks';
 import { createTraceStream } from '@/api/traces';
+import { usePagination } from '@/hooks/usePagination';
 
 dayjs.extend(relativeTime);
 
@@ -67,11 +68,12 @@ const TaskList = () => {
   const [stateFilter, setStateFilter] = useState<TaskState | undefined>();
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshInterval] = useState(5000);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
+  const {
+    current,
+    pageSize,
+    onChange: onPaginationChange,
+    reset: resetPagination,
+  } = usePagination({ defaultPageSize: 10 });
 
   // Fetch tasks with real-time updates
   const {
@@ -79,17 +81,11 @@ const TaskList = () => {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: [
-      'tasks',
-      pagination.current,
-      pagination.pageSize,
-      typeFilter,
-      stateFilter,
-    ],
+    queryKey: ['tasks', current, pageSize, typeFilter, stateFilter],
     queryFn: () =>
       taskApi.getTasks({
-        page: pagination.current,
-        size: pagination.pageSize,
+        page: current,
+        size: pageSize,
         taskType: typeFilter as string | undefined,
         state: stateFilter,
       }),
@@ -166,21 +162,20 @@ const TaskList = () => {
   };
 
   const handleTableChange = (newPagination: TablePaginationConfig) => {
-    setPagination({
-      ...pagination,
-      current: newPagination.current || 1,
-      pageSize: newPagination.pageSize || 10,
-    });
+    onPaginationChange(
+      newPagination.current || 1,
+      newPagination.pageSize || 10
+    );
   };
 
   const handleTypeFilter = (type: ListTasksTaskType | undefined) => {
     setTypeFilter(type);
-    setPagination({ ...pagination, current: 1 });
+    resetPagination();
   };
 
   const handleStateFilter = (state: TaskState | undefined) => {
     setStateFilter(state);
-    setPagination({ ...pagination, current: 1 });
+    resetPagination();
   };
 
   const handleViewTask = (id?: string) => {
@@ -617,7 +612,8 @@ const TaskList = () => {
           loading={isLoading}
           className='tasks-table'
           pagination={{
-            ...pagination,
+            current,
+            pageSize,
             total: tasksData?.pagination?.total || 0,
             showSizeChanger: true,
             showQuickJumper: true,

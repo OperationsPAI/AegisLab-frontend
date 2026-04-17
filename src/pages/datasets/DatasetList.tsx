@@ -40,6 +40,7 @@ import dayjs from 'dayjs';
 
 import { datasetApi } from '@/api/datasets';
 import StatCard from '@/components/ui/StatCard';
+import { usePagination } from '@/hooks/usePagination';
 
 // DatasetType for internal use
 type DatasetType = 'Trace' | 'Log' | 'Metric';
@@ -54,11 +55,12 @@ const DatasetList = () => {
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [uploadingFile, setUploadingFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
+  const {
+    current,
+    pageSize,
+    onChange: onPaginationChange,
+    reset: resetPagination,
+  } = usePagination({ defaultPageSize: 10 });
 
   // Fetch datasets
   const {
@@ -66,11 +68,11 @@ const DatasetList = () => {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ['datasets', pagination.current, pagination.pageSize, typeFilter],
+    queryKey: ['datasets', current, pageSize, typeFilter],
     queryFn: () =>
       datasetApi.getDatasets({
-        page: pagination.current,
-        size: pagination.pageSize,
+        page: current,
+        size: pageSize,
         type: typeFilter,
       }),
   });
@@ -86,16 +88,15 @@ const DatasetList = () => {
   };
 
   const handleTableChange = (newPagination: TablePaginationConfig) => {
-    setPagination({
-      ...pagination,
-      current: newPagination.current || 1,
-      pageSize: newPagination.pageSize || 10,
-    });
+    onPaginationChange(
+      newPagination.current || 1,
+      newPagination.pageSize || 10
+    );
   };
 
   const handleTypeFilter = (type: DatasetType | undefined) => {
     setTypeFilter(type);
-    setPagination({ ...pagination, current: 1 });
+    resetPagination();
   };
 
   const handleCreateDataset = () => {
@@ -480,7 +481,8 @@ const DatasetList = () => {
           className='datasets-table'
           locale={{ emptyText: <Empty description='No datasets yet' /> }}
           pagination={{
-            ...pagination,
+            current,
+            pageSize,
             total: datasetsData?.pagination?.total || 0,
             showSizeChanger: true,
             showQuickJumper: true,

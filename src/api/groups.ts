@@ -1,3 +1,5 @@
+import { getAccessToken } from '@/utils/authToken';
+
 import apiClient from './client';
 
 export const groupApi = {
@@ -10,7 +12,7 @@ export const groupApi = {
  * Backend endpoint: GET /groups/:group_id/stream
  */
 export const createGroupStream = (groupId: string): EventSource => {
-  const token = localStorage.getItem('access_token');
+  const token = getAccessToken();
   const url = `/api/v2/groups/${groupId}/stream${token ? `?token=${encodeURIComponent(token)}` : ''}`;
   return new EventSource(url);
 };

@@ -48,6 +48,8 @@ import dayjs from 'dayjs';
 import { permissionApi } from '@/api/permissions';
 import { roleApi } from '@/api/roles';
 import { usersApi } from '@/api/users';
+import { createdAtColumn } from '@/components/ui/columns/createdAtColumn';
+import { usePagination } from '@/hooks/usePagination';
 
 const { Title, Text } = Typography;
 
@@ -79,8 +81,12 @@ interface RoleRecord {
 
 const UsersTab: React.FC = () => {
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const {
+    current: page,
+    pageSize,
+    onChange: onPageChange,
+    reset: resetPage,
+  } = usePagination();
   const [searchText, setSearchText] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
@@ -257,18 +263,7 @@ const UsersTab: React.FC = () => {
         );
       },
     },
-    {
-      title: 'Created',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: 160,
-      render: (date?: string) =>
-        date ? (
-          <Text type='secondary'>{dayjs(date).format('YYYY-MM-DD')}</Text>
-        ) : (
-          '-'
-        ),
-    },
+    createdAtColumn<UserRecord>(),
     {
       title: 'Actions',
       key: 'actions',
@@ -366,7 +361,7 @@ const UsersTab: React.FC = () => {
           value={searchText}
           onChange={(e) => {
             setSearchText(e.target.value);
-            setPage(1);
+            resetPage();
           }}
           style={{ width: 300 }}
         />
@@ -397,10 +392,7 @@ const UsersTab: React.FC = () => {
           total,
           showSizeChanger: true,
           showTotal: (t) => `Total ${t} users`,
-          onChange: (p, s) => {
-            setPage(p);
-            setPageSize(s);
-          },
+          onChange: onPageChange,
         }}
         size='middle'
       />
@@ -740,8 +732,12 @@ const RolePermissionsView: React.FC<{ roleId: number }> = ({ roleId }) => {
 
 const RolesTab: React.FC = () => {
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const {
+    current: page,
+    pageSize,
+    onChange: onPageChange,
+    reset: resetPage,
+  } = usePagination();
   const [scopeFilter, setScopeFilter] = useState<string | undefined>();
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createForm] = Form.useForm();
@@ -864,18 +860,7 @@ const RolesTab: React.FC = () => {
         />
       ),
     },
-    {
-      title: 'Created',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: 160,
-      render: (date?: string) =>
-        date ? (
-          <Text type='secondary'>{dayjs(date).format('YYYY-MM-DD')}</Text>
-        ) : (
-          '-'
-        ),
-    },
+    createdAtColumn<RoleRecord>(),
     {
       title: 'Actions',
       key: 'actions',
@@ -917,7 +902,7 @@ const RolesTab: React.FC = () => {
             value={scopeFilter}
             onChange={(val) => {
               setScopeFilter(val);
-              setPage(1);
+              resetPage();
             }}
             style={{ width: 180 }}
           >
@@ -964,10 +949,7 @@ const RolesTab: React.FC = () => {
           total,
           showSizeChanger: true,
           showTotal: (t) => `Total ${t} roles`,
-          onChange: (p, s) => {
-            setPage(p);
-            setPageSize(s);
-          },
+          onChange: onPageChange,
         }}
         size='middle'
       />

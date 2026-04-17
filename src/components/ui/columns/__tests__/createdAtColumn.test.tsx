@@ -6,7 +6,7 @@ describe('createdAtColumn', () => {
   it('returns a column definition with correct properties', () => {
     const column = createdAtColumn();
     expect(column.title).toBe('Created At');
-    expect(column.dataIndex).toBe('created_at');
+    expect('dataIndex' in column && column.dataIndex).toBe('created_at');
     expect(column.key).toBe('created_at');
   });
 

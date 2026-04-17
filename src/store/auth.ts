@@ -2,6 +2,14 @@ import type { LoginResp, UserInfo as User } from '@rcabench/client';
 import { create } from 'zustand';
 
 import { authApi } from '@/api/auth';
+import {
+  getAccessToken,
+  getRefreshToken,
+  removeAccessToken,
+  removeRefreshToken,
+  setAccessToken,
+  setRefreshToken,
+} from '@/utils/authToken';
 
 interface AuthState {
   user: User | null;
@@ -20,9 +28,9 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  accessToken: localStorage.getItem('access_token'),
-  refreshToken: localStorage.getItem('refresh_token'),
-  isAuthenticated: !!localStorage.getItem('access_token'),
+  accessToken: getAccessToken(),
+  refreshToken: getRefreshToken(),
+  isAuthenticated: !!getAccessToken(),
   loading: false,
 
   login: async (username: string, password: string) => {
@@ -41,8 +49,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         | string
         | undefined;
       if (token) {
-        localStorage.setItem('access_token', token);
-        localStorage.setItem('refresh_token', rt ?? token);
+        setAccessToken(token);
+        setRefreshToken(rt ?? token);
       }
 
       set({
@@ -66,8 +74,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (error) {
       // console.error('Logout error:', error)
     } finally {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
+      removeAccessToken();
+      removeRefreshToken();
 
       set({
         user: null,
@@ -90,8 +98,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const newAccessToken = response?.token;
       const newRefreshToken = response?.refresh_token ?? refreshToken;
 
-      localStorage.setItem('access_token', newAccessToken);
-      localStorage.setItem('refresh_token', newRefreshToken);
+      setAccessToken(newAccessToken);
+      setRefreshToken(newRefreshToken);
 
       set({
         accessToken: newAccessToken,
