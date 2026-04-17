@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { PlayCircleOutlined } from '@ant-design/icons';
+import { DeleteOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import type { ExecutionResp } from '@rcabench/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Button,
+  Card,
   Empty,
+  message,
   Skeleton,
+  Space,
   Table,
   Tag,
   Typography,
@@ -15,6 +18,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 
+import { executionApi } from '@/api/executions';
 import { projectApi } from '@/api/projects';
 
 import ProjectSubNav from './ProjectSubNav';
@@ -25,12 +29,17 @@ import { executionStateMap } from './stateLabels';
  * Full executions listing page for a project.
  * Route: /projects/:id/executions
  */
+const { Text } = Typography;
+
 const ProjectExecutions: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const projectId = Number(id);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [batchDeleting, setBatchDeleting] = useState(false);
 
   const { isLoading: projectLoading } = useQuery({
     queryKey: ['project', projectId],
@@ -44,6 +53,23 @@ const ProjectExecutions: React.FC = () => {
       projectApi.getExecutions(projectId, { page, size: pageSize }),
     enabled: !!projectId && !Number.isNaN(projectId),
   });
+
+  const handleBatchDelete = async () => {
+    if (selectedRowKeys.length === 0) return;
+    setBatchDeleting(true);
+    try {
+      await executionApi.batchDelete(selectedRowKeys as number[]);
+      message.success(`Deleted ${selectedRowKeys.length} execution(s)`);
+      setSelectedRowKeys([]);
+      queryClient.invalidateQueries({
+        queryKey: ['project', projectId, 'executions'],
+      });
+    } catch {
+      message.error('Failed to delete executions');
+    } finally {
+      setBatchDeleting(false);
+    }
+  };
 
   if (projectLoading) {
     return (
@@ -121,12 +147,32 @@ const ProjectExecutions: React.FC = () => {
         </Button>
       </div>
 
+      {selectedRowKeys.length > 0 && (
+        <Card size='small' style={{ marginBottom: 16 }}>
+          <Space>
+            <Text>{selectedRowKeys.length} selected</Text>
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              loading={batchDeleting}
+              onClick={handleBatchDelete}
+            >
+              Delete Selected
+            </Button>
+          </Space>
+        </Card>
+      )}
+
       <Table
         columns={columns}
         dataSource={items}
         rowKey='id'
         loading={isLoading}
         locale={{ emptyText: <Empty description='No executions yet' /> }}
+        rowSelection={{
+          selectedRowKeys,
+          onChange: setSelectedRowKeys,
+        }}
         onRow={(record) => ({
           onClick: () => navigate(`/executions/${record.id}`),
           style: { cursor: 'pointer' },

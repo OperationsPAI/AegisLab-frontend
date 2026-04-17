@@ -9,7 +9,6 @@ import {
   Card,
   Empty,
   message,
-  Popconfirm,
   Select,
   Space,
   Table,
@@ -21,7 +20,7 @@ import dayjs from 'dayjs';
 
 import { containerApi } from '@/api/containers';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const ContainerList = () => {
   const navigate = useNavigate();
@@ -29,6 +28,8 @@ const ContainerList = () => {
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(10);
   const [typeFilter, setTypeFilter] = useState<string | undefined>();
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [batchDeleting, setBatchDeleting] = useState(false);
 
   // Fetch containers
   const { data, isLoading } = useQuery({
@@ -52,6 +53,23 @@ const ContainerList = () => {
       message.error('Failed to delete container');
     },
   });
+
+  const handleBatchDelete = async () => {
+    if (selectedRowKeys.length === 0) return;
+    setBatchDeleting(true);
+    try {
+      await Promise.all(
+        selectedRowKeys.map((id) => containerApi.deleteContainer(id as number))
+      );
+      message.success(`Deleted ${selectedRowKeys.length} container(s)`);
+      setSelectedRowKeys([]);
+      queryClient.invalidateQueries({ queryKey: ['containers'] });
+    } catch {
+      message.error('Failed to delete some containers');
+    } finally {
+      setBatchDeleting(false);
+    }
+  };
 
   const columns: ColumnsType<ContainerResp> = [
     {
@@ -127,24 +145,16 @@ const ContainerList = () => {
           >
             Edit
           </Button>
-          <Popconfirm
-            title='Confirm Deletion'
-            description='Are you sure you want to delete this container?'
-            onConfirm={() =>
+          <Button
+            type='link'
+            size='small'
+            danger
+            icon={<DeleteOutlined />}
+            loading={deleteMutation.isPending}
+            onClick={() =>
               record.id !== undefined && deleteMutation.mutate(record.id)
             }
-            okText='Confirm'
-            cancelText='Cancel'
-          >
-            <Button
-              type='link'
-              size='small'
-              danger
-              icon={<DeleteOutlined />}
-              aria-label='Delete container'
-              loading={deleteMutation.isPending}
-            />
-          </Popconfirm>
+          />
         </Space>
       ),
     },
@@ -187,6 +197,22 @@ const ContainerList = () => {
         </Space>
       </div>
 
+      {selectedRowKeys.length > 0 && (
+        <Card size='small' style={{ marginBottom: 16 }}>
+          <Space>
+            <Text>{selectedRowKeys.length} selected</Text>
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              loading={batchDeleting}
+              onClick={handleBatchDelete}
+            >
+              Delete Selected
+            </Button>
+          </Space>
+        </Card>
+      )}
+
       <Card className='table-card'>
         <Table
           columns={columns}
@@ -195,6 +221,10 @@ const ContainerList = () => {
           loading={isLoading}
           className='containers-table'
           locale={{ emptyText: <Empty description='No containers yet' /> }}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: setSelectedRowKeys,
+          }}
           pagination={{
             current: page,
             pageSize: size,

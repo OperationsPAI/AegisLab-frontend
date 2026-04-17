@@ -13,7 +13,8 @@ import {
   Button,
   Card,
   message,
-  Popconfirm,
+  Modal,
+  Row,
   Space,
   Table,
   type TablePaginationConfig,
@@ -34,6 +35,11 @@ const { Title, Text } = Typography;
 const ProjectList = () => {
   const navigate = useNavigate();
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ProjectResp | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [batchDeleting, setBatchDeleting] = useState(false);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -57,13 +63,39 @@ const ProjectList = () => {
     });
   };
 
-  const handleDelete = async (id: number) => {
+  const handleSearch = (value: string) => {
+    setSearchText(value);
+    setPagination({ ...pagination, current: 1 });
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget?.id) return;
     try {
-      await projectApi.deleteProject(id);
+      await projectApi.deleteProject(deleteTarget.id);
       message.success('Project deleted');
+      setDeleteModalOpen(false);
+      setDeleteTarget(null);
+      setDeleteConfirmText('');
       void refetch();
     } catch {
       message.error('Failed to delete project');
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedRowKeys.length === 0) return;
+    setBatchDeleting(true);
+    try {
+      await Promise.all(
+        selectedRowKeys.map((id) => projectApi.deleteProject(id as number))
+      );
+      message.success(`Deleted ${selectedRowKeys.length} project(s)`);
+      setSelectedRowKeys([]);
+      void refetch();
+    } catch {
+      message.error('Failed to delete some projects');
+    } finally {
+      setBatchDeleting(false);
     }
   };
 
@@ -121,23 +153,20 @@ const ProjectList = () => {
           <Button
             type='text'
             icon={<EditOutlined />}
-            onClick={() => navigate(`/projects/${record.id}?tab=settings`)}
+            onClick={() => navigate(`/projects/${record.id}/settings`)}
             title='Edit Project'
           />
-          <Popconfirm
-            title='Delete this project?'
-            description='This action cannot be undone.'
-            onConfirm={() => record.id && handleDelete(record.id)}
-            okText='Delete'
-            okButtonProps={{ danger: true }}
-          >
-            <Button
-              type='text'
-              danger
-              icon={<DeleteOutlined />}
-              title='Delete Project'
-            />
-          </Popconfirm>
+          <Button
+            type='text'
+            danger
+            icon={<DeleteOutlined />}
+            title='Delete Project'
+            onClick={() => {
+              setDeleteTarget(record);
+              setDeleteConfirmText('');
+              setDeleteModalOpen(true);
+            }}
+          />
         </Space>
       ),
     },
@@ -164,12 +193,49 @@ const ProjectList = () => {
         </Button>
       </div>
 
+      {/* Search */}
+      <Card className='search-card'>
+        <Row align='middle'>
+          <Col flex='auto'>
+            <Search
+              placeholder='Search projects by name...'
+              allowClear
+              enterButton={<SearchOutlined />}
+              size='large'
+              onSearch={handleSearch}
+              style={{ maxWidth: 400 }}
+            />
+          </Col>
+        </Row>
+      </Card>
+
+      {/* Batch Operations */}
+      {selectedRowKeys.length > 0 && (
+        <Card size='small' style={{ marginBottom: 16 }}>
+          <Space>
+            <Text>{selectedRowKeys.length} selected</Text>
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              loading={batchDeleting}
+              onClick={handleBatchDelete}
+            >
+              Delete Selected
+            </Button>
+          </Space>
+        </Card>
+      )}
+
       {/* Projects Table */}
       <Card className='table-card'>
         <Table
           columns={columns}
           dataSource={projectsData?.items || []}
           loading={isLoading}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: setSelectedRowKeys,
+          }}
           pagination={{
             ...pagination,
             total: projectsData?.pagination?.total || 0,
@@ -190,6 +256,55 @@ const ProjectList = () => {
         onClose={() => setCreateModalOpen(false)}
         onSuccess={handleCreateSuccess}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        title={`Delete "${deleteTarget?.name}" project?`}
+        open={deleteModalOpen}
+        onCancel={() => {
+          setDeleteModalOpen(false);
+          setDeleteTarget(null);
+          setDeleteConfirmText('');
+        }}
+        footer={[
+          <Button
+            key='cancel'
+            onClick={() => {
+              setDeleteModalOpen(false);
+              setDeleteTarget(null);
+              setDeleteConfirmText('');
+            }}
+          >
+            Cancel
+          </Button>,
+          <Button
+            key='delete'
+            danger
+            type='primary'
+            disabled={deleteConfirmText !== deleteTarget?.name}
+            onClick={handleDelete}
+          >
+            Delete
+          </Button>,
+        ]}
+      >
+        <div>
+          <Text>
+            This will permanently delete {deleteTarget?.name} and all associated
+            data. <Text strong>This action cannot be undone.</Text>
+          </Text>
+          <div style={{ marginTop: 12, marginBottom: 8 }}>
+            <Text>
+              Please type <Text strong>{deleteTarget?.name}</Text> to confirm.
+            </Text>
+          </div>
+          <Input
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            placeholder={deleteTarget?.name}
+          />
+        </div>
+      </Modal>
     </div>
   );
 };
