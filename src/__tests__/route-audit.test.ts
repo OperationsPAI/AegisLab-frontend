@@ -42,7 +42,7 @@ function extractRoutePaths(source: string): string[] {
     let p = m[1];
     // Routes in App.tsx are relative (no leading /); normalize to absolute
     if (!p.startsWith('/')) {
-      p = '/' + p;
+      p = `/${p}`;
     }
     paths.push(p);
   }
@@ -81,7 +81,7 @@ function routePatternToRegex(pattern: string): RegExp {
   const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // Replace :param segments with [^/]+
   const withParams = escaped.replace(/:[\w]+/g, '[^/]+');
-  return new RegExp('^' + withParams + '$');
+  return new RegExp(`^${withParams}$`);
 }
 
 /** Check if a concrete path matches any of the route patterns */
