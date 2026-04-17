@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -24,6 +25,7 @@ import {
 import dayjs from 'dayjs';
 
 import { useProjects } from '@/hooks/useProjects';
+import CreateProjectModal from '@/pages/projects/CreateProjectModal';
 import { useAuthStore } from '@/store/auth';
 
 import './HomePage.css';
@@ -37,6 +39,7 @@ const { Title, Text, Paragraph } = Typography;
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   // Fetch recent projects
   const { data: projectsData, isLoading } = useProjects({
@@ -64,7 +67,7 @@ const HomePage: React.FC = () => {
             type='primary'
             size='large'
             icon={<PlusOutlined />}
-            onClick={() => navigate('/projects/new')}
+            onClick={() => setCreateModalOpen(true)}
           >
             Create Project
           </Button>
@@ -157,7 +160,7 @@ const HomePage: React.FC = () => {
                 <Button
                   type='primary'
                   icon={<PlusOutlined />}
-                  onClick={() => navigate('/projects/new')}
+                  onClick={() => setCreateModalOpen(true)}
                 >
                   Create Your First Project
                 </Button>
@@ -202,6 +205,15 @@ const HomePage: React.FC = () => {
           </Card>
         </Col>
       </Row>
+
+      <CreateProjectModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onSuccess={(project) => {
+          setCreateModalOpen(false);
+          navigate(`/projects/${project.id}`);
+        }}
+      />
     </div>
   );
 };
