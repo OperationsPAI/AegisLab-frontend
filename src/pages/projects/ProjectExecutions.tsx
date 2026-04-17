@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { PlayCircleOutlined } from '@ant-design/icons';
 import type { ExecutionResp } from '@rcabench/client';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Breadcrumb,
   Button,
   Empty,
   Skeleton,
@@ -21,7 +20,6 @@ import { projectApi } from '@/api/projects';
 import ProjectSubNav from './ProjectSubNav';
 import { executionStateMap } from './stateLabels';
 
-const { Title } = Typography;
 
 /**
  * Full executions listing page for a project.
@@ -34,7 +32,7 @@ const ProjectExecutions: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const { data: project, isLoading: projectLoading } = useQuery({
+  const { isLoading: projectLoading } = useQuery({
     queryKey: ['project', projectId],
     queryFn: () => projectApi.getProjectDetail(projectId),
     enabled: !!projectId && !Number.isNaN(projectId),
@@ -111,24 +109,6 @@ const ProjectExecutions: React.FC = () => {
 
   return (
     <div style={{ padding: 24 }}>
-      <Breadcrumb
-        style={{ marginBottom: 8 }}
-        items={[
-          { title: <Link to='/projects'>Projects</Link> },
-          {
-            title: (
-              <Link to={`/projects/${projectId}`}>
-                {project?.name ?? '...'}
-              </Link>
-            ),
-          },
-          { title: 'Executions' },
-        ]}
-      />
-      <Title level={3} style={{ marginBottom: 0 }}>
-        Executions
-      </Title>
-
       <ProjectSubNav projectId={projectId} activeKey='executions' />
 
       <div style={{ marginBottom: 16 }}>

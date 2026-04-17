@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 import { BarChartOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Breadcrumb, Card, Empty, Skeleton, Table, Typography } from 'antd';
+import { Card, Empty, Skeleton, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 
 import { evaluationApi } from '@/api/evaluations';
@@ -11,7 +11,7 @@ import { projectApi } from '@/api/projects';
 
 import ProjectSubNav from './ProjectSubNav';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 interface EvaluationRow {
   id?: number;
@@ -31,7 +31,7 @@ const ProjectEvaluations: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  const { data: project, isLoading: projectLoading } = useQuery({
+  const { isLoading: projectLoading } = useQuery({
     queryKey: ['project', projectId],
     queryFn: () => projectApi.getProjectDetail(projectId),
     enabled: !!projectId && !Number.isNaN(projectId),
@@ -66,24 +66,6 @@ const ProjectEvaluations: React.FC = () => {
 
   return (
     <div style={{ padding: 24 }}>
-      <Breadcrumb
-        style={{ marginBottom: 8 }}
-        items={[
-          { title: <Link to='/projects'>Projects</Link> },
-          {
-            title: (
-              <Link to={`/projects/${projectId}`}>
-                {project?.name ?? '...'}
-              </Link>
-            ),
-          },
-          { title: 'Evaluations' },
-        ]}
-      />
-      <Title level={3} style={{ marginBottom: 0 }}>
-        Evaluations
-      </Title>
-
       <ProjectSubNav projectId={projectId} activeKey='evaluations' />
 
       <Card style={{ marginBottom: 24, textAlign: 'center' }}>

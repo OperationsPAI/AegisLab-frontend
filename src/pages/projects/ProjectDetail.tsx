@@ -14,7 +14,6 @@ import type {
 } from '@rcabench/client';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Breadcrumb,
   Button,
   Card,
   Col,
@@ -226,16 +225,6 @@ const ProjectDetail: React.FC = () => {
         }}
       >
         <div>
-          <Breadcrumb
-            style={{ marginBottom: 8 }}
-            items={[
-              { title: <Link to='/projects'>Projects</Link> },
-              { title: project.name },
-            ]}
-          />
-          <Title level={3} style={{ margin: 0 }}>
-            {project.name}
-          </Title>
           {(project as ProjectWithExtras).description ? (
             <Text type='secondary' style={{ marginTop: 4, display: 'block' }}>
               {(project as ProjectWithExtras).description}
