@@ -25,8 +25,8 @@ export const authApi = {
   changePassword: (data: { old_password: string; new_password: string }) =>
     apiClient.post('/auth/change-password', data).then((r) => r.data),
 
-  refreshToken: (token: string): Promise<{ token: string }> =>
-    apiClient
-      .post<{ token: string }>('/auth/refresh', { token })
-      .then((r) => r.data),
+  refreshToken: (
+    token: string
+  ): Promise<{ token: string; refresh_token?: string }> =>
+    apiClient.post('/auth/refresh', { token }).then((r) => r.data.data),
 };

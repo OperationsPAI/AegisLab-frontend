@@ -23,6 +23,8 @@ import {
   type TraceStreamEvent,
 } from '@rcabench/client';
 
+import { useAuthStore } from '@/store/auth';
+
 /** Alias for the SDK's TraceStreamEvent (previously exported as StreamEvent) */
 type StreamEvent = TraceStreamEvent;
 
@@ -132,9 +134,6 @@ export const useTraceSSE = (traceId?: string): UseTraceSSEResult => {
     setLastEvent(undefined);
     reconnectRef.current = 0;
 
-    const token = localStorage.getItem('access_token');
-    if (!token) return;
-
     let abortController: AbortController | null = null;
     let intentionalClose = false;
 
@@ -211,6 +210,9 @@ export const useTraceSSE = (traceId?: string): UseTraceSSEResult => {
     };
 
     const connect = async () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
       abortController = new AbortController();
       const url = `/api/v2/traces/${traceId}/stream`;
 
@@ -224,6 +226,10 @@ export const useTraceSSE = (traceId?: string): UseTraceSSEResult => {
         });
 
         if (!response.ok) {
+          if (response.status === 401) {
+            await useAuthStore.getState().refreshAccessToken();
+            throw new Error('TOKEN_REFRESHED');
+          }
           throw new Error(`SSE connection failed: ${response.status}`);
         }
 
