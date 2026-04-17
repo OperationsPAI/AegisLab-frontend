@@ -10,6 +10,7 @@ import {
   RightOutlined,
   UserOutlined,
 } from '@ant-design/icons';
+import { useQuery } from '@tanstack/react-query';
 import {
   Avatar,
   Breadcrumb,
@@ -21,6 +22,7 @@ import {
   Typography,
 } from 'antd';
 
+import { projectApi } from '@/api/projects';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import { useAuthStore } from '@/store/auth';
 
@@ -59,6 +61,22 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   const location = useLocation();
   const { user, logout } = useAuthStore();
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Resolve project ID from path for breadcrumb name resolution
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const projectIndex = pathParts.indexOf('projects');
+  const projectIdStr =
+    projectIndex >= 0 ? pathParts[projectIndex + 1] : undefined;
+  const projectIdNum =
+    projectIdStr && /^\d+$/.test(projectIdStr)
+      ? Number(projectIdStr)
+      : undefined;
+
+  const { data: projectData } = useQuery({
+    queryKey: ['project', projectIdNum],
+    queryFn: () => projectApi.getProjectDetail(projectIdNum!),
+    enabled: !!projectIdNum,
+  });
 
   // Check if user has admin privileges
   const isAdmin = !!(user as Record<string, unknown> | null)?.is_superuser;
@@ -179,8 +197,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       if (part === 'home') return;
 
       const isLast = index === pathParts.length - 1;
-      const label =
-        part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' ');
+
+      // Resolve numeric IDs following 'projects/' to project name
+      const prevPart = index > 0 ? pathParts[index - 1] : undefined;
+      const isProjectId =
+        prevPart === 'projects' && /^\d+$/.test(part);
+      const label = isProjectId
+        ? (projectData?.name ?? part)
+        : part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' ');
 
       items.push({
         title: isLast ? (
