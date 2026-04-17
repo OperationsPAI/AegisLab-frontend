@@ -29,6 +29,7 @@ import {
 import { containerApi } from '@/api/containers';
 import { projectApi } from '@/api/projects';
 import { useProjectContext } from '@/hooks/useProjectContext';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 
 const { Text, Title } = Typography;
 
@@ -258,6 +259,14 @@ const InjectionWizard: React.FC = () => {
   // Submit state
   const [submitting, setSubmitting] = useState(false);
 
+  // Track dirty state for unsaved changes guard
+  const isDirty =
+    !!pedestalContainer ||
+    !!benchmarkContainer ||
+    faultSpecs.some((f) => f.action || f.mode);
+  const [submitted, setSubmitted] = useState(false);
+  useUnsavedChangesGuard(isDirty && !submitted);
+
   // ---- Validation per step ----
   const canProceed = useMemo(() => {
     switch (currentStep) {
@@ -368,6 +377,7 @@ const InjectionWizard: React.FC = () => {
           : 'Injection submitted successfully'
       );
 
+      setSubmitted(true);
       navigate(`/projects/${projectId}/datapacks`);
     } catch (err: unknown) {
       const msg =

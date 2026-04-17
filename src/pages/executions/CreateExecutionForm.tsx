@@ -25,6 +25,7 @@ import {
 
 import { containerApi } from '@/api/containers';
 import { projectApi } from '@/api/projects';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 
 const { Title, Text } = Typography;
 
@@ -52,6 +53,8 @@ const CreateExecutionForm: React.FC = () => {
   const [selectedDatapackNames, setSelectedDatapackNames] = useState<string[]>(
     []
   );
+  const [isDirty, setIsDirty] = useState(false);
+  useUnsavedChangesGuard(isDirty);
 
   // Fetch project detail (need project_name for submission)
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -100,6 +103,7 @@ const CreateExecutionForm: React.FC = () => {
     setSelectedAlgorithmId(value);
     setAlgorithmName(algo?.name ?? '');
     setAlgorithmVersion('');
+    setIsDirty(true);
   };
 
   // Datapack toggle helpers
@@ -107,6 +111,7 @@ const CreateExecutionForm: React.FC = () => {
     setSelectedDatapackNames((prev) =>
       prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
     );
+    setIsDirty(true);
   };
 
   const toggleAllDatapacks = () => {
@@ -144,6 +149,7 @@ const CreateExecutionForm: React.FC = () => {
     },
     onSuccess: () => {
       message.success('Execution submitted successfully');
+      setIsDirty(false);
       navigate(`/projects/${projectId}/executions`);
     },
     onError: () => {

@@ -28,6 +28,7 @@ import {
 } from 'antd';
 
 import { containerApi } from '@/api/containers';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -54,6 +55,8 @@ const ContainerForm = () => {
   const containerId = id ? Number(id) : undefined;
   const [labelInput, setLabelInput] = useState('');
   const [labels, setLabels] = useState<LabelItemWithKey[]>([]);
+  const [isDirty, setIsDirty] = useState(false);
+  useUnsavedChangesGuard(isDirty);
 
   // Fetch container data if editing
   const { data: containerData, isLoading } = useQuery({
@@ -97,6 +100,7 @@ const ContainerForm = () => {
     mutationFn: (data: ContainerFormData) => containerApi.createContainer(data),
     onSuccess: () => {
       message.success('Container created successfully');
+      setIsDirty(false);
       queryClient.invalidateQueries({ queryKey: ['containers'] });
       navigate('/admin/containers');
     },
@@ -111,6 +115,7 @@ const ContainerForm = () => {
       containerApi.updateContainer(containerId as number, data),
     onSuccess: () => {
       message.success('Container updated successfully');
+      setIsDirty(false);
       queryClient.invalidateQueries({ queryKey: ['containers'] });
       queryClient.invalidateQueries({ queryKey: ['container', containerId] });
       navigate('/admin/containers');
@@ -198,6 +203,7 @@ const ContainerForm = () => {
               form={form}
               layout='vertical'
               onFinish={handleSubmit}
+              onValuesChange={() => setIsDirty(true)}
               initialValues={{
                 is_public: false,
               }}

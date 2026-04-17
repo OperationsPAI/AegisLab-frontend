@@ -31,6 +31,7 @@ import {
 import dayjs from 'dayjs';
 
 import { authApi } from '../../api/auth';
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 
 const { Title, Text } = Typography;
 
@@ -38,6 +39,8 @@ const Settings = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [securityForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  useUnsavedChangesGuard(isDirty);
 
   // Fetch user data with TanStack Query
   const {
@@ -60,6 +63,7 @@ const Settings = () => {
         new_password: values.newPassword,
       });
       message.success('Password changed successfully');
+      setIsDirty(false);
       securityForm.resetFields();
     } catch {
       // Error handled by apiClient interceptor
@@ -229,6 +233,7 @@ const Settings = () => {
                   form={securityForm}
                   layout='vertical'
                   onFinish={handleChangePassword}
+                  onValuesChange={() => setIsDirty(true)}
                 >
                   <Title level={4}>Change Password</Title>
                   <Row gutter={[24, 24]}>

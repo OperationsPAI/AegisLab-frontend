@@ -30,6 +30,7 @@ import {
 } from 'antd';
 
 import { datasetApi } from '@/api/datasets';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 
 // DatasetType enum for internal use
 type DatasetType = 'Trace' | 'Log' | 'Metric';
@@ -54,6 +55,8 @@ const DatasetForm = () => {
   const datasetId = id ? Number(id) : undefined;
   const [labelInput, setLabelInput] = useState('');
   const [labels, setLabels] = useState<LabelItem[]>([]);
+  const [isDirty, setIsDirty] = useState(false);
+  useUnsavedChangesGuard(isDirty);
 
   // Fetch dataset data if editing
   const { data: datasetData, isLoading } = useQuery({
@@ -80,6 +83,7 @@ const DatasetForm = () => {
     mutationFn: (data: DatasetFormData) => datasetApi.createDataset(data),
     onSuccess: () => {
       message.success('Dataset created successfully');
+      setIsDirty(false);
       queryClient.invalidateQueries({ queryKey: ['datasets'] });
       navigate('/admin/datasets');
     },
@@ -94,6 +98,7 @@ const DatasetForm = () => {
       datasetApi.updateDataset(datasetId as number, data),
     onSuccess: () => {
       message.success('Dataset updated successfully');
+      setIsDirty(false);
       queryClient.invalidateQueries({ queryKey: ['datasets'] });
       queryClient.invalidateQueries({ queryKey: ['dataset', datasetId] });
       navigate('/admin/datasets');
@@ -181,6 +186,7 @@ const DatasetForm = () => {
               form={form}
               layout='vertical'
               onFinish={handleSubmit}
+              onValuesChange={() => setIsDirty(true)}
               initialValues={{
                 is_public: false,
               }}

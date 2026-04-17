@@ -19,6 +19,7 @@ import {
 } from 'antd';
 
 import { projectApi } from '@/api/projects';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 
 import ProjectSubNav from './ProjectSubNav';
 
@@ -41,6 +42,8 @@ const ProjectSettings: React.FC = () => {
   const [form] = Form.useForm();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDirty, setIsDirty] = useState(false);
+  useUnsavedChangesGuard(isDirty);
 
   const { data: rawProject, isLoading } = useQuery({
     queryKey: ['project', projectId],
@@ -58,6 +61,7 @@ const ProjectSettings: React.FC = () => {
     }) => projectApi.updateProject(projectId, data),
     onSuccess: () => {
       message.success('Project updated successfully');
+      setIsDirty(false);
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
     },
     onError: () => {
@@ -132,6 +136,7 @@ const ProjectSettings: React.FC = () => {
             is_public: project.is_public ?? false,
           }}
           onFinish={handleSubmit}
+          onValuesChange={() => setIsDirty(true)}
         >
           <Form.Item
             name='name'
