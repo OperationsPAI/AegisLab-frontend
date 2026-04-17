@@ -97,12 +97,10 @@ const EvaluationForm = () => {
 
   // Evaluate mutation
   const evaluateMutation = useMutation({
-    mutationFn: (specs: EvaluateDatapackSpec[]) =>
+    mutationFn: (specs: EvaluateDatapackSpec[] | EvaluateDatasetSpec[]) =>
       evaluationType === 'datapack'
-        ? evaluationApi.evaluateDatapacks(specs)
-        : evaluationApi.evaluateDatasets(
-            specs as unknown as EvaluateDatasetSpec[]
-          ),
+        ? evaluationApi.evaluateDatapacks(specs as EvaluateDatapackSpec[])
+        : evaluationApi.evaluateDatasets(specs as EvaluateDatasetSpec[]),
     onSuccess: (_data) => {
       message.success('Evaluation completed successfully!');
       navigate(-1);

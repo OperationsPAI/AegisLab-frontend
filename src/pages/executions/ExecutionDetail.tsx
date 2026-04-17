@@ -110,8 +110,8 @@ const ExecutionDetail: React.FC = () => {
   const detectorColumns = useMemo(
     () =>
       buildDynamicColumns(
-        (execution?.detector_results ?? []) as unknown as Array<
-          Record<string, unknown>
+        (execution?.detector_results ?? []) as Array<
+          DetectorResultItem & Record<string, unknown>
         >
       ),
     [execution?.detector_results]
@@ -120,8 +120,8 @@ const ExecutionDetail: React.FC = () => {
   const granularityColumns = useMemo(
     () =>
       buildDynamicColumns(
-        (execution?.granularity_results ?? []) as unknown as Array<
-          Record<string, unknown>
+        (execution?.granularity_results ?? []) as Array<
+          GranularityResultItem & Record<string, unknown>
         >
       ),
     [execution?.granularity_results]

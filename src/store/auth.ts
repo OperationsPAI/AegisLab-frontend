@@ -1,4 +1,4 @@
-import type { LoginResp, UserInfo as User } from '@rcabench/client';
+import type { LoginResp, UserInfo } from '@rcabench/client';
 import { create } from 'zustand';
 
 import { authApi } from '@/api/auth';
@@ -10,6 +10,14 @@ import {
   setAccessToken,
   setRefreshToken,
 } from '@/utils/authToken';
+
+/**
+ * Extended user type that includes fields returned by the API
+ * but not yet present in the generated SDK types.
+ */
+export type User = UserInfo & {
+  is_superuser?: boolean;
+};
 
 interface AuthState {
   user: User | null;

@@ -64,7 +64,6 @@ interface UserRecord {
   roles?: RoleRecord[];
   created_at?: string;
   updated_at?: string;
-  [key: string]: unknown;
 }
 
 interface RoleRecord {
@@ -74,7 +73,6 @@ interface RoleRecord {
   description?: string;
   permissions_count?: number;
   created_at?: string;
-  [key: string]: unknown;
 }
 
 // ---------- Users Tab ----------
@@ -151,25 +149,22 @@ const UsersTab: React.FC = () => {
     },
   });
 
-  // Normalise data
+  // Normalise data — ListUserResp.items is UserResp[], but the API
+  // may include extra fields (e.g. roles). Cast to UserRecord[].
   const users: UserRecord[] = useMemo(() => {
-    if (!usersData) return [];
-    const items = (usersData as { items?: UserRecord[] }).items ?? [];
-    return items;
+    if (!usersData?.items) return [];
+    return usersData.items as unknown as UserRecord[];
   }, [usersData]);
 
   const total = useMemo(() => {
     if (!usersData) return 0;
-    return (
-      (usersData as { pagination?: { total?: number } }).pagination?.total ??
-      users.length
-    );
+    return usersData.pagination?.total ?? users.length;
   }, [usersData, users.length]);
 
   const availableRoles: RoleRecord[] = useMemo(() => {
     if (!rolesData) return [];
-    if (Array.isArray(rolesData)) return rolesData;
-    return (rolesData as { items?: RoleRecord[] }).items ?? [];
+    if (Array.isArray(rolesData)) return rolesData as unknown as RoleRecord[];
+    return (rolesData.items ?? []) as unknown as RoleRecord[];
   }, [rolesData]);
 
   // Open assign role drawer
@@ -529,11 +524,9 @@ const RolePermissionsView: React.FC<{ roleId: number }> = ({ roleId }) => {
   // Filter out already-assigned permissions in the assign modal
   const availablePermissions = useMemo(() => {
     if (!allPermissions) return [];
-    const perms = Array.isArray(allPermissions)
-      ? allPermissions
-      : ((allPermissions as unknown as { items?: PermissionResp[] }).items ??
-        []);
-    return perms.filter((p) => p.id != null && !currentPermissionIds.has(p.id));
+    return allPermissions.filter(
+      (p) => p.id != null && !currentPermissionIds.has(p.id)
+    );
   }, [allPermissions, currentPermissionIds]);
 
   if (roleDetailLoading) {
@@ -780,19 +773,19 @@ const RolesTab: React.FC = () => {
     },
   });
 
+  // getRoles returns untyped data; normalise into RoleRecord[]
   const roles: RoleRecord[] = useMemo(() => {
     if (!rolesData) return [];
-    if (Array.isArray(rolesData)) return rolesData;
-    return (rolesData as { items?: RoleRecord[] }).items ?? [];
+    if (Array.isArray(rolesData)) return rolesData as RoleRecord[];
+    const data = rolesData as { items?: RoleRecord[] };
+    return data.items ?? [];
   }, [rolesData]);
 
   const total = useMemo(() => {
     if (!rolesData) return 0;
     if (Array.isArray(rolesData)) return rolesData.length;
-    return (
-      (rolesData as { pagination?: { total?: number } }).pagination?.total ??
-      roles.length
-    );
+    const data = rolesData as { total?: number };
+    return data.total ?? roles.length;
   }, [rolesData, roles.length]);
 
   const handleCreateRole = useCallback(

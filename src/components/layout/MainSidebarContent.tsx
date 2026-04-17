@@ -34,7 +34,7 @@ const MainSidebarContent: React.FC<MainSidebarContentProps> = ({
   const location = useLocation();
   const { user } = useAuthStore();
 
-  const isAdmin = !!(user as Record<string, unknown>)?.is_superuser;
+  const isAdmin = !!user?.is_superuser;
 
   // Detect if we're inside a project context
   const projectMatch = location.pathname.match(/^\/projects\/(\d+)/);

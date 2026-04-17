@@ -79,7 +79,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   });
 
   // Check if user has admin privileges
-  const isAdmin = !!(user as Record<string, unknown> | null)?.is_superuser;
+  const isAdmin = !!user?.is_superuser;
 
   // User dropdown menu
   const userDropdownItems: MenuProps['items'] = [

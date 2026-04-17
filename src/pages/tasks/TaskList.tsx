@@ -300,19 +300,15 @@ const TaskList = () => {
       key: 'project',
       width: '14%',
       render: (_: unknown, record: TaskResp) => {
-        const projectId = (record as Record<string, unknown>).project_id as
-          | string
-          | undefined;
-        const projectName = (record as Record<string, unknown>).project_name as
-          | string
-          | undefined;
+        const projectId = record.project_id;
+        const projectName = record.project_name;
         if (projectId) {
           return (
             <Link
               to={`/projects/${projectId}`}
               onClick={(e) => e.stopPropagation()}
             >
-              {projectName || projectId.substring(0, 8)}
+              {projectName || String(projectId).substring(0, 8)}
             </Link>
           );
         }
@@ -394,12 +390,8 @@ const TaskList = () => {
       key: 'duration',
       width: '10%',
       render: (_: unknown, record: TaskResp) => {
-        const start = (record as Record<string, unknown>).created_at as
-          | string
-          | undefined;
-        const end = (record as Record<string, unknown>).updated_at as
-          | string
-          | undefined;
+        const start = record.created_at;
+        const end = record.updated_at;
         if (!start) return <Text type='secondary'>-</Text>;
 
         const isRunning = String(record.state) === String(TaskState.Running);

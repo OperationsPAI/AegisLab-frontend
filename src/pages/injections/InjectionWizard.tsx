@@ -401,7 +401,7 @@ const InjectionWizard: React.FC = () => {
 
       const traceId =
         result && typeof result === 'object' && 'trace_id' in result
-          ? (result as Record<string, unknown>).trace_id
+          ? (result as { trace_id?: string }).trace_id
           : undefined;
 
       message.success(
