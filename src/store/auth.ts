@@ -44,10 +44,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (username: string, password: string) => {
     set({ loading: true });
     try {
-      // console.log('Attempting login...')
       const response = await authApi.login({ username, password });
-      // console.log('Login response:', response)
-      // The response structure needs to be checked
       const token = (response as LoginResp)?.token;
       const user = (response as LoginResp)?.user;
 
@@ -68,9 +65,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: true,
         loading: false,
       });
-      // console.log('Login successful, isAuthenticated set to true')
     } catch (error) {
-      // console.error('Login failed:', error)
       set({ loading: false });
       throw error;
     }
@@ -79,8 +74,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     try {
       await authApi.logout();
-    } catch (error) {
-      // console.error('Logout error:', error)
+    } catch {
+      // Logout errors are non-critical
     } finally {
       removeAccessToken();
       removeRefreshToken();

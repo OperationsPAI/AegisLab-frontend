@@ -104,9 +104,8 @@ const ContainerForm = () => {
       queryClient.invalidateQueries({ queryKey: ['containers'] });
       navigate('/admin/containers');
     },
-    onError: (error) => {
+    onError: () => {
       message.error('Failed to create container');
-      console.error('Create container error:', error);
     },
   });
 
@@ -120,9 +119,8 @@ const ContainerForm = () => {
       queryClient.invalidateQueries({ queryKey: ['container', containerId] });
       navigate('/admin/containers');
     },
-    onError: (error) => {
+    onError: () => {
       message.error('Failed to update container');
-      console.error('Update container error:', error);
     },
   });
 

@@ -143,7 +143,11 @@ export const useTraceSSE = (traceId?: string): UseTraceSSEResult => {
         setLastEvent(streamEvent);
 
         // Debug: log timestamp info
-        if (streamEvent.event_name && streamEvent.timestamp === undefined) {
+        if (
+          import.meta.env.DEV &&
+          streamEvent.event_name &&
+          streamEvent.timestamp === undefined
+        ) {
           console.warn(
             `[SSE] Missing timestamp for event: ${streamEvent.event_name}`,
             streamEvent
