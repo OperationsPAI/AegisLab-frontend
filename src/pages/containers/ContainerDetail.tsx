@@ -151,7 +151,7 @@ const ContainerDetail = () => {
   };
 
   const handleEdit = () => {
-    navigate(`/containers/${containerId}/edit`);
+    navigate(`/admin/containers/${containerId}/edit`);
   };
 
   const handleDelete = () => {
@@ -165,7 +165,7 @@ const ContainerDetail = () => {
         try {
           await containerApi.deleteContainer(containerId);
           message.success('Container deleted successfully');
-          navigate('/containers');
+          navigate('/admin/containers');
         } catch (error) {
           message.error('Failed to delete container');
         }
@@ -297,7 +297,7 @@ const ContainerDetail = () => {
         <Space>
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => navigate('/containers')}
+            onClick={() => navigate('/admin/containers')}
           >
             Back to List
           </Button>
@@ -328,7 +328,7 @@ const ContainerDetail = () => {
               </Button>
               <Button
                 icon={<PlusOutlined />}
-                onClick={() => navigate(`/containers/${containerId}/versions`)}
+                onClick={() => navigate(`/admin/containers/${containerId}/versions`)}
               >
                 Manage Versions
               </Button>
@@ -454,7 +454,7 @@ const ContainerDetail = () => {
                     type='primary'
                     icon={<PlusOutlined />}
                     onClick={() =>
-                      navigate(`/containers/${containerId}/versions`)
+                      navigate(`/admin/containers/${containerId}/versions`)
                     }
                   >
                     Manage Versions

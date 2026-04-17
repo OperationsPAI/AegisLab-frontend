@@ -115,14 +115,14 @@ const ContainerList = () => {
           <Button
             type='link'
             size='small'
-            onClick={() => navigate(`/containers/${record.id}`)}
+            onClick={() => navigate(`/admin/containers/${record.id}`)}
           >
             View
           </Button>
           <Button
             type='link'
             size='small'
-            onClick={() => navigate(`/containers/${record.id}/edit`)}
+            onClick={() => navigate(`/admin/containers/${record.id}/edit`)}
           >
             Edit
           </Button>
@@ -178,7 +178,7 @@ const ContainerList = () => {
           <Button
             type='primary'
             icon={<PlusOutlined />}
-            onClick={() => navigate('/containers/new')}
+            onClick={() => navigate('/admin/containers/new')}
           >
             Create Container
           </Button>

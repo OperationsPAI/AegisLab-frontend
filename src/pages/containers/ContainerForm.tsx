@@ -98,7 +98,7 @@ const ContainerForm = () => {
     onSuccess: () => {
       message.success('Container created successfully');
       queryClient.invalidateQueries({ queryKey: ['containers'] });
-      navigate('/containers');
+      navigate('/admin/containers');
     },
     onError: (error) => {
       message.error('Failed to create container');
@@ -113,7 +113,7 @@ const ContainerForm = () => {
       message.success('Container updated successfully');
       queryClient.invalidateQueries({ queryKey: ['containers'] });
       queryClient.invalidateQueries({ queryKey: ['container', containerId] });
-      navigate('/containers');
+      navigate('/admin/containers');
     },
     onError: (error) => {
       message.error('Failed to update container');
@@ -135,7 +135,7 @@ const ContainerForm = () => {
   };
 
   const handleCancel = () => {
-    navigate('/containers');
+    navigate('/admin/containers');
   };
 
   const addLabel = () => {

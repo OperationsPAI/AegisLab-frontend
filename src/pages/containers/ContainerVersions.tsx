@@ -248,7 +248,7 @@ const ContainerVersions = () => {
         <Space>
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => navigate(`/containers/${containerId}`)}
+            onClick={() => navigate(`/admin/containers/${containerId}`)}
           >
             Back to Container
           </Button>
