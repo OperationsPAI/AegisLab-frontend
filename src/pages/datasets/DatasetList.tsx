@@ -22,6 +22,7 @@ import {
   Button,
   Card,
   Col,
+  Empty,
   message,
   Modal,
   Progress,
@@ -473,6 +474,7 @@ const DatasetList = () => {
           dataSource={datasetsData?.items || []}
           loading={isLoading}
           className='datasets-table'
+          locale={{ emptyText: <Empty description='No datasets yet' /> }}
           pagination={{
             ...pagination,
             total: datasetsData?.pagination?.total || 0,

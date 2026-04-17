@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Button,
   Card,
+  Empty,
   message,
   Popconfirm,
   Select,
@@ -192,6 +193,7 @@ const ContainerList = () => {
           rowKey='id'
           loading={isLoading}
           className='containers-table'
+          locale={{ emptyText: <Empty description='No containers yet' /> }}
           pagination={{
             current: page,
             pageSize: size,

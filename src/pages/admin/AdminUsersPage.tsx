@@ -27,6 +27,7 @@ import {
   Checkbox,
   Descriptions,
   Drawer,
+  Empty,
   Form,
   Input,
   message,
@@ -378,6 +379,7 @@ const UsersTab: React.FC = () => {
         columns={columns}
         dataSource={users}
         loading={isLoading}
+        locale={{ emptyText: <Empty description='No users found' /> }}
         expandable={{
           expandedRowRender,
           rowExpandable: () => true,

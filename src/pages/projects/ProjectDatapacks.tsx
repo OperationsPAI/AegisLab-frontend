@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Breadcrumb,
   Button,
+  Empty,
   Skeleton,
   Space,
   Table,
@@ -122,6 +123,7 @@ const ProjectDatapacks: React.FC = () => {
         dataSource={data?.items ?? []}
         rowKey='id'
         loading={isLoading}
+        locale={{ emptyText: <Empty description='No datapacks yet' /> }}
         onRow={(record) => ({
           onClick: () => navigate(`/datapacks/${record.id}`),
           style: { cursor: 'pointer' },

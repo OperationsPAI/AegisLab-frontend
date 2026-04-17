@@ -4,7 +4,15 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PlayCircleOutlined } from '@ant-design/icons';
 import type { ExecutionResp } from '@rcabench/client';
 import { useQuery } from '@tanstack/react-query';
-import { Breadcrumb, Button, Skeleton, Table, Tag, Typography } from 'antd';
+import {
+  Breadcrumb,
+  Button,
+  Empty,
+  Skeleton,
+  Table,
+  Tag,
+  Typography,
+} from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 
@@ -138,6 +146,7 @@ const ProjectExecutions: React.FC = () => {
         dataSource={items}
         rowKey='id'
         loading={isLoading}
+        locale={{ emptyText: <Empty description='No executions yet' /> }}
         onRow={(record) => ({
           onClick: () => navigate(`/executions/${record.id}`),
           style: { cursor: 'pointer' },
