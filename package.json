@@ -11,12 +11,12 @@
     "lint:fix": "eslint . --ext ts,tsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "type-check": "tsc --noEmit",
     "prepare": "husky",
     "lint-staged": "lint-staged",
     "changelog": "git-cliff -o CHANGELOG.md",
-    "test": "vitest run",
-    "test:watch": "vitest",
     "release": "pnpm changelog && git add CHANGELOG.md && git commit -m 'chore(release): update changelog'"
   },
   "dependencies": {
@@ -63,6 +63,7 @@
     "@typescript-eslint/eslint-plugin": "^7.1.0",
     "@typescript-eslint/parser": "^7.1.0",
     "@vitejs/plugin-react": "^4.2.1",
+    "axios-mock-adapter": "^2.1.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-import-resolver-typescript": "^3.6.1",
