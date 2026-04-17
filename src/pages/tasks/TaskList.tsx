@@ -440,6 +440,7 @@ const TaskList = () => {
               type='text'
               size='small'
               icon={<EyeOutlined />}
+              aria-label='View details'
               onClick={(e) => {
                 e.stopPropagation();
                 handleViewTask(record.id);
@@ -452,6 +453,7 @@ const TaskList = () => {
               size='small'
               danger
               icon={<DeleteOutlined />}
+              aria-label='Delete task'
               onClick={(e) => {
                 e.stopPropagation();
                 handleDeleteTask(record.id);

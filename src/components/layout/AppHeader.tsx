@@ -261,7 +261,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             placement='bottomRight'
             arrow
           >
-            <Space className='app-header-user' role='button' tabIndex={0}>
+            <Space
+              className='app-header-user'
+              role='button'
+              tabIndex={0}
+              aria-label='User menu'
+            >
               <Avatar
                 size='small'
                 icon={<UserOutlined />}

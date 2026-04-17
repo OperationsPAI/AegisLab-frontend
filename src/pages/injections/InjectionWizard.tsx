@@ -123,6 +123,7 @@ function ParamEditor({
             type='text'
             danger
             icon={<DeleteOutlined />}
+            aria-label='Remove parameter'
             onClick={() => handleRemove(k)}
           />
         </Space>

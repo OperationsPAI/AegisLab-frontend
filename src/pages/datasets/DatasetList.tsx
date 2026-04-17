@@ -325,6 +325,7 @@ const DatasetList = () => {
             <Button
               type='text'
               icon={<EyeOutlined />}
+              aria-label='View details'
               onClick={() => record.id && handleViewDataset(record.id)}
             />
           </Tooltip>
@@ -332,6 +333,7 @@ const DatasetList = () => {
             <Button
               type='text'
               icon={<EditOutlined />}
+              aria-label='Edit dataset'
               onClick={() => record.id && handleEditDataset(record.id)}
             />
           </Tooltip>
@@ -339,6 +341,7 @@ const DatasetList = () => {
             <Button
               type='text'
               icon={<SettingOutlined />}
+              aria-label='Manage versions'
               onClick={() => navigate(`/admin/datasets/${record.id}`)}
             />
           </Tooltip>
@@ -347,6 +350,7 @@ const DatasetList = () => {
               type='text'
               danger
               icon={<DeleteOutlined />}
+              aria-label='Delete dataset'
               onClick={() => record.id && handleDeleteDataset(record.id)}
             />
           </Tooltip>

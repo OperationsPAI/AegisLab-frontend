@@ -141,6 +141,7 @@ const ContainerList = () => {
               size='small'
               danger
               icon={<DeleteOutlined />}
+              aria-label='Delete container'
               loading={deleteMutation.isPending}
             />
           </Popconfirm>

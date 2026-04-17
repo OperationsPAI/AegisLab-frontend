@@ -280,6 +280,7 @@ const UsersTab: React.FC = () => {
               type='text'
               size='small'
               icon={<PlusOutlined />}
+              aria-label='Assign role'
               onClick={() => openAssignDrawer(record)}
             />
           </Tooltip>
@@ -290,7 +291,13 @@ const UsersTab: React.FC = () => {
             okButtonProps={{ danger: true }}
             onConfirm={() => deleteUserMutation.mutate(record.id)}
           >
-            <Button type='text' size='small' danger icon={<DeleteOutlined />} />
+            <Button
+              type='text'
+              size='small'
+              danger
+              icon={<DeleteOutlined />}
+              aria-label='Delete user'
+            />
           </Popconfirm>
         </Space>
       ),
@@ -609,7 +616,13 @@ const RolePermissionsView: React.FC<{ roleId: number }> = ({ roleId }) => {
             }
           }}
         >
-          <Button type='text' size='small' danger icon={<DeleteOutlined />} />
+          <Button
+            type='text'
+            size='small'
+            danger
+            icon={<DeleteOutlined />}
+            aria-label='Remove permission'
+          />
         </Popconfirm>
       ),
     },
@@ -875,7 +888,13 @@ const RolesTab: React.FC = () => {
           okButtonProps={{ danger: true }}
           onConfirm={() => deleteRoleMutation.mutate(record.id)}
         >
-          <Button type='text' size='small' danger icon={<DeleteOutlined />} />
+          <Button
+            type='text'
+            size='small'
+            danger
+            icon={<DeleteOutlined />}
+            aria-label='Delete role'
+          />
         </Popconfirm>
       ),
     },
