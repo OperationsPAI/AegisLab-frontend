@@ -103,7 +103,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       // Use the actual refresh endpoint instead of login
       const response = await authApi.refreshToken(refreshToken);
-      const newAccessToken = response?.token;
+      const newAccessToken = response?.token ?? '';
       const newRefreshToken = response?.refresh_token ?? refreshToken;
 
       setAccessToken(newAccessToken);
