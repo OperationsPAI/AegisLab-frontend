@@ -98,15 +98,15 @@ const DatasetList = () => {
   };
 
   const handleCreateDataset = () => {
-    navigate('/datasets/new');
+    navigate('/admin/datasets/new');
   };
 
   const handleViewDataset = (id: number) => {
-    navigate(`/datasets/${id}`);
+    navigate(`/admin/datasets/${id}`);
   };
 
   const handleEditDataset = (id: number) => {
-    navigate(`/datasets/${id}/edit`);
+    navigate(`/admin/datasets/${id}/edit`);
   };
 
   const handleDeleteDataset = (id: number) => {
@@ -338,7 +338,7 @@ const DatasetList = () => {
             <Button
               type='text'
               icon={<SettingOutlined />}
-              onClick={() => navigate(`/datasets/${record.id}/versions`)}
+              onClick={() => navigate(`/admin/datasets/${record.id}`)}
             />
           </Tooltip>
           <Tooltip title='Delete Dataset'>

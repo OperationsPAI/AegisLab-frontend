@@ -81,7 +81,7 @@ const DatasetForm = () => {
     onSuccess: () => {
       message.success('Dataset created successfully');
       queryClient.invalidateQueries({ queryKey: ['datasets'] });
-      navigate('/datasets');
+      navigate('/admin/datasets');
     },
     onError: (error) => {
       message.error('Failed to create dataset');
@@ -96,7 +96,7 @@ const DatasetForm = () => {
       message.success('Dataset updated successfully');
       queryClient.invalidateQueries({ queryKey: ['datasets'] });
       queryClient.invalidateQueries({ queryKey: ['dataset', datasetId] });
-      navigate('/datasets');
+      navigate('/admin/datasets');
     },
     onError: (error) => {
       message.error('Failed to update dataset');
@@ -118,7 +118,7 @@ const DatasetForm = () => {
   };
 
   const handleCancel = () => {
-    navigate('/datasets');
+    navigate('/admin/datasets');
   };
 
   const addLabel = () => {
