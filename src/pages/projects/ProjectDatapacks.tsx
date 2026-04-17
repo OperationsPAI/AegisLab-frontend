@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
-import { PlusOutlined, UploadOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import type { InjectionResp } from '@rcabench/client';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -114,12 +114,6 @@ const ProjectDatapacks: React.FC = () => {
           onClick={() => navigate(`/projects/${projectId}/inject`)}
         >
           New Injection
-        </Button>
-        <Button
-          icon={<UploadOutlined />}
-          onClick={() => navigate(`/projects/${projectId}/upload`)}
-        >
-          Upload Datapack
         </Button>
       </Space>
 
