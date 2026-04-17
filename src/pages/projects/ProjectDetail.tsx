@@ -62,13 +62,13 @@ const ProjectDetail: React.FC = () => {
   const { data: injectionsData } = useQuery({
     queryKey: ['project', projectId, 'injections', 'recent'],
     queryFn: () =>
-      projectApi.listProjectInjections(projectId, { page: 1, size: 5 }),
+      projectApi.listProjectInjections(projectId, { page: 1, size: 10 }),
     enabled: !!projectId && !Number.isNaN(projectId) && !!project,
   });
 
   const { data: executionsData } = useQuery({
     queryKey: ['project', projectId, 'executions', 'recent'],
-    queryFn: () => projectApi.getExecutions(projectId, { page: 1, size: 5 }),
+    queryFn: () => projectApi.getExecutions(projectId, { page: 1, size: 10 }),
     enabled: !!projectId && !Number.isNaN(projectId) && !!project,
   });
 

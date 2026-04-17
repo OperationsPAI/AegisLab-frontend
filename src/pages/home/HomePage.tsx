@@ -41,7 +41,7 @@ const HomePage: React.FC = () => {
   // Fetch recent projects
   const { data: projectsData, isLoading } = useProjects({
     page: 1,
-    size: 5,
+    size: 10,
     queryKey: ['projects', 'recent'],
   });
 
