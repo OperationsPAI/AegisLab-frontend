@@ -13,15 +13,18 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   Button,
   Card,
-  Checkbox,
   Empty,
   Form,
+  Input,
   message,
   Select,
   Skeleton,
   Space,
+  Table,
+  Tag,
   Typography,
 } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 
 import { containerApi } from '@/api/containers';
 import { projectApi } from '@/api/projects';
@@ -54,6 +57,7 @@ const CreateExecutionForm: React.FC = () => {
     []
   );
   const [isDirty, setIsDirty] = useState(false);
+  const [datapackSearch, setDatapackSearch] = useState('');
   useUnsavedChangesGuard(isDirty);
 
   // Fetch project detail (need project_name for submission)
@@ -97,6 +101,18 @@ const CreateExecutionForm: React.FC = () => {
     );
   }, [datapacksData]);
 
+  // Filter datapacks by search text
+  const filteredDatapacks = useMemo(() => {
+    if (!datapackSearch) return usableDatapacks;
+    const lower = datapackSearch.toLowerCase();
+    return usableDatapacks.filter(
+      (dp: InjectionResp) =>
+        dp.name?.toLowerCase().includes(lower) ||
+        dp.fault_type?.toLowerCase().includes(lower) ||
+        dp.benchmark_name?.toLowerCase().includes(lower)
+    );
+  }, [usableDatapacks, datapackSearch]);
+
   // Handle algorithm selection
   const handleAlgorithmChange = (value: number) => {
     const algo = algorithms.find((a: ContainerResp) => a.id === value);
@@ -104,26 +120,6 @@ const CreateExecutionForm: React.FC = () => {
     setAlgorithmName(algo?.name ?? '');
     setAlgorithmVersion('');
     setIsDirty(true);
-  };
-
-  // Datapack toggle helpers
-  const toggleDatapack = (name: string) => {
-    setSelectedDatapackNames((prev) =>
-      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
-    );
-    setIsDirty(true);
-  };
-
-  const toggleAllDatapacks = () => {
-    if (selectedDatapackNames.length === usableDatapacks.length) {
-      setSelectedDatapackNames([]);
-    } else {
-      setSelectedDatapackNames(
-        usableDatapacks
-          .map((dp: InjectionResp) => dp.name)
-          .filter((n): n is string => !!n)
-      );
-    }
   };
 
   // Build specs
@@ -227,66 +223,79 @@ const CreateExecutionForm: React.FC = () => {
           />
         ) : (
           <>
-            <Space
-              style={{
-                width: '100%',
-                justifyContent: 'space-between',
-                marginBottom: 12,
+            <Input.Search
+              placeholder='Search datapacks by name, fault type, or benchmark...'
+              allowClear
+              onChange={(e) => setDatapackSearch(e.target.value)}
+              style={{ marginBottom: 12, maxWidth: 400 }}
+            />
+            <Text type='secondary' style={{ display: 'block', marginBottom: 8 }}>
+              {usableDatapacks.length} available datapack
+              {usableDatapacks.length !== 1 ? 's' : ''}
+              {selectedDatapackNames.length > 0 &&
+                ` — ${selectedDatapackNames.length} selected`}
+            </Text>
+            <Table<InjectionResp>
+              rowKey='name'
+              dataSource={filteredDatapacks}
+              size='small'
+              rowSelection={{
+                selectedRowKeys: selectedDatapackNames,
+                onChange: (keys) =>
+                  setSelectedDatapackNames(keys as string[]),
               }}
-            >
-              <Text type='secondary'>
-                {usableDatapacks.length} available datapack
-                {usableDatapacks.length !== 1 ? 's' : ''}
-                {selectedDatapackNames.length > 0 &&
-                  ` — ${selectedDatapackNames.length} selected`}
-              </Text>
-              <Button size='small' onClick={toggleAllDatapacks}>
-                {selectedDatapackNames.length === usableDatapacks.length
-                  ? 'Clear All'
-                  : 'Select All'}
-              </Button>
-            </Space>
-            <div
-              style={{
-                maxHeight: 320,
-                overflow: 'auto',
-                border: '1px solid var(--ant-color-border, #d9d9d9)',
-                borderRadius: 6,
-              }}
-            >
-              {usableDatapacks.map((dp: InjectionResp) => (
-                <div
-                  key={dp.id}
-                  style={{
-                    padding: '8px 12px',
-                    borderBottom:
-                      '1px solid var(--ant-color-border-secondary, #f0f0f0)',
-                    cursor: 'pointer',
-                    background:
-                      dp.name && selectedDatapackNames.includes(dp.name)
-                        ? 'var(--ant-color-primary-bg, #e6f4ff)'
-                        : undefined,
-                  }}
-                  onClick={() => dp.name && toggleDatapack(dp.name)}
-                >
-                  <Checkbox
-                    checked={
-                      dp.name ? selectedDatapackNames.includes(dp.name) : false
-                    }
-                    style={{ marginRight: 8 }}
-                  />
-                  <Text strong>{dp.name}</Text>
-                  <Text
-                    type='secondary'
-                    style={{ marginLeft: 8, fontSize: 12 }}
-                  >
-                    {dp.fault_type}
-                    {dp.benchmark_name ? ` | ${dp.benchmark_name}` : ''}
-                    {dp.state ? ` | ${dp.state}` : ''}
-                  </Text>
-                </div>
-              ))}
-            </div>
+              columns={
+                [
+                  {
+                    title: 'Name',
+                    dataIndex: 'name',
+                    key: 'name',
+                    render: (name: string) => (
+                      <Text strong>{name}</Text>
+                    ),
+                  },
+                  {
+                    title: 'Fault Type',
+                    dataIndex: 'fault_type',
+                    key: 'fault_type',
+                    filters: [
+                      ...new Set(
+                        usableDatapacks
+                          .map((dp: InjectionResp) => dp.fault_type)
+                          .filter(Boolean)
+                      ),
+                    ].map((ft) => ({ text: ft as string, value: ft as string })),
+                    onFilter: (value, record) =>
+                      record.fault_type === value,
+                  },
+                  {
+                    title: 'State',
+                    dataIndex: 'state',
+                    key: 'state',
+                    render: (state: string) => (
+                      <Tag>{state}</Tag>
+                    ),
+                    filters: [
+                      ...new Set(
+                        usableDatapacks
+                          .map((dp: InjectionResp) => dp.state)
+                          .filter(Boolean)
+                      ),
+                    ].map((s) => ({ text: s as string, value: s as string })),
+                    onFilter: (value, record) =>
+                      record.state === value,
+                  },
+                  {
+                    title: 'Benchmark',
+                    dataIndex: 'benchmark_name',
+                    key: 'benchmark_name',
+                    render: (name: string) => name ?? '-',
+                  },
+                ] as ColumnsType<InjectionResp>
+              }
+              pagination={false}
+              scroll={{ y: 320 }}
+            />
           </>
         )}
       </Card>
