@@ -703,6 +703,12 @@ const InjectionWizard: React.FC = () => {
       <div style={{ minHeight: 300 }}>{renderStepContent()}</div>
       <div
         style={{
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 10,
+          background: 'white',
+          padding: '16px 0',
+          borderTop: '1px solid #f0f0f0',
           marginTop: 24,
           display: 'flex',
           justifyContent: 'space-between',
