@@ -52,20 +52,16 @@ describe('ErrorBoundary', () => {
     expect(screen.getByText(/go home/i)).toBeInTheDocument();
   });
 
-  it('displays the error message in the details section', () => {
+  it('displays the error message in the details section', async () => {
+    const user = userEvent.setup();
     renderWithRouter(
       <ErrorBoundary>
         <ThrowError shouldThrow />
       </ErrorBoundary>
     );
 
-    // The error message should appear somewhere in the document,
-    // possibly behind a "Show Details" toggle
-    const detailsToggle = screen.queryByText(/show details/i);
-    if (detailsToggle) {
-      // If there is a toggle, click it to reveal details
-      userEvent.click(detailsToggle);
-    }
+    const detailsToggle = screen.getByText(/show details/i);
+    await user.click(detailsToggle);
 
     expect(screen.getByText(/Test error message/i)).toBeInTheDocument();
   });

@@ -3,14 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 
-// Mock react-router-dom's useBlocker
-const mockUseBlocker = vi.fn(() => ({ state: 'unblocked' }));
+const { mockUseBlocker, mockConfirm } = vi.hoisted(() => ({
+  mockUseBlocker: vi.fn(() => ({ state: 'unblocked' })),
+  mockConfirm: vi.fn(),
+}));
+
 vi.mock('react-router-dom', () => ({
   useBlocker: mockUseBlocker,
 }));
 
-// Mock antd Modal.confirm
-const mockConfirm = vi.fn();
 vi.mock('antd', () => ({
   Modal: { confirm: mockConfirm },
 }));
@@ -55,13 +56,11 @@ describe('useUnsavedChangesGuard', () => {
       { initialProps: { isDirty: true } }
     );
 
-    // Verify listener was added
     const addCalls = addEventSpy.mock.calls.filter(
       (call) => call[0] === 'beforeunload'
     );
     expect(addCalls.length).toBeGreaterThan(0);
 
-    // Change to not dirty
     rerender({ isDirty: false });
 
     const removeCalls = removeEventSpy.mock.calls.filter(
