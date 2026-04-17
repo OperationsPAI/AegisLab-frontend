@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { BarChartOutlined } from '@ant-design/icons';
@@ -27,6 +28,8 @@ interface EvaluationRow {
 const ProjectEvaluations: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const projectId = Number(id);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ['project', projectId],
@@ -35,8 +38,8 @@ const ProjectEvaluations: React.FC = () => {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['evaluations', projectId],
-    queryFn: () => evaluationApi.getEvaluations({ page: 1, size: 20 }),
+    queryKey: ['evaluations', projectId, page, pageSize],
+    queryFn: () => evaluationApi.getEvaluations({ page, size: pageSize }),
     enabled: !!projectId && !Number.isNaN(projectId),
   });
 
@@ -110,7 +113,17 @@ const ProjectEvaluations: React.FC = () => {
             dataSource={items}
             rowKey='id'
             loading={isLoading}
-            pagination={false}
+            pagination={{
+              current: page,
+              pageSize,
+              total: data?.total ?? items.length,
+              showSizeChanger: true,
+              showTotal: (t) => `Total ${t} evaluations`,
+              onChange: (p, s) => {
+                setPage(p);
+                setPageSize(s);
+              },
+            }}
           />
         </Card>
       )}

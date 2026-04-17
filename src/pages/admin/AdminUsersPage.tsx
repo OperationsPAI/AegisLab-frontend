@@ -153,7 +153,10 @@ const UsersTab: React.FC = () => {
 
   const total = useMemo(() => {
     if (!usersData) return 0;
-    return (usersData as { total?: number }).total ?? users.length;
+    return (
+      (usersData as { pagination?: { total?: number } }).pagination?.total ??
+      users.length
+    );
   }, [usersData, users.length]);
 
   const availableRoles: RoleRecord[] = useMemo(() => {
@@ -775,7 +778,10 @@ const RolesTab: React.FC = () => {
   const total = useMemo(() => {
     if (!rolesData) return 0;
     if (Array.isArray(rolesData)) return rolesData.length;
-    return (rolesData as { total?: number }).total ?? roles.length;
+    return (
+      (rolesData as { pagination?: { total?: number } }).pagination?.total ??
+      roles.length
+    );
   }, [rolesData, roles.length]);
 
   const handleCreateRole = useCallback(

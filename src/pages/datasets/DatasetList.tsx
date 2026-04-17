@@ -11,7 +11,6 @@ import {
   FileTextOutlined,
   LineChartOutlined,
   PlusOutlined,
-  SearchOutlined,
   SettingOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
@@ -23,7 +22,6 @@ import {
   Button,
   Card,
   Col,
-  Input,
   message,
   Modal,
   Progress,
@@ -46,12 +44,10 @@ import StatCard from '@/components/ui/StatCard';
 type DatasetType = 'Trace' | 'Log' | 'Metric';
 
 const { Title, Text } = Typography;
-const { Search } = Input;
 const { Option } = Select;
 
 const DatasetList = () => {
   const navigate = useNavigate();
-  const [searchText, setSearchText] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [typeFilter, setTypeFilter] = useState<DatasetType | undefined>();
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
@@ -69,16 +65,8 @@ const DatasetList = () => {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: [
-      'datasets',
-      pagination.current,
-      pagination.pageSize,
-      searchText,
-      typeFilter,
-    ],
+    queryKey: ['datasets', pagination.current, pagination.pageSize, typeFilter],
     queryFn: () =>
-      // NOTE: datasetApi.getDatasets does not support a search/name param.
-      // searchText filtering only works client-side on the current page.
       datasetApi.getDatasets({
         page: pagination.current,
         size: pagination.pageSize,
@@ -102,11 +90,6 @@ const DatasetList = () => {
       current: newPagination.current || 1,
       pageSize: newPagination.pageSize || 10,
     });
-  };
-
-  const handleSearch = (value: string) => {
-    setSearchText(value);
-    setPagination({ ...pagination, current: 1 });
   };
 
   const handleTypeFilter = (type: DatasetType | undefined) => {
@@ -278,13 +261,6 @@ const DatasetList = () => {
           {type}
         </Tag>
       ),
-      filters: [
-        { text: 'Trace', value: 'Trace' },
-        { text: 'Log', value: 'Log' },
-        { text: 'Metric', value: 'Metric' },
-      ],
-      onFilter: (value: unknown, record: DatasetResp) =>
-        record.type === (value as string),
     },
     {
       title: 'Public',
@@ -429,7 +405,7 @@ const DatasetList = () => {
         </Col>
         <Col xs={12} sm={12} lg={6}>
           <StatCard
-            title='Trace Datasets'
+            title='Trace (this page)'
             value={stats.trace}
             prefix={<DatabaseOutlined />}
             color='primary'
@@ -437,7 +413,7 @@ const DatasetList = () => {
         </Col>
         <Col xs={12} sm={12} lg={6}>
           <StatCard
-            title='Log Datasets'
+            title='Log (this page)'
             value={stats.log}
             prefix={<FileTextOutlined />}
             color='success'
@@ -445,7 +421,7 @@ const DatasetList = () => {
         </Col>
         <Col xs={12} sm={12} lg={6}>
           <StatCard
-            title='Metric Datasets'
+            title='Metric (this page)'
             value={stats.metric}
             prefix={<LineChartOutlined />}
             color='warning'
@@ -456,15 +432,6 @@ const DatasetList = () => {
       {/* Filters and Actions */}
       <Card style={{ marginBottom: 16 }}>
         <Row gutter={[16, 16]} align='middle'>
-          <Col xs={24} sm={12} md={8}>
-            <Search
-              placeholder='Search datasets by name or description...'
-              allowClear
-              enterButton={<SearchOutlined />}
-              onSearch={handleSearch}
-              style={{ width: '100%' }}
-            />
-          </Col>
           <Col xs={24} sm={12} md={4}>
             <Select
               placeholder='Filter by type'
