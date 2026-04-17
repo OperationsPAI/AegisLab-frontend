@@ -22,7 +22,7 @@ import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 
 import ProjectSubNav from './ProjectSubNav';
 
-const { Title, Text, Paragraph } = Typography;
+const { Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
 type ProjectWithExtras = ProjectDetailResp & {

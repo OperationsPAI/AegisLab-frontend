@@ -74,7 +74,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
   const { data: projectData } = useQuery({
     queryKey: ['project', projectIdNum],
-    queryFn: () => projectApi.getProjectDetail(projectIdNum!),
+    queryFn: () => projectApi.getProjectDetail(projectIdNum as number),
     enabled: !!projectIdNum,
   });
 

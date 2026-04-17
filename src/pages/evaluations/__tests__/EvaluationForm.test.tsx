@@ -27,10 +27,8 @@ vi.mock('@/api/projects', () => ({
 }));
 
 vi.mock('react-router-dom', async () => {
-  const actual =
-    await vi.importActual<typeof import('react-router-dom')>(
-      'react-router-dom'
-    );
+  const actual: Record<string, unknown> =
+    await vi.importActual('react-router-dom');
   return {
     ...actual,
     useParams: () => ({ projectId: '1' }),
