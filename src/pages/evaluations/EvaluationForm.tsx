@@ -97,7 +97,7 @@ const EvaluationForm = () => {
           ),
     onSuccess: (_data) => {
       message.success('Evaluation completed successfully!');
-      navigate('/evaluations');
+      navigate(-1);
     },
     onError: (error) => {
       message.error('Failed to complete evaluation');
@@ -188,7 +188,7 @@ const EvaluationForm = () => {
   };
 
   const handleCancel = () => {
-    navigate('/evaluations');
+    navigate(-1);
   };
 
   if (!algorithmsData?.items?.length) {
@@ -199,7 +199,7 @@ const EvaluationForm = () => {
             description='No algorithms available. Please create an algorithm container first.'
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           >
-            <Button type='primary' onClick={() => navigate('/containers/new')}>
+            <Button type='primary' onClick={() => navigate('/admin/containers/new')}>
               Create Algorithm
             </Button>
           </Empty>
