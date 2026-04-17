@@ -27,7 +27,7 @@ const MainLayout: React.FC = () => {
         <Sider
           width={240}
           collapsed={sidebarCollapsed}
-          collapsedWidth={0}
+          collapsedWidth={64}
           className='main-sidebar'
           trigger={null}
           style={{ overflow: 'hidden' }}
@@ -38,7 +38,7 @@ const MainLayout: React.FC = () => {
         {/* Main Content */}
         <Content
           className='main-content'
-          style={{ marginLeft: sidebarCollapsed ? 0 : 240 }}
+          style={{ marginLeft: sidebarCollapsed ? 64 : 240 }}
         >
           <div className='content-inner'>
             <Outlet />

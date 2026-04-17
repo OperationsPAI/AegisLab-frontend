@@ -67,6 +67,10 @@
   animation: pulse 2s infinite;
 }
 
+.ant-layout-sider-collapsed .main-sidebar-footer {
+  display: none;
+}
+
 @keyframes pulse {
   0% {
     opacity: 1;
