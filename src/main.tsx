@@ -9,6 +9,7 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/en';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
+import ErrorBoundary from './components/ErrorBoundary';
 import { initializeTheme } from './store/theme';
 
 import App from './App';
@@ -46,57 +47,59 @@ ReactDOM.createRoot(rootElement).render(
         v7_relativeSplatPath: true,
       }}
     >
-      <QueryClientProvider client={queryClient}>
-        <ConfigProvider
-          locale={enUS}
-          theme={{
-            token: {
-              colorPrimary: '#0ea5e9',
-              colorSuccess: '#10b981',
-              colorWarning: '#f59e0b',
-              colorError: '#ef4444',
-              colorInfo: '#06b6d4',
-              borderRadius: 8,
-              fontFamily:
-                'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
-              fontSize: 14,
-              controlHeight: 40,
-            },
-            components: {
-              Layout: {
-                headerBg: 'transparent',
-                headerHeight: 64,
-                siderBg: 'transparent',
-              },
-              Menu: {
-                itemBg: 'transparent',
-                itemSelectedBg: '#0ea5e920',
-                itemSelectedColor: '#0ea5e9',
-                itemHoverBg: '#f1f5f9',
-              },
-              Card: {
-                borderRadiusLG: 12,
-              },
-              Button: {
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <ConfigProvider
+            locale={enUS}
+            theme={{
+              token: {
+                colorPrimary: '#0ea5e9',
+                colorSuccess: '#10b981',
+                colorWarning: '#f59e0b',
+                colorError: '#ef4444',
+                colorInfo: '#06b6d4',
                 borderRadius: 8,
-                controlHeight: 40,
-                controlHeightLG: 48,
-              },
-              Input: {
-                borderRadius: 8,
+                fontFamily:
+                  'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+                fontSize: 14,
                 controlHeight: 40,
               },
-              Table: {
-                borderRadius: 12,
+              components: {
+                Layout: {
+                  headerBg: 'transparent',
+                  headerHeight: 64,
+                  siderBg: 'transparent',
+                },
+                Menu: {
+                  itemBg: 'transparent',
+                  itemSelectedBg: '#0ea5e920',
+                  itemSelectedColor: '#0ea5e9',
+                  itemHoverBg: '#f1f5f9',
+                },
+                Card: {
+                  borderRadiusLG: 12,
+                },
+                Button: {
+                  borderRadius: 8,
+                  controlHeight: 40,
+                  controlHeightLG: 48,
+                },
+                Input: {
+                  borderRadius: 8,
+                  controlHeight: 40,
+                },
+                Table: {
+                  borderRadius: 12,
+                },
               },
-            },
-          }}
-        >
-          <AntdApp>
-            <App />
-          </AntdApp>
-        </ConfigProvider>
-      </QueryClientProvider>
+            }}
+          >
+            <AntdApp>
+              <App />
+            </AntdApp>
+          </ConfigProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
     </BrowserRouter>
   </React.StrictMode>
 );
