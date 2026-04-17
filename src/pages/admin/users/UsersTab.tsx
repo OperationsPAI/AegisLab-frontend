@@ -63,7 +63,8 @@ const UsersTab: React.FC = () => {
 
   const users: UserRecord[] = useMemo(() => {
     if (!usersData?.items) return [];
-    return usersData.items as unknown as UserRecord[];
+    // Backend enriches UserResp with roles; UserRecord extends UserResp
+    return usersData.items as UserRecord[];
   }, [usersData]);
 
   const total = useMemo(() => {

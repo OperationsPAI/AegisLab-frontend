@@ -43,9 +43,9 @@ const AssignRoleDrawer: React.FC<AssignRoleDrawerProps> = ({
   });
 
   const availableRoles: RoleRecord[] = useMemo(() => {
-    if (!rolesData) return [];
-    if (Array.isArray(rolesData)) return rolesData as unknown as RoleRecord[];
-    return (rolesData.items ?? []) as unknown as RoleRecord[];
+    if (!rolesData?.items) return [];
+    // Backend enriches RoleResp with scope/description; RoleRecord extends RoleResp
+    return rolesData.items as RoleRecord[];
   }, [rolesData]);
 
   const handleAssignRole = useCallback(
