@@ -1,7 +1,9 @@
+import { Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 
 import { Layout } from 'antd';
 
+import LoadingFallback from '@/components/ui/LoadingFallback';
 import { useThemeStore } from '@/store/theme';
 
 import AppHeader from './AppHeader';
@@ -41,7 +43,9 @@ const MainLayout: React.FC = () => {
           style={{ marginLeft: sidebarCollapsed ? 64 : 240 }}
         >
           <div className='content-inner'>
-            <Outlet />
+            <Suspense fallback={<LoadingFallback />}>
+              <Outlet />
+            </Suspense>
           </div>
         </Content>
       </Layout>

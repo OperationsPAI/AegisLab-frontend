@@ -1,9 +1,8 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
-import { Spin } from 'antd';
-
 import MainLayout from '@/components/layout/MainLayout';
+import LoadingFallback from '@/components/ui/LoadingFallback';
 import { useAuthStore } from '@/store/auth';
 
 // Lazy load all page components
@@ -61,21 +60,6 @@ const DatasetForm = lazy(() => import('@/pages/datasets/DatasetForm'));
 const DatasetDetail = lazy(() => import('@/pages/datasets/DatasetDetail'));
 const SystemSettings = lazy(() => import('@/pages/system/SystemSettings'));
 
-// Loading fallback component
-const LoadingFallback = () => (
-  <div
-    style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      height: '100%',
-      minHeight: 200,
-    }}
-  >
-    <Spin size='large' />
-  </div>
-);
-
 function App() {
   const { isAuthenticated, loadUser } = useAuthStore();
 
@@ -109,236 +93,60 @@ function App() {
         {/* ==================== User Routes ==================== */}
 
         {/* Home */}
-        <Route
-          path='home'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <HomePage />
-            </Suspense>
-          }
-        />
+        <Route path='home' element={<HomePage />} />
 
         {/* Projects */}
-        <Route
-          path='projects'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <ProjectList />
-            </Suspense>
-          }
-        />
-        <Route
-          path='projects/:id'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <ProjectDetail />
-            </Suspense>
-          }
-        />
-        <Route
-          path='projects/:id/datapacks'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <ProjectDatapacks />
-            </Suspense>
-          }
-        />
-        <Route
-          path='projects/:id/executions'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <ProjectExecutions />
-            </Suspense>
-          }
-        />
+        <Route path='projects' element={<ProjectList />} />
+        <Route path='projects/:id' element={<ProjectDetail />} />
+        <Route path='projects/:id/datapacks' element={<ProjectDatapacks />} />
+        <Route path='projects/:id/executions' element={<ProjectExecutions />} />
         <Route
           path='projects/:id/evaluations'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <ProjectEvaluations />
-            </Suspense>
-          }
+          element={<ProjectEvaluations />}
         />
-        <Route
-          path='projects/:id/settings'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <ProjectSettings />
-            </Suspense>
-          }
-        />
-        <Route
-          path='projects/:id/inject'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <InjectionWizard />
-            </Suspense>
-          }
-        />
-        <Route
-          path='projects/:id/execute'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <CreateExecutionForm />
-            </Suspense>
-          }
-        />
+        <Route path='projects/:id/settings' element={<ProjectSettings />} />
+        <Route path='projects/:id/inject' element={<InjectionWizard />} />
+        <Route path='projects/:id/execute' element={<CreateExecutionForm />} />
 
         {/* Datapacks */}
-        <Route
-          path='datapacks/:id'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <DatapackDetail />
-            </Suspense>
-          }
-        />
+        <Route path='datapacks/:id' element={<DatapackDetail />} />
 
         {/* Executions */}
-        <Route
-          path='executions/:id'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <ExecutionDetail />
-            </Suspense>
-          }
-        />
+        <Route path='executions/:id' element={<ExecutionDetail />} />
 
         {/* Tasks */}
-        <Route
-          path='tasks'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <TaskList />
-            </Suspense>
-          }
-        />
-        <Route
-          path='tasks/:id'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <TaskDetail />
-            </Suspense>
-          }
-        />
+        <Route path='tasks' element={<TaskList />} />
+        <Route path='tasks/:id' element={<TaskDetail />} />
 
         {/* Profile */}
-        <Route
-          path='profile'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <ProfilePage />
-            </Suspense>
-          }
-        />
+        <Route path='profile' element={<ProfilePage />} />
 
         {/* Settings */}
-        <Route
-          path='settings'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <Settings />
-            </Suspense>
-          }
-        />
+        <Route path='settings' element={<Settings />} />
 
         {/* ==================== Admin Routes ==================== */}
 
         {/* Admin Users */}
-        <Route
-          path='admin/users'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <AdminUsersPage />
-            </Suspense>
-          }
-        />
+        <Route path='admin/users' element={<AdminUsersPage />} />
 
         {/* Admin Containers */}
-        <Route
-          path='admin/containers'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <ContainerList />
-            </Suspense>
-          }
-        />
-        <Route
-          path='admin/containers/new'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <ContainerForm />
-            </Suspense>
-          }
-        />
-        <Route
-          path='admin/containers/:id'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <ContainerDetail />
-            </Suspense>
-          }
-        />
-        <Route
-          path='admin/containers/:id/edit'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <ContainerForm />
-            </Suspense>
-          }
-        />
+        <Route path='admin/containers' element={<ContainerList />} />
+        <Route path='admin/containers/new' element={<ContainerForm />} />
+        <Route path='admin/containers/:id' element={<ContainerDetail />} />
+        <Route path='admin/containers/:id/edit' element={<ContainerForm />} />
         <Route
           path='admin/containers/:id/versions'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <ContainerVersions />
-            </Suspense>
-          }
+          element={<ContainerVersions />}
         />
 
         {/* Admin Datasets */}
-        <Route
-          path='admin/datasets'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <DatasetList />
-            </Suspense>
-          }
-        />
-        <Route
-          path='admin/datasets/new'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <DatasetForm />
-            </Suspense>
-          }
-        />
-        <Route
-          path='admin/datasets/:id'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <DatasetDetail />
-            </Suspense>
-          }
-        />
-        <Route
-          path='admin/datasets/:id/edit'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <DatasetForm />
-            </Suspense>
-          }
-        />
+        <Route path='admin/datasets' element={<DatasetList />} />
+        <Route path='admin/datasets/new' element={<DatasetForm />} />
+        <Route path='admin/datasets/:id' element={<DatasetDetail />} />
+        <Route path='admin/datasets/:id/edit' element={<DatasetForm />} />
 
         {/* Admin System */}
-        <Route
-          path='admin/system'
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <SystemSettings />
-            </Suspense>
-          }
-        />
+        <Route path='admin/system' element={<SystemSettings />} />
       </Route>
 
       {/* Fallback - redirect unknown routes */}
