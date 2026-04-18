@@ -62,7 +62,7 @@ const DatasetDetail = () => {
   const versions = versionsData?.items || [];
 
   const handleEdit = () => {
-    navigate(`/datasets/${datasetId}/edit`);
+    navigate(`/admin/datasets/${datasetId}/edit`);
   };
 
   const handleDelete = () => {
@@ -76,7 +76,7 @@ const DatasetDetail = () => {
         try {
           await datasetApi.deleteDataset(datasetId);
           message.success('Dataset deleted successfully');
-          navigate('/datasets');
+          navigate('/admin/datasets');
         } catch (error) {
           message.error('Failed to delete dataset');
         }
@@ -239,7 +239,7 @@ const DatasetDetail = () => {
         <Space>
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => navigate('/datasets')}
+            onClick={() => navigate('/admin/datasets')}
           >
             Back to List
           </Button>

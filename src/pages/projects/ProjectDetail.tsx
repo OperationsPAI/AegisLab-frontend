@@ -6,7 +6,6 @@ import {
   PlusOutlined,
   RightOutlined,
   SettingOutlined,
-  UploadOutlined,
 } from '@ant-design/icons';
 import type {
   ExecutionResp,
@@ -346,12 +345,6 @@ const ProjectDetail: React.FC = () => {
             onClick={() => navigate(`/projects/${projectId}/execute`)}
           >
             Run Algorithm
-          </Button>
-          <Button
-            icon={<UploadOutlined />}
-            onClick={() => navigate(`/projects/${projectId}/upload`)}
-          >
-            Upload Datapack
           </Button>
         </Space>
       </Card>

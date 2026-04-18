@@ -1,17 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import {
-  DeleteOutlined,
-  PlusOutlined,
-  SearchOutlined,
-} from '@ant-design/icons';
+import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import type { ContainerResp, ContainerType } from '@rcabench/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Button,
   Card,
-  Input,
   message,
   Popconfirm,
   Select,
@@ -32,7 +27,6 @@ const ContainerList = () => {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(10);
-  const [searchText, setSearchText] = useState('');
   const [typeFilter, setTypeFilter] = useState<string | undefined>();
 
   // Fetch containers
@@ -63,10 +57,6 @@ const ContainerList = () => {
       title: 'Container Name',
       dataIndex: 'name',
       key: 'name',
-      filteredValue: searchText ? [searchText] : null,
-      onFilter: (value, record) =>
-        record.name?.toLowerCase().includes((value as string).toLowerCase()) ??
-        false,
       render: (text: string) => (
         <Typography.Text strong style={{ color: 'var(--color-primary-600)' }}>
           {text}
@@ -125,14 +115,14 @@ const ContainerList = () => {
           <Button
             type='link'
             size='small'
-            onClick={() => navigate(`/containers/${record.id}`)}
+            onClick={() => navigate(`/admin/containers/${record.id}`)}
           >
             View
           </Button>
           <Button
             type='link'
             size='small'
-            onClick={() => navigate(`/containers/${record.id}/edit`)}
+            onClick={() => navigate(`/admin/containers/${record.id}/edit`)}
           >
             Edit
           </Button>
@@ -185,18 +175,10 @@ const ContainerList = () => {
               { label: 'Algorithm', value: 'Algorithm' },
             ]}
           />
-          <Input
-            placeholder='Search container name'
-            prefix={<SearchOutlined />}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            style={{ width: 250 }}
-            allowClear
-          />
           <Button
             type='primary'
             icon={<PlusOutlined />}
-            onClick={() => navigate('/containers/new')}
+            onClick={() => navigate('/admin/containers/new')}
           >
             Create Container
           </Button>

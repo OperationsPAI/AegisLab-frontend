@@ -7,17 +7,13 @@ import {
   EyeInvisibleOutlined,
   EyeOutlined,
   PlusOutlined,
-  SearchOutlined,
 } from '@ant-design/icons';
 import type { ProjectResp } from '@rcabench/client';
 import {
   Button,
   Card,
-  Col,
-  Input,
   message,
   Popconfirm,
-  Row,
   Space,
   Table,
   type TablePaginationConfig,
@@ -34,11 +30,9 @@ import CreateProjectModal from './CreateProjectModal';
 import './ProjectList.css';
 
 const { Title, Text } = Typography;
-const { Search } = Input;
 
 const ProjectList = () => {
   const navigate = useNavigate();
-  const [searchText, setSearchText] = useState('');
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [pagination, setPagination] = useState({
     current: 1,
@@ -53,12 +47,6 @@ const ProjectList = () => {
   } = useProjects({
     page: pagination.current,
     size: pagination.pageSize,
-    queryKey: [
-      'projects',
-      String(pagination.current),
-      String(pagination.pageSize),
-      searchText,
-    ],
   });
 
   const handleTableChange = (newPagination: TablePaginationConfig) => {
@@ -67,11 +55,6 @@ const ProjectList = () => {
       current: newPagination.current || 1,
       pageSize: newPagination.pageSize || 10,
     });
-  };
-
-  const handleSearch = (value: string) => {
-    setSearchText(value);
-    setPagination({ ...pagination, current: 1 });
   };
 
   const handleDelete = async (id: number) => {
@@ -180,22 +163,6 @@ const ProjectList = () => {
           New Project
         </Button>
       </div>
-
-      {/* Search */}
-      <Card className='search-card'>
-        <Row align='middle'>
-          <Col flex='auto'>
-            <Search
-              placeholder='Search projects by name...'
-              allowClear
-              enterButton={<SearchOutlined />}
-              size='large'
-              onSearch={handleSearch}
-              style={{ maxWidth: 400 }}
-            />
-          </Col>
-        </Row>
-      </Card>
 
       {/* Projects Table */}
       <Card className='table-card'>

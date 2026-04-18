@@ -10,7 +10,6 @@ import {
   EyeOutlined,
   PauseCircleOutlined,
   ReloadOutlined,
-  SearchOutlined,
   SyncOutlined,
 } from '@ant-design/icons';
 import { ListTasksTaskType, type TaskResp, TaskState } from '@rcabench/client';
@@ -21,7 +20,6 @@ import {
   Card,
   Col,
   Empty,
-  Input,
   message,
   Modal,
   Row,
@@ -43,7 +41,6 @@ import { createTraceStream } from '@/api/traces';
 dayjs.extend(relativeTime);
 
 const { Title, Text } = Typography;
-const { Search } = Input;
 const { Option } = Select;
 
 /** Human-readable task type names */
@@ -176,10 +173,6 @@ const TaskList = () => {
     });
   };
 
-  const handleSearch = (_value: string) => {
-    setPagination({ ...pagination, current: 1 });
-  };
-
   const handleTypeFilter = (type: ListTasksTaskType | undefined) => {
     setTypeFilter(type);
     setPagination({ ...pagination, current: 1 });
@@ -306,17 +299,6 @@ const TaskList = () => {
           {getTaskTypeName(type)}
         </Tag>
       ),
-      filters: [
-        { text: 'Build Container', value: ListTasksTaskType.NUMBER_0 },
-        { text: 'Restart Pedestal', value: ListTasksTaskType.NUMBER_1 },
-        { text: 'Fault Injection', value: ListTasksTaskType.NUMBER_2 },
-        { text: 'Run Algorithm', value: ListTasksTaskType.NUMBER_3 },
-        { text: 'Build Datapack', value: ListTasksTaskType.NUMBER_4 },
-        { text: 'Collect Result', value: ListTasksTaskType.NUMBER_5 },
-        { text: 'Cron Job', value: ListTasksTaskType.NUMBER_6 },
-      ],
-      onFilter: (value: boolean | React.Key, record: TaskResp) =>
-        record.type === value || String(record.type) === String(value),
     },
     {
       title: 'Project',
@@ -400,16 +382,6 @@ const TaskList = () => {
           />
         );
       },
-      filters: [
-        { text: 'Pending', value: TaskState.Pending },
-        { text: 'Rescheduled', value: TaskState.Rescheduled },
-        { text: 'Running', value: TaskState.Running },
-        { text: 'Completed', value: TaskState.Completed },
-        { text: 'Error', value: TaskState.Error },
-        { text: 'Cancelled', value: TaskState.Cancelled },
-      ],
-      onFilter: (value: boolean | React.Key, record: TaskResp) =>
-        String(record.state) === String(value),
     },
     {
       title: 'Created',
@@ -540,7 +512,7 @@ const TaskList = () => {
         <Col xs={12} sm={12} lg={4}>
           <Card>
             <Statistic
-              title='Pending'
+              title='Pending (this page)'
               value={stats.pending}
               prefix={<ClockCircleOutlined />}
               valueStyle={{ color: 'var(--color-secondary-500)' }}
@@ -550,7 +522,7 @@ const TaskList = () => {
         <Col xs={12} sm={12} lg={4}>
           <Card>
             <Statistic
-              title='Running'
+              title='Running (this page)'
               value={stats.running}
               prefix={<SyncOutlined />}
               valueStyle={{ color: 'var(--color-primary-500)' }}
@@ -560,7 +532,7 @@ const TaskList = () => {
         <Col xs={12} sm={12} lg={4}>
           <Card>
             <Statistic
-              title='Completed'
+              title='Completed (this page)'
               value={stats.completed}
               prefix={<CheckCircleOutlined />}
               valueStyle={{ color: 'var(--color-success)' }}
@@ -570,7 +542,7 @@ const TaskList = () => {
         <Col xs={12} sm={12} lg={4}>
           <Card>
             <Statistic
-              title='Error'
+              title='Error (this page)'
               value={stats.error}
               prefix={<CloseCircleOutlined />}
               valueStyle={{ color: 'var(--color-error)' }}
@@ -580,7 +552,7 @@ const TaskList = () => {
         <Col xs={12} sm={12} lg={4}>
           <Card>
             <Statistic
-              title='Cancelled'
+              title='Cancelled (this page)'
               value={stats.cancelled}
               prefix={<PauseCircleOutlined />}
               valueStyle={{ color: 'var(--color-secondary-500)' }}
@@ -592,15 +564,6 @@ const TaskList = () => {
       {/* Filters */}
       <Card style={{ marginBottom: 16 }}>
         <Row gutter={[16, 16]} align='middle'>
-          <Col xs={24} sm={12} md={6}>
-            <Search
-              placeholder='Search tasks by ID or type...'
-              allowClear
-              enterButton={<SearchOutlined />}
-              onSearch={handleSearch}
-              style={{ width: '100%' }}
-            />
-          </Col>
           <Col xs={24} sm={12} md={4}>
             <Select
               placeholder='Filter by type'
