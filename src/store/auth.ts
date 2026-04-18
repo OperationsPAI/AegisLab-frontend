@@ -37,16 +37,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       // Backend returns 'token' instead of 'access_token'
       // Store the same token as both access and refresh token for now
+      const rt = (response as Record<string, unknown>)?.refresh_token as
+        | string
+        | undefined;
       if (token) {
         localStorage.setItem('access_token', token);
-        localStorage.setItem('refresh_token', token);
+        localStorage.setItem('refresh_token', rt ?? token);
       }
 
-      // console.log('Setting auth state with token:', token)
       set({
         user,
         accessToken: token,
-        refreshToken: token,
+        refreshToken: rt ?? token,
         isAuthenticated: true,
         loading: false,
       });
@@ -85,15 +87,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       // Use the actual refresh endpoint instead of login
       const response = await authApi.refreshToken(refreshToken);
-      const token = response?.token;
+      const newAccessToken = response?.token;
+      const newRefreshToken = response?.refresh_token ?? refreshToken;
 
-      // Backend returns single 'token' for refresh
-      localStorage.setItem('access_token', token);
-      localStorage.setItem('refresh_token', token);
+      localStorage.setItem('access_token', newAccessToken);
+      localStorage.setItem('refresh_token', newRefreshToken);
 
       set({
-        accessToken: token,
-        refreshToken: token,
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
       });
     } catch (error) {
       get().logout();
