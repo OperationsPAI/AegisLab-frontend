@@ -18,6 +18,7 @@ module.exports = {
     'node_modules',
     '.eslintrc.js',
     'commitlint.config.js',
+    'vitest.config.ts',
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {

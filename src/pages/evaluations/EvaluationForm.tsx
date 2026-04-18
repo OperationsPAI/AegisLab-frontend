@@ -11,6 +11,7 @@ import {
   PlayCircleOutlined,
 } from '@ant-design/icons';
 import {
+  type ContainerVersionResp,
   type DatasetResp,
   type EvaluateDatapackSpec,
   type EvaluateDatasetSpec,
@@ -28,7 +29,6 @@ import {
   Form,
   Input,
   message,
-  Progress,
   Row,
   Select,
   Space,
@@ -60,19 +60,27 @@ const EvaluationForm = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm<EvaluationFormData>();
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>('');
+  const [selectedAlgorithmId, setSelectedAlgorithmId] = useState<number | null>(
+    null
+  );
   const [selectedVersion, setSelectedVersion] = useState<string>('');
   const [selectedDatapack, setSelectedDatapack] = useState<string>('');
   const [selectedDataset, setSelectedDataset] = useState<string>('');
   const [evaluationType, setEvaluationType] = useState<'datapack' | 'dataset'>(
     'datapack'
   );
-  const [isEvaluating, setIsEvaluating] = useState(false);
-  const [evaluationProgress, setEvaluationProgress] = useState(0);
 
   // Fetch algorithms
   const { data: algorithmsData } = useQuery({
     queryKey: ['algorithms'],
     queryFn: () => containerApi.getContainers({ type: 0 }), // Algorithm = 0
+  });
+
+  // Fetch real algorithm versions
+  const { data: versionsData, isLoading: versionsLoading } = useQuery({
+    queryKey: ['container-versions', selectedAlgorithmId],
+    queryFn: () => containerApi.getVersions(selectedAlgorithmId as number),
+    enabled: !!selectedAlgorithmId,
   });
 
   // Fetch executions for datapacks
@@ -102,16 +110,15 @@ const EvaluationForm = () => {
     onError: (error) => {
       message.error('Failed to complete evaluation');
       console.error('Evaluation error:', error);
-      setIsEvaluating(false);
-      setEvaluationProgress(0);
     },
   });
 
   const handleAlgorithmChange = (algorithmName: string) => {
     setSelectedAlgorithm(algorithmName);
-    // For now, we'll use a default version
-    setSelectedVersion('latest');
-    form.setFieldsValue({ algorithm_version: 'latest' });
+    const algo = algorithmsData?.items?.find((a) => a.name === algorithmName);
+    setSelectedAlgorithmId(algo?.id ?? null);
+    setSelectedVersion('');
+    form.setFieldsValue({ algorithm_version: undefined });
   };
 
   const handleVersionChange = (version: string) => {
@@ -164,27 +171,7 @@ const EvaluationForm = () => {
       },
     ];
 
-    setIsEvaluating(true);
-    setEvaluationProgress(0);
-
-    // Simulate progress
-    const progressInterval = setInterval(() => {
-      setEvaluationProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return 90;
-        }
-        return prev + 10;
-      });
-    }, 500);
-
-    try {
-      await evaluateMutation.mutateAsync(specs);
-      setEvaluationProgress(100);
-    } finally {
-      clearInterval(progressInterval);
-      setIsEvaluating(false);
-    }
+    await evaluateMutation.mutateAsync(specs);
   };
 
   const handleCancel = () => {
@@ -337,22 +324,25 @@ const EvaluationForm = () => {
                     ]}
                   >
                     <Select
-                      placeholder='Select version'
+                      placeholder={
+                        versionsLoading
+                          ? 'Loading versions...'
+                          : 'Select version'
+                      }
                       size='large'
                       onChange={handleVersionChange}
-                      value={selectedVersion}
+                      value={selectedVersion || undefined}
+                      loading={versionsLoading}
                     >
-                      <Option key='latest' value='latest'>
-                        <Space>
-                          <Text>latest</Text>
-                          <Text
-                            type='secondary'
-                            style={{ fontSize: '0.75rem' }}
-                          >
-                            Default version
-                          </Text>
-                        </Space>
-                      </Option>
+                      {(versionsData?.items ?? []).map(
+                        (v: ContainerVersionResp) => (
+                          <Option key={v.name} value={v.name}>
+                            <Space>
+                              <Text>{v.name}</Text>
+                            </Space>
+                          </Option>
+                        )
+                      )}
                     </Select>
                   </Form.Item>
 
@@ -499,38 +489,33 @@ const EvaluationForm = () => {
                 />
               </Form.Item>
 
-              {isEvaluating && (
-                <Card size='small' style={{ marginBottom: 24 }}>
-                  <Space direction='vertical' style={{ width: '100%' }}>
-                    <Text strong>Evaluation in progress...</Text>
-                    <Progress
-                      percent={evaluationProgress}
-                      status='active'
-                      strokeColor={{
-                        '0%': 'var(--color-primary-500)',
-                        '100%': 'var(--color-success)',
-                      }}
-                    />
+              <div
+                style={{
+                  position: 'sticky',
+                  bottom: 0,
+                  zIndex: 10,
+                  background: 'white',
+                  padding: '16px 0',
+                  borderTop: '1px solid #f0f0f0',
+                }}
+              >
+                <Form.Item style={{ marginBottom: 0 }}>
+                  <Space>
+                    <Button
+                      type='primary'
+                      htmlType='submit'
+                      icon={<PlayCircleOutlined />}
+                      loading={evaluateMutation.isPending}
+                      disabled={evaluateMutation.isPending}
+                    >
+                      Start Evaluation
+                    </Button>
+                    <Button icon={<CloseOutlined />} onClick={handleCancel}>
+                      Cancel
+                    </Button>
                   </Space>
-                </Card>
-              )}
-
-              <Form.Item>
-                <Space>
-                  <Button
-                    type='primary'
-                    htmlType='submit'
-                    icon={<PlayCircleOutlined />}
-                    loading={isEvaluating}
-                    disabled={isEvaluating}
-                  >
-                    Start Evaluation
-                  </Button>
-                  <Button icon={<CloseOutlined />} onClick={handleCancel}>
-                    Cancel
-                  </Button>
-                </Space>
-              </Form.Item>
+                </Form.Item>
+              </div>
             </Form>
           </Card>
         </Col>

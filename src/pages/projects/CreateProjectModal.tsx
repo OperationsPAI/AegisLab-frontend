@@ -1,9 +1,8 @@
-import type { ProjectResp, TeamResp } from '@rcabench/client';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Form, Input, message, Modal, Select, Switch } from 'antd';
+import type { ProjectResp } from '@rcabench/client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Form, Input, message, Modal, Switch } from 'antd';
 
 import { projectApi } from '@/api/projects';
-import { teamApi } from '@/api/teams';
 
 interface CreateProjectModalProps {
   open: boolean;
@@ -18,12 +17,6 @@ const CreateProjectModal = ({
 }: CreateProjectModalProps) => {
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
-
-  const { data: teamsData, isLoading: teamsLoading } = useQuery({
-    queryKey: ['teams'],
-    queryFn: () => teamApi.getTeams({ page: 1, size: 100 }),
-    enabled: open,
-  });
 
   const createMutation = useMutation({
     mutationFn: (values: {
@@ -79,18 +72,6 @@ const CreateProjectModal = ({
           rules={[{ required: true, message: 'Please enter a project name' }]}
         >
           <Input placeholder='my-project' />
-        </Form.Item>
-
-        <Form.Item name='team_id' label='Team'>
-          <Select
-            placeholder='Select a team (optional)'
-            allowClear
-            loading={teamsLoading}
-            options={(teamsData?.items ?? []).map((t: TeamResp) => ({
-              label: t.name,
-              value: t.id,
-            }))}
-          />
         </Form.Item>
 
         <Form.Item name='description' label='Description'>

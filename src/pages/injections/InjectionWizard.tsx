@@ -34,6 +34,39 @@ import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 const { Text, Title } = Typography;
 
 // ---------------------------------------------------------------------------
+// Constants for fault configuration
+// ---------------------------------------------------------------------------
+
+const FAULT_ACTIONS = [
+  'pod-kill',
+  'pod-failure',
+  'network-delay',
+  'network-loss',
+  'network-partition',
+  'io-delay',
+  'io-fault',
+  'stress-cpu',
+  'stress-memory',
+  'time-skew',
+];
+
+const FAULT_MODES = [
+  'one',
+  'all',
+  'fixed',
+  'fixed-percent',
+  'random-max-percent',
+];
+
+/** Parse a duration string like "30s" into { value, unit }. */
+function parseDuration(d: string): { value: number; unit: string } {
+  const match = d.match(/^(\d+)\s*(s|m|h)$/);
+  if (match) return { value: Number(match[1]), unit: match[2] };
+  const num = parseInt(d, 10);
+  return { value: Number.isNaN(num) ? 30 : num, unit: 's' };
+}
+
+// ---------------------------------------------------------------------------
 // Local types
 // ---------------------------------------------------------------------------
 
@@ -453,12 +486,17 @@ const InjectionWizard: React.FC = () => {
                       required
                       style={{ marginBottom: 0, minWidth: 180 }}
                     >
-                      <Input
-                        placeholder='e.g. pod-kill'
-                        value={fault.action}
-                        onChange={(e) =>
-                          updateFault(idx, { action: e.target.value })
+                      <Select
+                        placeholder='Select action'
+                        value={fault.action || undefined}
+                        onChange={(value) =>
+                          updateFault(idx, { action: value })
                         }
+                        options={FAULT_ACTIONS.map((a) => ({
+                          value: a,
+                          label: a,
+                        }))}
+                        showSearch
                       />
                     </Form.Item>
                     <Form.Item
@@ -466,26 +504,52 @@ const InjectionWizard: React.FC = () => {
                       required
                       style={{ marginBottom: 0, minWidth: 140 }}
                     >
-                      <Input
-                        placeholder='e.g. one'
-                        value={fault.mode}
-                        onChange={(e) =>
-                          updateFault(idx, { mode: e.target.value })
+                      <Select
+                        placeholder='Select mode'
+                        value={fault.mode || undefined}
+                        onChange={(value) =>
+                          updateFault(idx, { mode: value })
                         }
+                        options={FAULT_MODES.map((m) => ({
+                          value: m,
+                          label: m,
+                        }))}
                       />
                     </Form.Item>
                     <Form.Item
                       label='Duration'
                       required
-                      style={{ marginBottom: 0, minWidth: 120 }}
+                      style={{ marginBottom: 0, minWidth: 180 }}
                     >
-                      <Input
-                        placeholder='e.g. 30s'
-                        value={fault.duration}
-                        onChange={(e) =>
-                          updateFault(idx, { duration: e.target.value })
-                        }
-                      />
+                      <Space.Compact>
+                        <InputNumber
+                          min={1}
+                          placeholder='30'
+                          value={parseDuration(fault.duration).value}
+                          onChange={(val) => {
+                            const { unit } = parseDuration(fault.duration);
+                            updateFault(idx, {
+                              duration: `${val ?? 30}${unit}`,
+                            });
+                          }}
+                          style={{ width: 100 }}
+                        />
+                        <Select
+                          value={parseDuration(fault.duration).unit}
+                          onChange={(unit) => {
+                            const { value } = parseDuration(fault.duration);
+                            updateFault(idx, {
+                              duration: `${value}${unit}`,
+                            });
+                          }}
+                          style={{ width: 70 }}
+                          options={[
+                            { value: 's', label: 's' },
+                            { value: 'm', label: 'm' },
+                            { value: 'h', label: 'h' },
+                          ]}
+                        />
+                      </Space.Compact>
                     </Form.Item>
                   </Space>
                   <Form.Item label='Parameters' style={{ marginBottom: 0 }}>
@@ -639,6 +703,12 @@ const InjectionWizard: React.FC = () => {
       <div style={{ minHeight: 300 }}>{renderStepContent()}</div>
       <div
         style={{
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 10,
+          background: 'white',
+          padding: '16px 0',
+          borderTop: '1px solid #f0f0f0',
           marginTop: 24,
           display: 'flex',
           justifyContent: 'space-between',

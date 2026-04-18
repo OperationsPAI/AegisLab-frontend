@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { PlusOutlined } from '@ant-design/icons';
 import type { InjectionResp } from '@rcabench/client';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Breadcrumb,
   Button,
   Empty,
   Skeleton,
@@ -22,7 +21,6 @@ import { projectApi } from '@/api/projects';
 import ProjectSubNav from './ProjectSubNav';
 import { injectionStateMap } from './stateLabels';
 
-const { Title } = Typography;
 
 /**
  * Full datapacks listing page for a project.
@@ -35,7 +33,7 @@ const ProjectDatapacks: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const { data: project, isLoading: projectLoading } = useQuery({
+  const { isLoading: projectLoading } = useQuery({
     queryKey: ['project', projectId],
     queryFn: () => projectApi.getProjectDetail(projectId),
     enabled: !!projectId && !Number.isNaN(projectId),
@@ -88,24 +86,6 @@ const ProjectDatapacks: React.FC = () => {
 
   return (
     <div style={{ padding: 24 }}>
-      <Breadcrumb
-        style={{ marginBottom: 8 }}
-        items={[
-          { title: <Link to='/projects'>Projects</Link> },
-          {
-            title: (
-              <Link to={`/projects/${projectId}`}>
-                {project?.name ?? '...'}
-              </Link>
-            ),
-          },
-          { title: 'Datapacks' },
-        ]}
-      />
-      <Title level={3} style={{ marginBottom: 0 }}>
-        Datapacks
-      </Title>
-
       <ProjectSubNav projectId={projectId} activeKey='datapacks' />
 
       <Space style={{ marginBottom: 16 }}>

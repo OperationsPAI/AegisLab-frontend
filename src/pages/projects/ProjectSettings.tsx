@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { DeleteOutlined, SaveOutlined } from '@ant-design/icons';
 import type { ProjectDetailResp } from '@rcabench/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Breadcrumb,
   Button,
   Card,
   Form,
@@ -23,7 +22,7 @@ import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 
 import ProjectSubNav from './ProjectSubNav';
 
-const { Title, Text, Paragraph } = Typography;
+const { Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
 type ProjectWithExtras = ProjectDetailResp & {
@@ -107,22 +106,6 @@ const ProjectSettings: React.FC = () => {
 
   return (
     <div style={{ padding: 24 }}>
-      <Breadcrumb
-        style={{ marginBottom: 8 }}
-        items={[
-          { title: <Link to='/projects'>Projects</Link> },
-          {
-            title: (
-              <Link to={`/projects/${projectId}`}>{project.name ?? '...'}</Link>
-            ),
-          },
-          { title: 'Settings' },
-        ]}
-      />
-      <Title level={3} style={{ marginBottom: 0 }}>
-        Settings
-      </Title>
-
       <ProjectSubNav projectId={projectId} activeKey='settings' />
 
       {/* General Settings */}
