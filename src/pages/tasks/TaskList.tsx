@@ -1,65 +1,36 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
+import { ReloadOutlined, SyncOutlined } from '@ant-design/icons';
 import {
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  CloseCircleOutlined,
-  DashboardOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  PauseCircleOutlined,
-  ReloadOutlined,
-  SyncOutlined,
-} from '@ant-design/icons';
-import { ListTasksTaskType, type TaskResp, TaskState } from '@rcabench/client';
+  type ListTasksTaskType,
+  type TaskResp,
+  TaskState,
+} from '@rcabench/client';
 import { useQuery } from '@tanstack/react-query';
 import {
   Badge,
   Button,
   Card,
-  Col,
   Empty,
   message,
   Modal,
-  Row,
-  Select,
   Space,
-  Statistic,
   Table,
   type TablePaginationConfig,
-  Tag,
-  Tooltip,
   Typography,
 } from 'antd';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
 
 import { taskApi } from '@/api/tasks';
-import { createTraceStream } from '@/api/traces';
+import { usePagination } from '@/hooks/usePagination';
 
-dayjs.extend(relativeTime);
+import TaskFilters from './components/TaskFilters';
+import TaskStats from './components/TaskStats';
+import { useTasksSSE } from './hooks/useTasksSSE';
+
+import { buildTaskColumns } from './taskColumns';
 
 const { Title, Text } = Typography;
-const { Option } = Select;
-
-/** Human-readable task type names */
-const taskTypeNames: Record<string, string> = {
-  '0': 'Build Container',
-  '1': 'Restart Pedestal',
-  '2': 'Fault Injection',
-  '3': 'Run Algorithm',
-  '4': 'Build Datapack',
-  '5': 'Collect Result',
-  '6': 'Cron Job',
-};
-
-const getTaskTypeName = (
-  type: ListTasksTaskType | string | undefined
-): string => {
-  if (type === undefined || type === null) return 'Unknown';
-  return taskTypeNames[String(type)] ?? String(type);
-};
 
 const TaskList = () => {
   const navigate = useNavigate();
@@ -67,78 +38,31 @@ const TaskList = () => {
   const [stateFilter, setStateFilter] = useState<TaskState | undefined>();
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshInterval] = useState(5000);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
+  const {
+    current,
+    pageSize,
+    onChange: onPaginationChange,
+    reset: resetPagination,
+  } = usePagination({ defaultPageSize: 10 });
 
-  // Fetch tasks with real-time updates
   const {
     data: tasksData,
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: [
-      'tasks',
-      pagination.current,
-      pagination.pageSize,
-      typeFilter,
-      stateFilter,
-    ],
+    queryKey: ['tasks', current, pageSize, typeFilter, stateFilter],
     queryFn: () =>
       taskApi.getTasks({
-        page: pagination.current,
-        size: pagination.pageSize,
+        page: current,
+        size: pageSize,
         taskType: typeFilter as string | undefined,
         state: stateFilter,
       }),
     refetchInterval: autoRefresh ? refreshInterval : false,
   });
 
-  // Real-time updates via SSE for running tasks
-  useEffect(() => {
-    if (!autoRefresh) return;
-
-    const runningTasks = tasksData?.items?.filter(
-      (t: TaskResp) =>
-        String(t.state) === String(TaskState.Running) ||
-        t.state === '2' ||
-        t.state === 'RUNNING'
-    ); // RUNNING
-    if (!runningTasks?.length) return;
-
-    // Create SSE connections for each running task
-    const eventSources: EventSource[] = [];
-
-    runningTasks.forEach((task) => {
-      if (!task.trace_id) return;
-      const eventSource = createTraceStream(task.trace_id);
-
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'task_update') {
-            message.info(`Task ${task.id} update: ${data.message}`);
-            refetch();
-          }
-        } catch (error) {
-          console.error('Error parsing SSE data:', error);
-        }
-      };
-
-      eventSource.onerror = (error) => {
-        console.error('SSE error:', error);
-        eventSource.close();
-      };
-
-      eventSources.push(eventSource);
-    });
-
-    return () => {
-      eventSources.forEach((es) => es.close());
-    };
-  }, [autoRefresh, tasksData, refetch]);
+  // Real-time SSE updates for running tasks
+  useTasksSSE(autoRefresh, tasksData?.items, refetch);
 
   // Statistics
   const stats = {
@@ -166,32 +90,32 @@ const TaskList = () => {
   };
 
   const handleTableChange = (newPagination: TablePaginationConfig) => {
-    setPagination({
-      ...pagination,
-      current: newPagination.current || 1,
-      pageSize: newPagination.pageSize || 10,
-    });
+    onPaginationChange(
+      newPagination.current || 1,
+      newPagination.pageSize || 10
+    );
+  };
+
+  const handleSearch = (_value: string) => {
+    resetPagination();
   };
 
   const handleTypeFilter = (type: ListTasksTaskType | undefined) => {
     setTypeFilter(type);
-    setPagination({ ...pagination, current: 1 });
+    resetPagination();
   };
 
   const handleStateFilter = (state: TaskState | undefined) => {
     setStateFilter(state);
-    setPagination({ ...pagination, current: 1 });
+    resetPagination();
   };
 
   const handleViewTask = (id?: string) => {
-    if (id) {
-      navigate(`/tasks/${id}`);
-    }
+    if (id) navigate(`/tasks/${id}`);
   };
 
   const handleDeleteTask = (id?: string) => {
     if (!id) return;
-
     Modal.confirm({
       title: 'Delete Task',
       content:
@@ -216,254 +140,7 @@ const TaskList = () => {
     message.success('Tasks refreshed');
   };
 
-  const getStateColor = (state: TaskState) => {
-    switch (state) {
-      case TaskState.Pending:
-        return 'var(--color-secondary-300)';
-      case TaskState.Running:
-        return 'var(--color-primary-500)';
-      case TaskState.Completed:
-        return 'var(--color-success)';
-      case TaskState.Error:
-        return 'var(--color-error)';
-      case TaskState.Cancelled:
-        return 'var(--color-secondary-500)';
-      default:
-        return 'var(--color-secondary-500)';
-    }
-  };
-
-  const getStateIcon = (state: TaskState) => {
-    switch (state) {
-      case TaskState.Pending:
-        return <ClockCircleOutlined />;
-      case TaskState.Running:
-        return <SyncOutlined spin />;
-      case TaskState.Completed:
-        return <CheckCircleOutlined />;
-      case TaskState.Error:
-        return <CloseCircleOutlined />;
-      case TaskState.Cancelled:
-        return <PauseCircleOutlined />;
-      default:
-        return <ClockCircleOutlined />;
-    }
-  };
-
-  const getTaskTypeColor = (
-    type: ListTasksTaskType | string | undefined
-  ): string => {
-    if (type === undefined || type === null)
-      return 'var(--color-secondary-500)';
-
-    const typeStr = String(type);
-    switch (typeStr) {
-      case '0':
-        return 'var(--color-primary-500)';
-      case '1':
-        return 'var(--color-success)';
-      case '2':
-        return 'var(--color-warning)';
-      case '3':
-        return 'var(--color-info)';
-      case '4':
-        return 'var(--color-success)';
-      case '5':
-        return 'var(--color-primary-700)';
-      case '6':
-        return 'var(--color-secondary-500)';
-      default:
-        return 'var(--color-secondary-500)';
-    }
-  };
-
-  const columns = [
-    {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: '10%',
-      render: (id: string) => (
-        <Text strong style={{ fontSize: '0.875rem' }}>
-          {id?.substring(0, 8)}
-        </Text>
-      ),
-    },
-    {
-      title: 'Type',
-      dataIndex: 'type',
-      key: 'type',
-      width: '14%',
-      render: (type: ListTasksTaskType | string | undefined) => (
-        <Tag color={getTaskTypeColor(type)} style={{ fontWeight: 500 }}>
-          {getTaskTypeName(type)}
-        </Tag>
-      ),
-    },
-    {
-      title: 'Project',
-      key: 'project',
-      width: '14%',
-      render: (_: unknown, record: TaskResp) => {
-        const projectId = (record as Record<string, unknown>).project_id as
-          | string
-          | undefined;
-        const projectName = (record as Record<string, unknown>).project_name as
-          | string
-          | undefined;
-        if (projectId) {
-          return (
-            <Link
-              to={`/projects/${projectId}`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {projectName || projectId.substring(0, 8)}
-            </Link>
-          );
-        }
-        return (
-          <Text type='secondary' style={{ fontSize: '0.75rem' }}>
-            -
-          </Text>
-        );
-      },
-    },
-    {
-      title: 'State',
-      dataIndex: 'state',
-      key: 'state',
-      width: '12%',
-      render: (state: string | TaskState) => {
-        const stateStr = String(state);
-        let taskState: TaskState;
-        if (!isNaN(Number(stateStr))) {
-          taskState = Number(stateStr) as TaskState;
-        } else {
-          taskState = TaskState.Pending;
-        }
-
-        return (
-          <Badge
-            status={
-              taskState === TaskState.Completed
-                ? 'success'
-                : taskState === TaskState.Error
-                  ? 'error'
-                  : taskState === TaskState.Running
-                    ? 'processing'
-                    : taskState === TaskState.Cancelled
-                      ? 'warning'
-                      : 'default'
-            }
-            text={
-              <Space size='small'>
-                {getStateIcon(taskState)}
-                <Text
-                  strong
-                  style={{
-                    color: getStateColor(taskState),
-                    fontSize: '0.875rem',
-                  }}
-                >
-                  {taskState === TaskState.Pending
-                    ? 'Pending'
-                    : taskState === TaskState.Running
-                      ? 'Running'
-                      : taskState === TaskState.Completed
-                        ? 'Completed'
-                        : taskState === TaskState.Error
-                          ? 'Error'
-                          : taskState === TaskState.Cancelled
-                            ? 'Cancelled'
-                            : 'Unknown'}
-                </Text>
-              </Space>
-            }
-          />
-        );
-      },
-    },
-    {
-      title: 'Created',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: '12%',
-      render: (date: string) => (
-        <Tooltip title={dayjs(date).format('YYYY-MM-DD HH:mm:ss')}>
-          <Text style={{ fontSize: '0.75rem' }}>{dayjs(date).fromNow()}</Text>
-        </Tooltip>
-      ),
-    },
-    {
-      title: 'Duration',
-      key: 'duration',
-      width: '10%',
-      render: (_: unknown, record: TaskResp) => {
-        const start = (record as Record<string, unknown>).created_at as
-          | string
-          | undefined;
-        const end = (record as Record<string, unknown>).updated_at as
-          | string
-          | undefined;
-        if (!start) return <Text type='secondary'>-</Text>;
-
-        const isRunning = String(record.state) === String(TaskState.Running);
-        const endTime = isRunning ? dayjs() : dayjs(end || start);
-        const diffMs = endTime.diff(dayjs(start));
-
-        if (diffMs < 1000)
-          return <Text style={{ fontSize: '0.75rem' }}>&lt;1s</Text>;
-        if (diffMs < 60000) {
-          return (
-            <Text style={{ fontSize: '0.75rem' }}>
-              {Math.round(diffMs / 1000)}s
-            </Text>
-          );
-        }
-        const mins = Math.floor(diffMs / 60000);
-        const secs = Math.round((diffMs % 60000) / 1000);
-        return (
-          <Text style={{ fontSize: '0.75rem' }}>
-            {mins}m {secs}s
-          </Text>
-        );
-      },
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: '8%',
-      render: (_: unknown, record: TaskResp) => (
-        <Space size='small'>
-          <Tooltip title='View Details'>
-            <Button
-              type='text'
-              size='small'
-              icon={<EyeOutlined />}
-              aria-label='View details'
-              onClick={(e) => {
-                e.stopPropagation();
-                handleViewTask(record.id);
-              }}
-            />
-          </Tooltip>
-          <Tooltip title='Delete Task'>
-            <Button
-              type='text'
-              size='small'
-              danger
-              icon={<DeleteOutlined />}
-              aria-label='Delete task'
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteTask(record.id);
-              }}
-            />
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ];
+  const columns = buildTaskColumns(handleViewTask, handleDeleteTask);
 
   return (
     <div className='task-list page-container'>
@@ -493,120 +170,17 @@ const TaskList = () => {
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <Row
-        gutter={[
-          { xs: 8, sm: 16, lg: 24 },
-          { xs: 8, sm: 16, lg: 24 },
-        ]}
-        className='stats-row'
-      >
-        <Col xs={12} sm={12} lg={4}>
-          <Card>
-            <Statistic
-              title='Total Tasks'
-              value={stats.total}
-              prefix={<DashboardOutlined />}
-              valueStyle={{ color: 'var(--color-primary-500)' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={12} sm={12} lg={4}>
-          <Card>
-            <Statistic
-              title='Pending (this page)'
-              value={stats.pending}
-              prefix={<ClockCircleOutlined />}
-              valueStyle={{ color: 'var(--color-secondary-500)' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={12} sm={12} lg={4}>
-          <Card>
-            <Statistic
-              title='Running (this page)'
-              value={stats.running}
-              prefix={<SyncOutlined />}
-              valueStyle={{ color: 'var(--color-primary-500)' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={12} sm={12} lg={4}>
-          <Card>
-            <Statistic
-              title='Completed (this page)'
-              value={stats.completed}
-              prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: 'var(--color-success)' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={12} sm={12} lg={4}>
-          <Card>
-            <Statistic
-              title='Error (this page)'
-              value={stats.error}
-              prefix={<CloseCircleOutlined />}
-              valueStyle={{ color: 'var(--color-error)' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={12} sm={12} lg={4}>
-          <Card>
-            <Statistic
-              title='Cancelled (this page)'
-              value={stats.cancelled}
-              prefix={<PauseCircleOutlined />}
-              valueStyle={{ color: 'var(--color-secondary-500)' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+      {/* Statistics */}
+      <TaskStats {...stats} />
 
       {/* Filters */}
-      <Card style={{ marginBottom: 16 }}>
-        <Row gutter={[16, 16]} align='middle'>
-          <Col xs={24} sm={12} md={4}>
-            <Select
-              placeholder='Filter by type'
-              allowClear
-              style={{ width: '100%' }}
-              onChange={handleTypeFilter}
-              value={typeFilter}
-            >
-              <Option value={ListTasksTaskType.NUMBER_0}>
-                Build Container
-              </Option>
-              <Option value={ListTasksTaskType.NUMBER_1}>
-                Restart Pedestal
-              </Option>
-              <Option value={ListTasksTaskType.NUMBER_2}>
-                Fault Injection
-              </Option>
-              <Option value={ListTasksTaskType.NUMBER_3}>Run Algorithm</Option>
-              <Option value={ListTasksTaskType.NUMBER_4}>Build Datapack</Option>
-              <Option value={ListTasksTaskType.NUMBER_5}>Collect Result</Option>
-              <Option value={ListTasksTaskType.NUMBER_6}>Cron Job</Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={12} md={4}>
-            <Select
-              placeholder='Filter by status'
-              allowClear
-              style={{ width: '100%' }}
-              onChange={handleStateFilter}
-              value={stateFilter}
-            >
-              <Option value={TaskState.Pending}>Pending</Option>
-              <Option value={TaskState.Rescheduled}>Rescheduled</Option>
-              <Option value={TaskState.Running}>Running</Option>
-              <Option value={TaskState.Completed}>Completed</Option>
-              <Option value={TaskState.Error}>Error</Option>
-              <Option value={TaskState.Cancelled}>Cancelled</Option>
-            </Select>
-          </Col>
-        </Row>
-      </Card>
+      <TaskFilters
+        typeFilter={typeFilter}
+        stateFilter={stateFilter}
+        onSearch={handleSearch}
+        onTypeFilter={handleTypeFilter}
+        onStateFilter={handleStateFilter}
+      />
 
       {/* Task Table */}
       <Card className='table-card'>
@@ -617,7 +191,8 @@ const TaskList = () => {
           loading={isLoading}
           className='tasks-table'
           pagination={{
-            ...pagination,
+            current,
+            pageSize,
             total: tasksData?.pagination?.total || 0,
             showSizeChanger: true,
             showQuickJumper: true,

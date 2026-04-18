@@ -1,5 +1,6 @@
 import type {
   CreateRoleReq,
+  ListRoleResp,
   RoleDetailResp,
   RoleResp,
   UpdateRoleReq,
@@ -8,7 +9,11 @@ import type {
 import apiClient from './client';
 
 export const roleApi = {
-  getRoles: (params?: { page?: number; size?: number; scope?: string }) =>
+  getRoles: (params?: {
+    page?: number;
+    size?: number;
+    scope?: string;
+  }): Promise<ListRoleResp | undefined> =>
     apiClient.get('/roles', { params }).then((r) => r.data.data),
 
   getRole: (id: number): Promise<RoleDetailResp | undefined> =>

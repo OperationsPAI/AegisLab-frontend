@@ -16,17 +16,21 @@ import {
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import dayjs from 'dayjs';
 
 import { containerApi } from '@/api/containers';
+import { createdAtColumn } from '@/components/ui/columns/createdAtColumn';
+import { usePagination } from '@/hooks/usePagination';
 
 const { Title, Text } = Typography;
 
 const ContainerList = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [size, setSize] = useState(10);
+  const {
+    current: page,
+    pageSize: size,
+    onChange: onPageChange,
+  } = usePagination({ defaultPageSize: 10 });
   const [typeFilter, setTypeFilter] = useState<string | undefined>();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [batchDeleting, setBatchDeleting] = useState(false);
@@ -118,13 +122,7 @@ const ContainerList = () => {
         </Tag>
       ),
     },
-    {
-      title: 'Created At',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: 180,
-      render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm'),
-    },
+    createdAtColumn<ContainerResp>(),
     {
       title: 'Actions',
       key: 'actions',
@@ -232,10 +230,7 @@ const ContainerList = () => {
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total) => `Total ${total} containers`,
-            onChange: (newPage, newSize) => {
-              setPage(newPage);
-              setSize(newSize);
-            },
+            onChange: onPageChange,
           }}
         />
       </Card>

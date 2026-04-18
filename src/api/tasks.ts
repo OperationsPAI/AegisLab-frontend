@@ -5,6 +5,8 @@ import type {
   TaskState,
 } from '@rcabench/client';
 
+import { getAccessToken } from '@/utils/authToken';
+
 import apiClient from './client';
 
 export const taskApi = {
@@ -33,7 +35,7 @@ export const taskApi = {
  * Backend endpoint: GET /tasks/:task_id/logs/ws
  */
 export const createTaskLogWebSocket = (taskId: string): WebSocket => {
-  const token = localStorage.getItem('access_token');
+  const token = getAccessToken();
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const url = `${protocol}//${window.location.host}/api/v2/tasks/${taskId}/logs/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`;
   return new WebSocket(url);

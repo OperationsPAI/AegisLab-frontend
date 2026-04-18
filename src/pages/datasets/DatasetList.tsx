@@ -1,83 +1,90 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import {
-  ClockCircleOutlined,
   CloudUploadOutlined,
   DatabaseOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  EyeOutlined,
   FileTextOutlined,
   LineChartOutlined,
   PlusOutlined,
-  SettingOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
-import type { DatasetResp } from '@rcabench/client';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Avatar,
-  Badge,
   Button,
   Card,
   Col,
-  Empty,
-  message,
   Modal,
   Progress,
   Row,
-  Select,
   Space,
   Table,
   type TablePaginationConfig,
-  Tag,
-  Tooltip,
   Typography,
   Upload,
 } from 'antd';
-import dayjs from 'dayjs';
 
 import { datasetApi } from '@/api/datasets';
 import StatCard from '@/components/ui/StatCard';
+import { usePagination } from '@/hooks/usePagination';
 
-// DatasetType for internal use
+import { buildDatasetColumns } from './columns/datasetColumns';
+import DatasetFilters from './components/DatasetFilters';
+import { useDatasetActions } from './hooks/useDatasetActions';
+
 type DatasetType = 'Trace' | 'Log' | 'Metric';
 
 const { Title, Text } = Typography;
-const { Option } = Select;
+
+const formatFileSize = (bytes: number) => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+};
 
 const DatasetList = () => {
-  const navigate = useNavigate();
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [searchText, setSearchText] = useState('');
   const [typeFilter, setTypeFilter] = useState<DatasetType | undefined>();
-  const [uploadModalVisible, setUploadModalVisible] = useState(false);
-  const [uploadingFile, setUploadingFile] = useState<File | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
-
-  // Fetch datasets
   const {
-    data: datasetsResponse,
+    current,
+    pageSize,
+    onChange: onPaginationChange,
+    reset: resetPagination,
+  } = usePagination({ defaultPageSize: 10 });
+
+  const {
+    data: datasetsData,
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ['datasets', pagination.current, pagination.pageSize, typeFilter],
+    queryKey: ['datasets', current, pageSize, searchText, typeFilter],
     queryFn: () =>
       datasetApi.getDatasets({
-        page: pagination.current,
-        size: pagination.pageSize,
+        page: current,
+        size: pageSize,
         type: typeFilter,
       }),
   });
 
-  const datasetsData = datasetsResponse;
+  const {
+    selectedRowKeys,
+    setSelectedRowKeys,
+    uploadModalVisible,
+    uploadingFile,
+    uploadProgress,
+    handleCreateDataset,
+    handleViewDataset,
+    handleEditDataset,
+    handleManageVersions,
+    handleDeleteDataset,
+    handleBatchDelete,
+    handleUploadDataset,
+    handleFileSelect,
+    handleUpload,
+    handleCloseUploadModal,
+  } = useDatasetActions(refetch);
 
-  // Statistics
   const stats = {
     total: datasetsData?.pagination?.total || 0,
     trace: datasetsData?.items?.filter((d) => d.type === 'Trace').length || 0,
@@ -86,278 +93,28 @@ const DatasetList = () => {
   };
 
   const handleTableChange = (newPagination: TablePaginationConfig) => {
-    setPagination({
-      ...pagination,
-      current: newPagination.current || 1,
-      pageSize: newPagination.pageSize || 10,
-    });
+    onPaginationChange(
+      newPagination.current || 1,
+      newPagination.pageSize || 10
+    );
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchText(value);
+    resetPagination();
   };
 
   const handleTypeFilter = (type: DatasetType | undefined) => {
     setTypeFilter(type);
-    setPagination({ ...pagination, current: 1 });
+    resetPagination();
   };
 
-  const handleCreateDataset = () => {
-    navigate('/admin/datasets/new');
-  };
-
-  const handleViewDataset = (id: number) => {
-    navigate(`/admin/datasets/${id}`);
-  };
-
-  const handleEditDataset = (id: number) => {
-    navigate(`/admin/datasets/${id}/edit`);
-  };
-
-  const handleDeleteDataset = (id: number) => {
-    Modal.confirm({
-      title: 'Delete Dataset',
-      content:
-        'Are you sure you want to delete this dataset? This action cannot be undone.',
-      okText: 'Yes, delete it',
-      okButtonProps: { danger: true },
-      cancelText: 'Cancel',
-      onOk: async () => {
-        try {
-          await datasetApi.deleteDataset(id);
-          message.success('Dataset deleted successfully');
-          refetch();
-        } catch (error) {
-          message.error('Failed to delete dataset');
-        }
-      },
-    });
-  };
-
-  const handleUploadDataset = () => {
-    setUploadModalVisible(true);
-  };
-
-  const handleFileSelect = (file: File) => {
-    setUploadingFile(file);
-    return false; // Prevent auto upload
-  };
-
-  const handleUpload = async () => {
-    if (!uploadingFile) return;
-
-    // TODO: Implement actual file upload when API is ready
-    message.info('File upload is not yet supported');
-    setUploadModalVisible(false);
-    setUploadingFile(null);
-    setUploadProgress(0);
-  };
-
-  const handleBatchDelete = () => {
-    if (selectedRowKeys.length === 0) {
-      message.warning('Please select datasets to delete');
-      return;
-    }
-
-    Modal.confirm({
-      title: 'Batch Delete Datasets',
-      content: `Are you sure you want to delete ${selectedRowKeys.length} datasets?`,
-      okText: 'Yes, delete them',
-      okButtonProps: { danger: true },
-      cancelText: 'Cancel',
-      onOk: async () => {
-        try {
-          await Promise.all(
-            (selectedRowKeys as number[]).map((deleteId) =>
-              datasetApi.deleteDataset(deleteId)
-            )
-          );
-          message.success(
-            `${selectedRowKeys.length} datasets deleted successfully`
-          );
-          setSelectedRowKeys([]);
-          refetch();
-        } catch (error) {
-          message.error('Failed to delete datasets');
-        }
-      },
-    });
-  };
-
-  const getTypeIcon = (type: DatasetType) => {
-    switch (type) {
-      case 'Trace':
-        return (
-          <DatabaseOutlined style={{ color: 'var(--color-primary-500)' }} />
-        );
-      case 'Log':
-        return <FileTextOutlined style={{ color: 'var(--color-success)' }} />;
-      case 'Metric':
-        return <LineChartOutlined style={{ color: 'var(--color-warning)' }} />;
-      default:
-        return <DatabaseOutlined />;
-    }
-  };
-
-  const getTypeColor = (type: DatasetType) => {
-    switch (type) {
-      case 'Trace':
-        return 'var(--color-primary-500)';
-      case 'Log':
-        return 'var(--color-success)';
-      case 'Metric':
-        return 'var(--color-warning)';
-      default:
-        return 'var(--color-secondary-500)';
-    }
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
-  };
-
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: setSelectedRowKeys,
-  };
-
-  const columns = [
-    {
-      title: 'Dataset',
-      dataIndex: 'name',
-      key: 'name',
-      width: '30%',
-      render: (name: string, record: DatasetResp) => (
-        <Space>
-          <Avatar
-            size='large'
-            style={{
-              backgroundColor: getTypeColor(record.type as DatasetType),
-              fontSize: '1.25rem',
-            }}
-            icon={getTypeIcon(record.type as DatasetType)}
-          />
-          <div>
-            <Text strong style={{ fontSize: '1rem' }}>
-              {name}
-            </Text>
-            <br />
-            <Text type='secondary' style={{ fontSize: '0.875rem' }}>
-              ID: {record.id}
-            </Text>
-          </div>
-        </Space>
-      ),
-    },
-    {
-      title: 'Type',
-      dataIndex: 'type',
-      key: 'type',
-      width: '15%',
-      render: (type: string) => (
-        <Tag
-          color={getTypeColor(type as DatasetType)}
-          style={{ fontWeight: 500 }}
-        >
-          {type}
-        </Tag>
-      ),
-    },
-    {
-      title: 'Public',
-      dataIndex: 'is_public',
-      key: 'is_public',
-      width: '10%',
-      render: (isPublic: boolean) => (
-        <Tag color={isPublic ? 'green' : 'default'}>
-          {isPublic ? 'Public' : 'Private'}
-        </Tag>
-      ),
-    },
-    {
-      title: 'Versions',
-      dataIndex: 'versions',
-      key: 'versions',
-      width: '10%',
-      render: (versions: Array<{ version?: string }> = []) => (
-        <Badge
-          count={versions.length}
-          showZero
-          style={{ backgroundColor: 'var(--color-primary-500)' }}
-        />
-      ),
-    },
-    {
-      title: 'Description',
-      dataIndex: 'description',
-      key: 'description',
-      width: '20%',
-      render: (description?: string) =>
-        description ? (
-          <Tooltip title={description}>
-            <Text ellipsis style={{ maxWidth: 200 }}>
-              {description}
-            </Text>
-          </Tooltip>
-        ) : (
-          <Text type='secondary'>No description</Text>
-        ),
-    },
-    {
-      title: 'Created',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: '12%',
-      render: (date: string) => (
-        <Space>
-          <ClockCircleOutlined />
-          <Text>{dayjs(date).format('MMM D, YYYY')}</Text>
-        </Space>
-      ),
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: '18%',
-      render: (_: unknown, record: DatasetResp) => (
-        <Space>
-          <Tooltip title='View Details'>
-            <Button
-              type='text'
-              icon={<EyeOutlined />}
-              aria-label='View details'
-              onClick={() => record.id && handleViewDataset(record.id)}
-            />
-          </Tooltip>
-          <Tooltip title='Edit Dataset'>
-            <Button
-              type='text'
-              icon={<EditOutlined />}
-              aria-label='Edit dataset'
-              onClick={() => record.id && handleEditDataset(record.id)}
-            />
-          </Tooltip>
-          <Tooltip title='Manage Versions'>
-            <Button
-              type='text'
-              icon={<SettingOutlined />}
-              aria-label='Manage versions'
-              onClick={() => navigate(`/admin/datasets/${record.id}`)}
-            />
-          </Tooltip>
-          <Tooltip title='Delete Dataset'>
-            <Button
-              type='text'
-              danger
-              icon={<DeleteOutlined />}
-              aria-label='Delete dataset'
-              onClick={() => record.id && handleDeleteDataset(record.id)}
-            />
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ];
+  const columns = buildDatasetColumns(
+    handleViewDataset,
+    handleEditDataset,
+    handleManageVersions,
+    handleDeleteDataset
+  );
 
   return (
     <div className='dataset-list'>
@@ -410,7 +167,7 @@ const DatasetList = () => {
         </Col>
         <Col xs={12} sm={12} lg={6}>
           <StatCard
-            title='Trace (this page)'
+            title='Trace Datasets'
             value={stats.trace}
             prefix={<DatabaseOutlined />}
             color='primary'
@@ -418,7 +175,7 @@ const DatasetList = () => {
         </Col>
         <Col xs={12} sm={12} lg={6}>
           <StatCard
-            title='Log (this page)'
+            title='Log Datasets'
             value={stats.log}
             prefix={<FileTextOutlined />}
             color='success'
@@ -426,7 +183,7 @@ const DatasetList = () => {
         </Col>
         <Col xs={12} sm={12} lg={6}>
           <StatCard
-            title='Metric (this page)'
+            title='Metric Datasets'
             value={stats.metric}
             prefix={<LineChartOutlined />}
             color='warning'
@@ -434,53 +191,28 @@ const DatasetList = () => {
         </Col>
       </Row>
 
-      {/* Filters and Actions */}
-      <Card style={{ marginBottom: 16 }}>
-        <Row gutter={[16, 16]} align='middle'>
-          <Col xs={24} sm={12} md={4}>
-            <Select
-              placeholder='Filter by type'
-              allowClear
-              style={{ width: '100%' }}
-              onChange={handleTypeFilter}
-              value={typeFilter}
-            >
-              <Option value='Trace'>Trace</Option>
-              <Option value='Log'>Log</Option>
-              <Option value='Metric'>Metric</Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={24} md={12} style={{ textAlign: 'right' }}>
-            <Space>
-              {selectedRowKeys.length > 0 && (
-                <Button
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={handleBatchDelete}
-                >
-                  Delete Selected ({selectedRowKeys.length})
-                </Button>
-              )}
-              <Button icon={<UploadOutlined />} onClick={handleUploadDataset}>
-                Import Dataset
-              </Button>
-            </Space>
-          </Col>
-        </Row>
-      </Card>
+      {/* Filters */}
+      <DatasetFilters
+        typeFilter={typeFilter}
+        selectedCount={selectedRowKeys.length}
+        onSearch={handleSearch}
+        onTypeFilter={handleTypeFilter}
+        onBatchDelete={handleBatchDelete}
+        onUpload={handleUploadDataset}
+      />
 
       {/* Dataset Table */}
       <Card className='table-card'>
         <Table
           rowKey='id'
-          rowSelection={rowSelection}
+          rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
           columns={columns}
           dataSource={datasetsData?.items || []}
           loading={isLoading}
           className='datasets-table'
-          locale={{ emptyText: <Empty description='No datasets yet' /> }}
           pagination={{
-            ...pagination,
+            current,
+            pageSize,
             total: datasetsData?.pagination?.total || 0,
             showSizeChanger: true,
             showQuickJumper: true,
@@ -495,20 +227,9 @@ const DatasetList = () => {
       <Modal
         title='Upload Dataset'
         open={uploadModalVisible}
-        onCancel={() => {
-          setUploadModalVisible(false);
-          setUploadingFile(null);
-          setUploadProgress(0);
-        }}
+        onCancel={handleCloseUploadModal}
         footer={[
-          <Button
-            key='cancel'
-            onClick={() => {
-              setUploadModalVisible(false);
-              setUploadingFile(null);
-              setUploadProgress(0);
-            }}
-          >
+          <Button key='cancel' onClick={handleCloseUploadModal}>
             Cancel
           </Button>,
           <Button

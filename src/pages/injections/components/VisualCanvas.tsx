@@ -175,9 +175,8 @@ const VisualCanvasContent: React.FC<VisualCanvasProps> = ({
 
         onFaultMatrixChange(newMatrix);
         message.success(`Added ${fault.name} to batch ${batchIndex + 1}`);
-      } catch (error) {
+      } catch {
         message.error('Failed to add fault');
-        console.error('Drop error:', error);
       }
     },
     [project, faultMatrix, onFaultMatrixChange]

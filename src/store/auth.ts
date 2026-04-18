@@ -1,7 +1,23 @@
-import type { LoginResp, UserInfo as User } from '@rcabench/client';
+import type { LoginResp, UserInfo } from '@rcabench/client';
 import { create } from 'zustand';
 
 import { authApi } from '@/api/auth';
+import {
+  getAccessToken,
+  getRefreshToken,
+  removeAccessToken,
+  removeRefreshToken,
+  setAccessToken,
+  setRefreshToken,
+} from '@/utils/authToken';
+
+/**
+ * Extended user type that includes fields returned by the API
+ * but not yet present in the generated SDK types.
+ */
+export type User = UserInfo & {
+  is_superuser?: boolean;
+};
 
 interface AuthState {
   user: User | null;
@@ -20,18 +36,15 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  accessToken: localStorage.getItem('access_token'),
-  refreshToken: localStorage.getItem('refresh_token'),
-  isAuthenticated: !!localStorage.getItem('access_token'),
+  accessToken: getAccessToken(),
+  refreshToken: getRefreshToken(),
+  isAuthenticated: !!getAccessToken(),
   loading: false,
 
   login: async (username: string, password: string) => {
     set({ loading: true });
     try {
-      // console.log('Attempting login...')
       const response = await authApi.login({ username, password });
-      // console.log('Login response:', response)
-      // The response structure needs to be checked
       const token = (response as LoginResp)?.token;
       const user = (response as LoginResp)?.user;
 
@@ -41,8 +54,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         | string
         | undefined;
       if (token) {
-        localStorage.setItem('access_token', token);
-        localStorage.setItem('refresh_token', rt ?? token);
+        setAccessToken(token);
+        setRefreshToken(rt ?? token);
       }
 
       set({
@@ -52,9 +65,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: true,
         loading: false,
       });
-      // console.log('Login successful, isAuthenticated set to true')
     } catch (error) {
-      // console.error('Login failed:', error)
       set({ loading: false });
       throw error;
     }
@@ -63,11 +74,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     try {
       await authApi.logout();
-    } catch (error) {
-      // console.error('Logout error:', error)
+    } catch {
+      // Logout errors are non-critical
     } finally {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
+      removeAccessToken();
+      removeRefreshToken();
 
       set({
         user: null,
@@ -87,11 +98,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       // Use the actual refresh endpoint instead of login
       const response = await authApi.refreshToken(refreshToken);
-      const newAccessToken = response?.token;
+      const newAccessToken = response?.token ?? '';
       const newRefreshToken = response?.refresh_token ?? refreshToken;
 
-      localStorage.setItem('access_token', newAccessToken);
-      localStorage.setItem('refresh_token', newRefreshToken);
+      setAccessToken(newAccessToken);
+      setRefreshToken(newRefreshToken);
 
       set({
         accessToken: newAccessToken,

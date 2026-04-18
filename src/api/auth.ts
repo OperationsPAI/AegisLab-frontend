@@ -1,32 +1,41 @@
-import type {
-  LoginReq,
-  LoginResp,
-  RegisterReq,
-  UserDetailResp,
-  UserInfo,
+import {
+  AuthenticationApi,
+  type LoginReq,
+  type LoginResp,
+  type RegisterReq,
+  type TokenRefreshResp,
+  type UserDetailResp,
+  type UserInfo,
 } from '@rcabench/client';
 
-import apiClient from './client';
+import { sdkAxios, sdkConfig } from './sdk';
+
+const authSdk = new AuthenticationApi(sdkConfig, '', sdkAxios);
 
 export const authApi = {
   login: (data: LoginReq): Promise<LoginResp | undefined> =>
-    apiClient.post('/auth/login', data).then((r) => r.data.data),
+    authSdk.login({ request: data }).then((r) => r.data.data),
 
   register: (data: RegisterReq): Promise<UserInfo | undefined> =>
-    apiClient.post('/auth/register', data).then((r) => r.data.data),
+    authSdk.registerUser({ request: data }).then((r) => r.data.data),
 
-  logout: () => apiClient.post('/auth/logout').then((r) => r.data),
+  logout: () => authSdk.logout().then((r) => r.data),
 
   getProfile: (): Promise<UserDetailResp> =>
-    apiClient
-      .get<{ data: UserDetailResp }>('/auth/profile')
-      .then((r) => r.data.data),
+    authSdk.getCurrentUserProfile().then((r) => r.data.data as UserDetailResp),
 
   changePassword: (data: { old_password: string; new_password: string }) =>
-    apiClient.post('/auth/change-password', data).then((r) => r.data),
+    authSdk
+      .changePassword({
+        request: {
+          old_password: data.old_password,
+          new_password: data.new_password,
+        },
+      })
+      .then((r) => r.data),
 
-  refreshToken: (
-    token: string
-  ): Promise<{ token: string; refresh_token?: string }> =>
-    apiClient.post('/auth/refresh', { token }).then((r) => r.data.data),
+  refreshToken: (token: string): Promise<TokenRefreshResp> =>
+    authSdk
+      .refreshAuthToken({ request: { token } })
+      .then((r) => r.data.data as TokenRefreshResp),
 };

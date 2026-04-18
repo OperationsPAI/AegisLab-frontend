@@ -12,6 +12,7 @@ import type { ProjectResp } from '@rcabench/client';
 import {
   Button,
   Card,
+  Input,
   message,
   Modal,
   Row,
@@ -21,9 +22,10 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import dayjs from 'dayjs';
 
 import { projectApi } from '@/api/projects';
+import { createdAtColumn } from '@/components/ui/columns/createdAtColumn';
+import { usePagination } from '@/hooks/usePagination';
 import { useProjects } from '@/hooks/useProjects';
 
 import CreateProjectModal from './CreateProjectModal';
@@ -40,32 +42,27 @@ const ProjectList = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [batchDeleting, setBatchDeleting] = useState(false);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
+  const {
+    current,
+    pageSize,
+    onChange: onPaginationChange,
+    reset: resetPagination,
+  } = usePagination({ defaultPageSize: 10 });
 
   const {
     data: projectsData,
     isLoading,
     refetch,
   } = useProjects({
-    page: pagination.current,
-    size: pagination.pageSize,
+    page: current,
+    size: pageSize,
   });
 
   const handleTableChange = (newPagination: TablePaginationConfig) => {
-    setPagination({
-      ...pagination,
-      current: newPagination.current || 1,
-      pageSize: newPagination.pageSize || 10,
-    });
-  };
-
-  const handleSearch = (value: string) => {
-    setSearchText(value);
-    setPagination({ ...pagination, current: 1 });
+    onPaginationChange(
+      newPagination.current || 1,
+      newPagination.pageSize || 10
+    );
   };
 
   const handleDelete = async () => {
@@ -135,15 +132,7 @@ const ProjectList = () => {
           <Tag icon={<EyeInvisibleOutlined />}>Private</Tag>
         ),
     },
-    {
-      title: 'Created',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: 160,
-      render: (date: string) => (
-        <Text>{date ? dayjs(date).format('MMM D, YYYY') : '-'}</Text>
-      ),
-    },
+    createdAtColumn<ProjectResp>(),
     {
       title: 'Actions',
       key: 'actions',
@@ -193,22 +182,6 @@ const ProjectList = () => {
         </Button>
       </div>
 
-      {/* Search */}
-      <Card className='search-card'>
-        <Row align='middle'>
-          <Col flex='auto'>
-            <Search
-              placeholder='Search projects by name...'
-              allowClear
-              enterButton={<SearchOutlined />}
-              size='large'
-              onSearch={handleSearch}
-              style={{ maxWidth: 400 }}
-            />
-          </Col>
-        </Row>
-      </Card>
-
       {/* Batch Operations */}
       {selectedRowKeys.length > 0 && (
         <Card size='small' style={{ marginBottom: 16 }}>
@@ -237,7 +210,8 @@ const ProjectList = () => {
             onChange: setSelectedRowKeys,
           }}
           pagination={{
-            ...pagination,
+            current,
+            pageSize,
             total: projectsData?.pagination?.total || 0,
             showSizeChanger: true,
             showQuickJumper: true,

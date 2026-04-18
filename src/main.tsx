@@ -2,9 +2,14 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { App as AntdApp, ConfigProvider } from 'antd';
+import {
+  MutationCache,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query';
+import { App as AntdApp, ConfigProvider, message } from 'antd';
 import enUS from 'antd/locale/en_US';
+import type { AxiosError } from 'axios';
 import dayjs from 'dayjs';
 import 'dayjs/locale/en';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -22,10 +27,22 @@ dayjs.locale('en');
 dayjs.extend(relativeTime);
 
 const queryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onError: (error) => {
+      const msg =
+        (error as AxiosError<{ message?: string }>)?.response?.data?.message ||
+        error.message ||
+        'Operation failed';
+      message.error(msg);
+    },
+  }),
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      retry: 1,
+      retry: (failureCount, error) => {
+        if ((error as AxiosError)?.response?.status === 401) return false;
+        return failureCount < 1;
+      },
       staleTime: 5 * 60 * 1000, // 5 minutes
     },
   },
