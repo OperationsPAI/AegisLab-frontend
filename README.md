@@ -1,3 +1,14 @@
+> ## ⚠️ This repository has moved
+>
+> This repo has been consolidated into the **[`OperationsPAI/aegis`](https://github.com/OperationsPAI/aegis)** monorepo.
+>
+> - Code now lives under **[`AegisLab-frontend/`](https://github.com/OperationsPAI/aegis/tree/main/AegisLab-frontend)** in the monorepo (original directory names preserved).
+> - Pre-migration git history remains viewable here.
+> - **For all new PRs and issues, go to [OperationsPAI/aegis](https://github.com/OperationsPAI/aegis).**
+> - This repository is archived as of 2026-04-19.
+>
+> ---
+
 # RCABench Frontend
 
 English | [中文](./docs/README.zh-CN.md)
